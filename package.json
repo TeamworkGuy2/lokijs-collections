@@ -1,0 +1,19 @@
+{
+  "name": "lokijs-collections",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">= 0.12.0"
+  },
+  "dependencies": {
+    "lodash": "^2.4.1",
+    "lokijs": "~1.2.0",
+    "q": "^1.1.2",
+    "ts-code-generator": "^0.2.0",
+    "ts-mortar": "^0.2.0"
+  },
+  "devDependencies": {
+    "gulp-util": "~3.0.7",
+    "qunit": "~0.7.7",
+    "typescript": "~1.6.2"
+  }
+}
