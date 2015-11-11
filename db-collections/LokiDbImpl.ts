@@ -1,11 +1,11 @@
-﻿/// <reference path="./definitions/lib/Q.d.ts" />
-/// <reference path="./definitions/lib/lokijs.d.ts" />
+﻿/// <reference path="../definitions/lib/Q.d.ts" />
+/// <reference path="../definitions/lib/lokijs.d.ts" />
 import _ = require("lodash");
 import Q = require("q");
 import Loki = require("lokijs");
-import ChangeTrackersImpl = require("./change-trackers/ChangeTrackersImpl");
-import ModelKeysImpl = require("./key-constraints/ModelKeysImpl");
-import PrimaryKeyMaintainer = require("./key-constraints/PrimaryKeyMaintainer");
+import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
+import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
+import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 
 
 function stripMetaData(obj: any): any {
@@ -136,6 +136,7 @@ class PermissionedDataPersistAdapter implements DataPersister.Adapter {
 class InMemDbImpl implements InMemDb {
     private cache: StringMap<any>;
     private primaryKeyMaintainer: PrimaryKeyMaintainer;
+    private metaDataStorageCollectionName: string;
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
     private db: Loki;
@@ -146,13 +147,15 @@ class InMemDbImpl implements InMemDb {
     private storeSettings: StorageFormatSettings;
 
 
-    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, modelDefinitions: ModelDefinitions, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter) {
+    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, metaDataStorageCollectionName: string,
+            modelDefinitions: ModelDefinitions, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter) {
         this.dbName = dbName;
         this.syncSettings = settings;
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.dataPersisterFactory = dataPersisterFactory;
+        this.metaDataStorageCollectionName = metaDataStorageCollectionName;
         this.cache = {};
 
         this.getCollections = this.getCollections.bind(this);
@@ -303,7 +306,7 @@ class InMemDbImpl implements InMemDb {
 
         // generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
         if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this, this.modelKeys);
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelKeys);
         }
         this.primaryKeyMaintainer.manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
         //Ensure a legacy uniqueId field is present

@@ -1,5 +1,5 @@
 ﻿import CollectionMetaData = require("./CollectionMetaData");
-import DataCollection = require("../DataCollection");
+import DataCollection = require("../db-collections/DataCollection");
 
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
  * @author TeamworkGuy2
@@ -11,7 +11,8 @@ class PrimaryKeyMaintainer {
     private modelKeys: ModelKeys;
 
 
-    constructor(dataSrc: InMemDb, modelKeys: ModelKeys) {
+    constructor(collectionName: string, dataSrc: InMemDb, modelKeys: ModelKeys) {
+        this.metaDataCollectionName = collectionName;
         this.dataSrc = dataSrc;
         this.modelKeys = modelKeys;
     }

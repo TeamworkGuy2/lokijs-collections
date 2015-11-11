@@ -1,12 +1,13 @@
 var CollectionMetaData = require("./CollectionMetaData");
-var DataCollection = require("../DataCollection");
+var DataCollection = require("../db-collections/DataCollection");
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
  * @author TeamworkGuy2
  */
 var PrimaryKeyMaintainer = (function () {
-    function PrimaryKeyMaintainer(dataSrc, modelKeys) {
+    function PrimaryKeyMaintainer(collectionName, dataSrc, modelKeys) {
         this.metaDataCollectionName = "collection_meta_data";
         this.metaDataColl = null;
+        this.metaDataCollectionName = collectionName;
         this.dataSrc = dataSrc;
         this.modelKeys = modelKeys;
     }
