@@ -1,5 +1,5 @@
 ﻿/// <reference path="../definitions/lib/lokijs.d.ts" />
-/// <reference path="../lib/ts-code-generator/definitions/types.d.ts" />
+/// <reference path="../lib/ts-code-generator/code-types/model-types.d.ts" />
 
 /* lokijs-collection interfaces - Data storage/retrieval interface, specifically for storing/retrieving strongly typed data models
  * @author TeamworkGuy2
@@ -214,7 +214,7 @@ declare module DataPersister {
  * @author TeamworkGuy2
  */
 interface ModelDefinitions {
-    models: { [name: string]: ServiceTypesDefinition };
+    models: { [name: string]: WebServiceModelDef };
 
     getUniqueIdNames(modelName: string): string[];
 
