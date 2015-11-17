@@ -230,15 +230,23 @@ interface ModelDefinitions {
     //   }
     // }
     dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
+}
 
+
+
+
+/** ModelDefinitionsTemplate - defines a set of template variable for data model definitions
+ * @author TeamworkGuy2
+ */
+interface ModelDefinitionsTemplate<L> extends ModelDefinitions {
     // can customize the strings that mark the start/end of a template variable
-    templateStartMark: string;
-    templateEndMark: string;
+    templateDelimiterStart: string;
+    templateDelimiterEnd: string;
 
     // the key names in this map are the variables that are provided by the parent code when this template is generated.
     // the key names cannot be modified without modifying the code that uses this template file
     // the value strings can be modified to be any template variable name you want, these are used by the 'templateVariables' map
-    templateInputLinks: { [name: string]: string };
+    templateContextPropLinks: L;
 
     /** associates template variables (used by template-type-props) with expressions containing 'templateInputLinks' values
      * when a model template is generated, template-type-props (e.g. 'toLocal', 'toService') get expanded recursively from the keys in this map to thir values until no templateStart/End marks remain
