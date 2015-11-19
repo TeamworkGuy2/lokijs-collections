@@ -33,30 +33,17 @@ interface InMemDb {
 
 
     // Add, Remove, Update Operations
-    add(collectionName: string, docs: any, dstMetaData?: Changes.CollectionChangeTracker): any;
+    add(collection: LokiCollection<any>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): any;
 
-    addNoModify(collectionName: string, docs: any, dstMetaData?: Changes.CollectionChangeTracker);
+    addAll(collection: LokiCollection<any>, docs: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
 
-    addAll(collectionName: string, docs: any[], dstMetaData?: Changes.CollectionChangeTracker);
+    update(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
 
-    update(collectionName: string, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
+    find<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
 
-    find(collectionName: string, query?: any): ResultSetLike<any>;
+    findSinglePropQuery<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): T[];
 
-    remove(collectionName: string, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
-
-
-    _addToCollection(collection: LokiCollection<any>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): any;
-
-    _addToCollectionAll(collection: LokiCollection<any>, docs: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
-
-    _update(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
-
-    _find<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
-
-    _findSinglePropQueryData<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): T[];
-
-    _remove(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
+    remove(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
 
 
     // Utility methods =====================================
@@ -67,53 +54,34 @@ interface InMemDb {
     removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
 
-    _getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
+    getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
 
-    _clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
+    clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
 
-    _removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
+    removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
 
     /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    findOne(collectionName: string, query: any);
-
-
-    _findOne(collection: LokiCollection<any>, query: any);
-
-
-    // KeyValue store ==========================================
-    getItem(key: string);
-
-    setItem(key: string, value: any);
-
-    removeItem(key: string);
-
-
-    updateWhere(collectionName: string, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker);
-
-    addOrUpdateWhere(collectionName: string, query: any, obj: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
-
-    removeWhere(collectionName: string, query: any, dstMetaData?: Changes.CollectionChangeTracker);
-
-    addOrUpdateAll(collectionName: string, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    findOne(collection: LokiCollection<any>, query: any);
 
 
     // the number of items modified
-    _updateWhere(collection: LokiCollection<any>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    updateWhere(collection: LokiCollection<any>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // the number of items added and the number modified
-    _addOrUpdateWhere(collection: LokiCollection<any>, query: any, obj: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    addOrUpdateWhere(collection: LokiCollection<any>, query: any, obj: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
 
-    _removeWhere(collection: LokiCollection<any>, query: any, dstMetaData?: Changes.CollectionChangeTracker);
+    removeWhere(collection: LokiCollection<any>, query: any, dstMetaData?: Changes.CollectionChangeTracker);
 
-    _addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
 
 
     // Array-like
-    mapReduce(collectionName: string, map, reduce);
+    mapReduce(collection: LokiCollection<any>, map: (value, index: number, array: any[]) => any,
+        reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any);
 
 }
 

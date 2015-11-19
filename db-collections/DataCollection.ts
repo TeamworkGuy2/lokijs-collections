@@ -3,7 +3,7 @@
 import EventListenerListImpl = require("../lib/ts-mortar/events/EventListenerListImpl");
 import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 
-/** DataCollection interface
+/** DataCollection class
  * Represents an in-mem, synchronous, data collection with unique keys.
  * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
  *
@@ -36,7 +36,7 @@ class DataCollection<E, O> {
     constructor(collectionName: string, dbInst: InMemDb, trackChanges: boolean = false) {
         this.dbInst = dbInst;
         this.collectionName = collectionName.toLowerCase();
-        this.collection = dbInst._getCollection(collectionName, true);
+        this.collection = dbInst.getCollection(collectionName, true);
         this.primaryKeyFieldNames = dbInst.getModelKeys().getUniqueIdNames(collectionName);
         if (trackChanges) {
             this.initializeEventHandler();
@@ -109,7 +109,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._addToCollection(this.collection, docs, noModify, change);
+        var res = this.dbInst.add(this.collection, docs, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -136,7 +136,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._addToCollectionAll(this.collection, docs, noModify, change);
+        var res = this.dbInst.addAll(this.collection, docs, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -151,7 +151,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._update(this.collection, doc, change);
+        var res = this.dbInst.update(this.collection, doc, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -166,7 +166,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._update(this.collection, docs, change);
+        var res = this.dbInst.update(this.collection, docs, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -180,9 +180,9 @@ class DataCollection<E, O> {
     data(query?: O): E[]{
         var queryProps = query ? Object.keys(query) : null;
         if (queryProps && queryProps.length === 1) {
-            return this.dbInst._findSinglePropQueryData(this.collection, query, queryProps);
+            return this.dbInst.findSinglePropQuery(this.collection, query, queryProps);
         }
-        return this.dbInst._find(this.collection, query, queryProps).data();
+        return this.dbInst.find(this.collection, query, queryProps).data();
     }
 
 
@@ -190,7 +190,7 @@ class DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
     find(query?: O): ResultSetLike<E> {
-        return this.dbInst._find(this.collection, query);
+        return this.dbInst.find(this.collection, query);
     }
 
 
@@ -199,7 +199,7 @@ class DataCollection<E, O> {
      * and returns a flag indicating whether the object is a match or not
      */
     where(func: (doc: E) => boolean): ResultSetLike<E> {
-        return this.dbInst._find(this.collection).where(func);
+        return this.dbInst.find(this.collection).where(func);
     }
 
 
@@ -210,7 +210,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._remove(this.collection, doc, change);
+        var res = this.dbInst.remove(this.collection, doc, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -222,7 +222,7 @@ class DataCollection<E, O> {
      * @throws Error if the query results in more than one or no results
      */
     findOne(query: O): E {
-        return this.dbInst._findOne(this.collection, query);
+        return this.dbInst.findOne(this.collection, query);
     }
 
 
@@ -235,7 +235,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._updateWhere(this.collection, query, obj, change);
+        var res = this.dbInst.updateWhere(this.collection, query, obj, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -253,7 +253,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._addOrUpdateWhere(this.collection, query, obj, true, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, query, obj, true, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -270,7 +270,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._addOrUpdateWhere(this.collection, query, obj, noModify, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, query, obj, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -282,7 +282,7 @@ class DataCollection<E, O> {
     removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker) {
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._removeWhere(this.collection, query, change);
+        var res = this.dbInst.removeWhere(this.collection, query, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -319,7 +319,7 @@ class DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._addOrUpdateAll(this.collection, keyNames[0], updatesArray, noModify, change);
+        var res = this.dbInst.addOrUpdateAll(this.collection, keyNames[0], updatesArray, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -332,7 +332,7 @@ class DataCollection<E, O> {
     clearCollection(dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._clearCollection(this.collection, change);
+        var res = this.dbInst.clearCollection(this.collection, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -344,7 +344,7 @@ class DataCollection<E, O> {
     deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst._removeCollection(this.collection, change);
+        var res = this.dbInst.removeCollection(this.collection, change);
 
         this.collChange(change, dstResultInfo);
         return res;
