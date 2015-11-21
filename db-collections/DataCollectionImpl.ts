@@ -3,8 +3,8 @@
 import EventListenerListImpl = require("../lib/ts-mortar/events/EventListenerListImpl");
 import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 
-/** DataCollection class
- * Represents an in-mem, synchronous, data collection with unique keys.
+/** DataCollectionImpl class
+ * Represents an in-memory, synchronous, data collection with unique keys.
  * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
@@ -14,7 +14,7 @@ import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
  * @param <E> the type of data stored in this data collection
  * @param <O> the filter/query type, this is normally type {@code E} with all properties optional
  */
-class DataCollection<E, O> {
+class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     private collectionName: string;
     private dbInst: InMemDb;
     private collection: LokiCollection<E>;
@@ -99,7 +99,7 @@ class DataCollection<E, O> {
     /** Add a document to this collection AND do not run any collection actions on the document,
      * such as generating primary keys
      */
-    addNoModify(docs: E, dstResultInfo?: Changes.CollectionChangeTracker) {
+    addNoModify(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
         return this._add(docs, true, dstResultInfo);
     }
 
@@ -118,7 +118,7 @@ class DataCollection<E, O> {
 
     /** Add multiple documents to this collection
      */
-    addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker) {
+    addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this._addAll(docs, false, dstResultInfo);
     }
 
@@ -126,7 +126,7 @@ class DataCollection<E, O> {
     /** Add multiple documents to this collection AND do not run any collection actions on the documents,
      * such as generating primary keys
      */
-    addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker) {
+    addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this._addAll(docs, true, dstResultInfo);
     }
 
@@ -146,7 +146,7 @@ class DataCollection<E, O> {
     /** Mark an existing document in this collection modified.
      * The document specified must already exist in the collection
      */
-    update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker) {
+    update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (doc == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -161,7 +161,7 @@ class DataCollection<E, O> {
     /** Mark multiple existing documents in this collection modified.
      * The documents specified must all already exist in the collection
      */
-    updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker) {
+    updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (docs == null || docs.length === 0) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -177,7 +177,7 @@ class DataCollection<E, O> {
      * @param {Object} query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return {E[]} of objects
      */
-    data(query?: O): E[]{
+    data(query?: O): E[] {
         var queryProps = query ? Object.keys(query) : null;
         if (queryProps && queryProps.length === 1) {
             return this.dbInst.findSinglePropQuery(this.collection, query, queryProps);
@@ -205,7 +205,7 @@ class DataCollection<E, O> {
 
     /** Remove a document from this collection.
      */
-    remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker) {
+    remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (doc == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -230,7 +230,7 @@ class DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker) {
+    updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -248,7 +248,7 @@ class DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker) {
+    addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -265,7 +265,7 @@ class DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
+    addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -279,7 +279,7 @@ class DataCollection<E, O> {
 
     /** Remove documents from this collection that match a given query
      */
-    removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker) {
+    removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
         var res = this.dbInst.removeWhere(this.collection, query, change);
@@ -297,7 +297,7 @@ class DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker) {
+    addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this.addOrUpdateAll(updatesArray, true, dstResultInfo);
     }
 
@@ -309,7 +309,7 @@ class DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
+    addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (updatesArray == null || updatesArray.length === 0) { return; }
         var keyNames = this.primaryKeyFieldNames;
 
@@ -352,4 +352,4 @@ class DataCollection<E, O> {
 
 }
 
-export = DataCollection;
+export = DataCollectionImpl;

@@ -40,6 +40,8 @@ var ResultsetMock = (function () {
     };
     return ResultsetMock;
 })();
+/** An implementation of InMemDb that wraps a LokiJS database
+ */
 var InMemDbImpl = (function () {
     function InMemDbImpl(dbName, settings, storeSettings, metaDataStorageCollectionName, modelDefinitions, dataPersisterFactory) {
         this.dbName = dbName;
@@ -240,7 +242,7 @@ var InMemDbImpl = (function () {
         if (res.length < min || res.length > max) {
             throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
         }
-        return res[0];
+        return max === 1 ? res[0] : res;
     };
     /** Query with multiple criteria
      */

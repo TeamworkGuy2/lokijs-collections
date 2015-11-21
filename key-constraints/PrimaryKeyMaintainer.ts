@@ -1,5 +1,5 @@
 ﻿import CollectionMetaData = require("./CollectionMetaData");
-import DataCollection = require("../db-collections/DataCollection");
+import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
  * @author TeamworkGuy2
@@ -82,7 +82,7 @@ class PrimaryKeyMaintainer {
     // creates an {@link DataCollection} if {@code dataColl} is null, otherwise returns {@code dataColl} unmodified
     private static initMetaDataCollection(dataColl: DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel>, collectionName: string, dbDataInst: InMemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
         if (dataColl == null) {
-            return new DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, dbDataInst);
+            return new DataCollectionImpl<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, dbDataInst);
         }
         return dataColl;
     }

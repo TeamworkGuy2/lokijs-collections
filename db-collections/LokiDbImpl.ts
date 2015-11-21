@@ -52,6 +52,8 @@ class ResultsetMock<E> implements ResultSetLike<E> {
 }
 
 
+/** An implementation of InMemDb that wraps a LokiJS database
+ */
 class InMemDbImpl implements InMemDb {
     private primaryKeyMaintainer: PrimaryKeyMaintainer;
     private nonNullKeyMaintainer: NonNullKeyMaintainer;
@@ -118,12 +120,12 @@ class InMemDbImpl implements InMemDb {
 
     // ==== Meta-data Getters/Setters ====
 
-    public getModelDefinitions() {
+    public getModelDefinitions(): ModelDefinitions {
         return this.modelDefinitions;
     }
 
 
-    public getModelKeys() {
+    public getModelKeys(): ModelKeys {
         return this.modelKeys;
     }
 
@@ -204,7 +206,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public update(collection: LokiCollection<any>, doc, dstMetaData?: Changes.CollectionChangeTracker) {
+    public update(collection: LokiCollection<any>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (dstMetaData) {
             dstMetaData.addChangeItemsModified(doc);
         }
@@ -248,7 +250,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public remove(collection: LokiCollection<any>, doc, dstMetaData?: Changes.CollectionChangeTracker) {
+    public remove(collection: LokiCollection<any>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (!collection) {
             return;
         }
@@ -286,7 +288,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public clearCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker) {
+    public clearCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
         var coll: LokiCollection<any> = typeof collection === "string" ? this.getCollection(collection) : collection;
 
         if (coll) {
@@ -300,7 +302,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public removeCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker) {
+    public removeCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
         var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
 
         if (dstMetaData) {
@@ -330,7 +332,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    _findNResults(collection: LokiCollection<any>, min: number, max: number, query) {
+    _findNResults(collection: LokiCollection<any>, min: number, max: number, query): any | any[] {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
@@ -339,13 +341,13 @@ class InMemDbImpl implements InMemDb {
         if (res.length < min || res.length > max) {
             throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
         }
-        return res[0];
+        return max === 1 ? res[0] : res;
     }
 
 
     /** Query with multiple criteria
      */
-    _findMultiProp<S>(resSet: ResultSetLike<S>, query: any, queryProps?: string[]) {
+    _findMultiProp<S>(resSet: ResultSetLike<S>, query: any, queryProps?: string[]): ResultSetLike<S> {
         var results = resSet;
         if (!queryProps) {
             for (var prop in query) {
@@ -367,7 +369,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public updateWhere(collection: LokiCollection<any>, query, obj, dstMetaData?: Changes.CollectionChangeTracker) {
+    public updateWhere(collection: LokiCollection<any>, query, obj, dstMetaData?: Changes.CollectionChangeTracker): void {
         var updateProperties = stripMetaData(obj);
 
         query = this.modelKeys.validateQuery(collection.name, query, updateProperties);
@@ -387,7 +389,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateWhere(collection: LokiCollection<any>, query, obj, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker) {
+    public addOrUpdateWhere(collection: LokiCollection<any>, query, obj, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         //remove loki information so not to overwrite it.
         var updateProperties = stripMetaData(obj);
         query = this.modelKeys.validateQuery(collection.name, query, updateProperties);
@@ -421,7 +423,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public removeWhere(collection: LokiCollection<any>, query, dstMetaData?: Changes.CollectionChangeTracker) {
+    public removeWhere(collection: LokiCollection<any>, query, dstMetaData?: Changes.CollectionChangeTracker): void {
         var docs = this.find(collection, query).data();
         for (var i = 0, size = docs.length; i < size; i++) {
             var doc = docs[i];
@@ -430,7 +432,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker) {
+    public addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var existingData = this.find(collection).data();
         var existingDataKeys = _.pluck(existingData, keyName);
 

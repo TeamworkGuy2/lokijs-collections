@@ -31,7 +31,6 @@ interface InMemDb {
 
     setDataPersister(dataPersister: DataPersister.Adapter): Q.IPromise<void>;
 
-
     // Add, Remove, Update Operations
     add(collection: LokiCollection<any>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): any;
 
@@ -43,13 +42,12 @@ interface InMemDb {
 
     findSinglePropQuery<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): T[];
 
-    remove(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
-
+    remove(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Utility methods =====================================
     getCollections(): LokiCollection<any>[];
 
-    clearCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker);
+    clearCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
@@ -60,24 +58,21 @@ interface InMemDb {
 
     removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-
     /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     findOne(collection: LokiCollection<any>, query: any);
 
-
     // the number of items modified
     updateWhere(collection: LokiCollection<any>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // the number of items added and the number modified
-    addOrUpdateWhere(collection: LokiCollection<any>, query: any, obj: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    addOrUpdateWhere(collection: LokiCollection<any>, query: any, obj: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    removeWhere(collection: LokiCollection<any>, query: any, dstMetaData?: Changes.CollectionChangeTracker);
+    removeWhere(collection: LokiCollection<any>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
-
+    addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Array-like
     mapReduce(collection: LokiCollection<any>, map: (value, index: number, array: any[]) => any,
@@ -104,6 +99,144 @@ interface ResultSetLike<E> {
     simplesort(propname, isdesc?: boolean): ResultSetLike<E>;
 
     where(func: (doc: E) => boolean): ResultSetLike<E>;
+
+}
+
+
+
+
+/** DataCollection class
+ * Represents an in-mem, synchronous, data collection with unique keys.
+ * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
+ *
+ * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
+ * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
+ *
+ * @author TeamworkGuy2
+ * @param <E> the type of data stored in this data collection
+ * @param <O> the filter/query type, this is normally type {@code E} with all properties optional
+ */
+interface DataCollection<E, O> {
+
+    initializeEventHandler(): void;
+
+    destroyEventHandler(): void;
+
+    getCollectionEventHandler(): Events.ListenerList<Changes.CollectionChange, Changes.ChangeListener>;
+
+    /**
+     * @return {String} the name of this collection of data models
+     */
+    getName(): string;
+
+    // Crud Operations =========================
+    /** Add a document to this collection
+     */
+    add(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E;
+
+    /** Add a document to this collection AND do not run any collection actions on the document,
+     * such as generating primary keys
+     */
+    addNoModify(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E;
+
+    /** Add multiple documents to this collection
+     */
+    addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Add multiple documents to this collection AND do not run any collection actions on the documents,
+     * such as generating primary keys
+     */
+    addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Mark an existing document in this collection modified.
+     * The document specified must already exist in the collection
+     */
+    update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Mark multiple existing documents in this collection modified.
+     * The documents specified must all already exist in the collection
+     */
+    updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Performs a single search operation and returns an array of results
+     * @param {Object} query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @return {E[]} of objects
+     */
+    data(query?: O): E[];
+
+    /** Starts a chained search operation and returns a search result set which can be further refined
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     */
+    find(query?: O): ResultSetLike<E>;
+
+    /** Starts a chained filter operation and returns a search result set which can be further refined
+     * @param func: a javascript {@link Array#filter} style function that accepts an object
+     * and returns a flag indicating whether the object is a match or not
+     */
+    where(func: (doc: E) => boolean): ResultSetLike<E>;
+
+    /** Remove a document from this collection.
+     */
+    remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
+     * @return {Object} a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    findOne(query: O): E;
+
+    /** Update documents matching a query with properties from a provided update object
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in {@link #updateWhere()},
+     * if not matches are found, then the object/document is added to this collection AND no collection actions
+     * are applied to the added document, such as generating primary keys.
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in {@link #updateWhere()},
+     * if not matches are found, then the object/document is added to this collection.
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Remove documents from this collection that match a given query
+     */
+    removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Queries this collection based on the primary key of each of the input documents,
+     * if one or more matches are found for a given document, then those matching documents are updated
+     * with the properties from 'obj' as defined in {@link #updateWhere()},
+     * if not matches are found for a given doucment, then the document is added to this collection
+     * AND no collection actions are applied to the added document, such as generating primary keys.
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Queries this collection based on the primary key of each of the input document,
+     * if one or more matches are found for a given document, then those matching documents are updated
+     * with the properties from 'obj' as defined in {@link #updateWhere()},
+     * if not matches are found, then the documents are added to this collection.
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    // Utility methods =========================================
+    /** Remove all documents from this collection
+     */
+    clearCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
+
+    /** Remove this collection from the database instance
+     */
+    deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
 
 }
 

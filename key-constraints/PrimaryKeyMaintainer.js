@@ -1,5 +1,5 @@
 var CollectionMetaData = require("./CollectionMetaData");
-var DataCollection = require("../db-collections/DataCollection");
+var DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
  * @author TeamworkGuy2
  */
@@ -68,7 +68,7 @@ var PrimaryKeyMaintainer = (function () {
     // creates an {@link DataCollection} if {@code dataColl} is null, otherwise returns {@code dataColl} unmodified
     PrimaryKeyMaintainer.initMetaDataCollection = function (dataColl, collectionName, dbDataInst) {
         if (dataColl == null) {
-            return new DataCollection(collectionName, dbDataInst);
+            return new DataCollectionImpl(collectionName, dbDataInst);
         }
         return dataColl;
     };
