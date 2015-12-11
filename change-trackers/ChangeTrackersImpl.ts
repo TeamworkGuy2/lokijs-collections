@@ -24,17 +24,17 @@ module ChangeTrackersImpl {
 
 
         public addChangeItemsAdded(items: any | any[]) {
-            this.changeInfo.added += (items ? items.length ? items.length : 1 : 0);
+            this.changeInfo.added += (items ? items.length || 1 : 0);
         }
 
 
         public addChangeItemsModified(items: any | any[]) {
-            this.changeInfo.modified += (items ? items.length ? items.length : 1 : 0);
+            this.changeInfo.modified += (items ? items.length || 1 : 0);
         }
 
 
         public addChangeItemsRemoved(items: any | any[]) {
-            this.changeInfo.removed += (items ? items.length ? items.length : 1 : 0);
+            this.changeInfo.removed += (items ? items.length || 1 : 0);
         }
 
 
@@ -119,8 +119,8 @@ module ChangeTrackersImpl {
          */
         private static createChangeInfoObjectFromArray(added: any | any[], modified: any | any[], removed: any | any[]) {
             return ChangeTracker.createChangeInfoObject((added ? added.length ? added.length : 1 : 0),
-                (modified ? modified.length ? modified.length : 1 : 0),
-                (removed ? removed.length ? removed.length : 1 : 0));
+                (modified ? modified.length || 1 : 0),
+                (removed ? removed.length || 1 : 0));
         }
 
 

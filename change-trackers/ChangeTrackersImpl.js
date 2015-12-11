@@ -26,13 +26,13 @@ var ChangeTrackersImpl;
             configurable: true
         });
         CompoundCollectionChange.prototype.addChangeItemsAdded = function (items) {
-            this.changeInfo.added += (items ? items.length ? items.length : 1 : 0);
+            this.changeInfo.added += (items ? items.length || 1 : 0);
         };
         CompoundCollectionChange.prototype.addChangeItemsModified = function (items) {
-            this.changeInfo.modified += (items ? items.length ? items.length : 1 : 0);
+            this.changeInfo.modified += (items ? items.length || 1 : 0);
         };
         CompoundCollectionChange.prototype.addChangeItemsRemoved = function (items) {
-            this.changeInfo.removed += (items ? items.length ? items.length : 1 : 0);
+            this.changeInfo.removed += (items ? items.length || 1 : 0);
         };
         CompoundCollectionChange.prototype.addChange = function (change) {
             if (change == null) {
@@ -94,7 +94,7 @@ var ChangeTrackersImpl;
         /** Create a change object with 'added', 'modified', and 'removed' counts equal to the input parameter(s)
          */
         ChangeTracker.createChangeInfoObjectFromArray = function (added, modified, removed) {
-            return ChangeTracker.createChangeInfoObject((added ? added.length ? added.length : 1 : 0), (modified ? modified.length ? modified.length : 1 : 0), (removed ? removed.length ? removed.length : 1 : 0));
+            return ChangeTracker.createChangeInfoObject((added ? added.length ? added.length : 1 : 0), (modified ? modified.length || 1 : 0), (removed ? removed.length || 1 : 0));
         };
         ChangeTracker.createChangeInfoObject = function (added, modified, removed) {
             return {

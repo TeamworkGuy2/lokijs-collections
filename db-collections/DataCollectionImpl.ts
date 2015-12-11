@@ -27,9 +27,9 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
 
     /** Create a new document collection backed by a provided 'InMemDb' instance.
-     * @param {String} collectionName: the name of this collection
+     * @param {string} collectionName: the name of this collection
      * @param dbInst: the 'InMemDb' containing this collection's actual data
-     * @param {Boolean} trackChanges: flag to initialize an event handler and change tracker for this collection or not.
+     * @param {boolean} trackChanges: flag to initialize an event handler and change tracker for this collection or not.
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */

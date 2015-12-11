@@ -3,13 +3,20 @@
 var _ = require("lodash");
 var Q = require("q");
 var Loki = require("lokijs");
+var Arrays = require("../lib/ts-mortar/utils/Arrays");
 var ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
 var PermissionedDataPersisterAdapter = require("./PermissionedDataPersisterAdapter");
-function stripMetaData(obj) {
-    var returnValue = _.clone(obj);
+function stripMetaData(obj, doCloneDeep) {
+    var returnValue = _.clone(obj, doCloneDeep);
+    delete returnValue.$loki;
+    delete returnValue.meta;
+    return returnValue;
+}
+function stripMetaDataCloneDeep(obj) {
+    var returnValue = _.cloneDeep(obj);
     delete returnValue.$loki;
     delete returnValue.meta;
     return returnValue;
@@ -120,7 +127,6 @@ var InMemDbImpl = (function () {
         if (!docs || docs.length === 0) {
             return;
         }
-        var docsIsAry = Array.isArray(docs);
         // generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
         this.getPrimaryKeyMaintainer().manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
         //Ensure a legacy uniqueId field is present
@@ -131,7 +137,7 @@ var InMemDbImpl = (function () {
             throw new Error("ModelKeysImpl.Constraint.UNIQUE is not yet supported");
         }
         if (dstMetaData) {
-            dstMetaData.addChangeItemsAdded(docsIsAry);
+            dstMetaData.addChangeItemsAdded(docs);
         }
         collection.isDirty = true;
         this.dataAdded(collection, docs, null, dstMetaData);
@@ -266,23 +272,31 @@ var InMemDbImpl = (function () {
         return results;
     };
     InMemDbImpl.prototype.updateWhere = function (collection, query, obj, dstMetaData) {
-        var updateProperties = stripMetaData(obj);
-        query = this.modelKeys.validateQuery(collection.name, query, updateProperties);
+        query = this.modelKeys.validateQuery(collection.name, query, obj);
         var results = this._findMultiProp(collection.chain(), query);
         var resData = results.data();
         if (dstMetaData && resData.length > 0) {
             dstMetaData.addChangeItemsModified(resData.length);
         }
+        // get obj props, except the lokijs specific ones
+        var updateKeys = Object.keys(obj);
+        Arrays.fastRemove(updateKeys, "$loki");
+        Arrays.fastRemove(updateKeys, "meta");
+        var updateKeysLen = updateKeys.length;
         for (var i = 0, size = resData.length; i < size; i++) {
             var doc = resData[i];
-            _.assign(doc, updateProperties);
+            // assign obj props -> doc
+            var idx = -1;
+            while (idx++ < updateKeysLen) {
+                var key = updateKeys[idx];
+                doc[key] = obj[key];
+            }
             this.update(collection, doc);
         }
     };
     InMemDbImpl.prototype.addOrUpdateWhere = function (collection, query, obj, noModify, dstMetaData) {
         //remove loki information so not to overwrite it.
-        var updateProperties = stripMetaData(obj);
-        query = this.modelKeys.validateQuery(collection.name, query, updateProperties);
+        query = this.modelKeys.validateQuery(collection.name, query, obj);
         var results = this._findMultiProp(this.find(collection), query);
         var compoundDstMetaData = null;
         if (dstMetaData) {
@@ -292,19 +306,36 @@ var InMemDbImpl = (function () {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
-                compoundDstMetaData.addChangeItemsModified(toUpdate.length);
+                compoundDstMetaData.addChangeItemsModified(toUpdate.map(stripMetaDataCloneDeep));
             }
+            // get obj props, except the lokijs specific ones
+            var updateKeys = Object.keys(obj);
+            Arrays.fastRemove(updateKeys, "$loki");
+            Arrays.fastRemove(updateKeys, "meta");
+            var updateKeysLen = updateKeys.length;
             //update
             for (var i = 0, size = toUpdate.length; i < size; i++) {
                 var doc = toUpdate[i];
-                _.assign(doc, updateProperties);
+                // assign obj props -> doc
+                var idx = -1;
+                while (idx++ < updateKeysLen) {
+                    var key = updateKeys[idx];
+                    doc[key] = obj[key];
+                }
                 this.update(collection, doc);
             }
         }
         else {
-            //Ensure key information is present before inserting
-            var toAdd = _.assign(obj, query);
-            this.add(collection, toAdd, noModify, compoundDstMetaData);
+            // assign query props -> obj
+            // This ensures that search keys information is present before inserting
+            var queryKeys = Object.keys(query);
+            var idx = -1;
+            var len = queryKeys.length;
+            while (idx++ < len) {
+                var key = queryKeys[idx];
+                obj[key] = query[key];
+            }
+            this.add(collection, obj, noModify, compoundDstMetaData);
         }
     };
     InMemDbImpl.prototype.removeWhere = function (collection, query, dstMetaData) {
@@ -316,15 +347,19 @@ var InMemDbImpl = (function () {
     };
     InMemDbImpl.prototype.addOrUpdateAll = function (collection, keyName, updatesArray, noModify, dstMetaData) {
         var existingData = this.find(collection).data();
-        var existingDataKeys = _.pluck(existingData, keyName);
-        updatesArray = _.cloneDeep(updatesArray).map(stripMetaData);
+        // pluck keys from existing data
+        var existingDataKeys = [];
+        for (var ii = 0, sizeI = existingData.length; ii < sizeI; ii++) {
+            var prop = existingData[i][keyName];
+            existingDataKeys.push(prop);
+        }
         var toAdd = [];
         var toUpdate = [];
         for (var i = 0, size = updatesArray.length; i < size; i++) {
             var update = updatesArray[i];
             var idx = existingDataKeys.indexOf(update[keyName]);
             if (idx === -1) {
-                toAdd.push(update);
+                toAdd.push(stripMetaDataCloneDeep(update));
             }
             else {
                 toUpdate.push(update);
@@ -335,9 +370,9 @@ var InMemDbImpl = (function () {
             compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
         }
-        this.add(collection, toAdd, noModify, compoundDstMetaData);
-        if (compoundDstMetaData) {
-            compoundDstMetaData.addChangeItemsModified(toUpdate.length);
+        this.addAll(collection, toAdd, noModify, compoundDstMetaData);
+        if (compoundDstMetaData && toUpdate.length > 0) {
+            compoundDstMetaData.addChangeItemsModified(toUpdate.map(stripMetaDataCloneDeep));
         }
         for (var i = 0, size = toUpdate.length; i < size; i++) {
             var item = toUpdate[i];
