@@ -46,7 +46,7 @@ class ModelKeysImpl implements ModelKeys {
     }
 
 
-    public validateQuery(collectionName: string, query, obj): any {
+    public validateQuery(collectionName: string, query: any, obj: any): any {
         //Allow empty query to automatically query by Id;
         if (!query) {
             query = {};
