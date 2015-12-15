@@ -174,30 +174,30 @@ class InMemDbImpl implements InMemDb {
 
     // ==== Database CRUD Operations ====
 
-    public add<T>(collection: LokiCollection<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, ModelKeysImpl.Constraint.NON_NULL,
+    public add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
             noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
             [doc], dstMetaData);
     }
 
 
-    public addAll<T>(collection: LokiCollection<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, ModelKeysImpl.Constraint.NON_NULL,
+    public addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
             noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
             docs, dstMetaData);
     }
 
 
-    _addHandlePrimaryAndGeneratedKeys<T>(collection: LokiCollection<T>, primaryConstraint: ModelKeysImpl.Constraint,
+    _addHandlePrimaryAndGeneratedKeys<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, primaryConstraint: ModelKeysImpl.Constraint,
             generateOption: ModelKeysImpl.Generated, docs: T[], dstMetaData?: Changes.CollectionChangeTracker): T[] {
         // TODO primaryConstraint and generateOption validation
         if (!docs || docs.length === 0) {
             return;
         }
 
-        // generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
+        // Generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
         this.getPrimaryKeyMaintainer().manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
-        //Ensure a legacy uniqueId field is present
+        // Ensure a legacy uniqueId field is present
         if (primaryConstraint === ModelKeysImpl.Constraint.NON_NULL) {
             this.getNonNullKeyMaintainer().manageKeys(collection.name, docs, true);
         }
@@ -215,7 +215,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public update(collection: LokiCollection<any>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public update<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (dstMetaData) {
             dstMetaData.addChangeItemsModified(doc);
         }
@@ -226,7 +226,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public find<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): ResultSetLike<T> {
+    public find<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T> {
         // Check for empty collection
         // TODO remove, users should never request non-existent collections..?
         if (!collection) {
@@ -241,7 +241,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public findSinglePropQuery<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): T[] {
+    public findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): T[] {
         if (!collection) {
             throw new Error("null collection with query: " + query);
         }
@@ -259,7 +259,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public remove(collection: LokiCollection<any>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public remove<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (!collection) {
             return;
         }
@@ -269,7 +269,7 @@ class InMemDbImpl implements InMemDb {
 
         collection.isDirty = true;
         this.dataRemoved(collection, doc, null, dstMetaData);
-        return collection.remove(doc);
+        collection.remove(doc);
     }
 
 
@@ -282,7 +282,7 @@ class InMemDbImpl implements InMemDb {
 
     public getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any> {
         autoCreate = true;
-        collectionName = collectionName.toLowerCase();
+        collectionName = collectionName;
         var coll = this.db.getCollection(collectionName);
         if (!coll) {
             if (!autoCreate) {
@@ -331,17 +331,17 @@ class InMemDbImpl implements InMemDb {
      * @return {Object} a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    public findOne(collection: LokiCollection<any>, query) {
-        return this._findNResults(collection, 1, 1, query);
+    public findOne<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query) {
+        return this._findNResults(collection, dataModel, 1, 1, query);
     }
 
 
-    _findOneOrNull(collection: LokiCollection<any>, query) {
-        return this._findNResults(collection, 0, 1, query);
+    _findOneOrNull<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query) {
+        return this._findNResults(collection, dataModel, 0, 1, query);
     }
 
 
-    _findNResults(collection: LokiCollection<any>, min: number, max: number, query): any | any[] {
+    _findNResults<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, min: number, max: number, query): any | any[] {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
@@ -378,7 +378,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public updateWhere(collection: LokiCollection<any>, query, obj, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public updateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query, obj, dstMetaData?: Changes.CollectionChangeTracker): void {
 
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
@@ -405,16 +405,17 @@ class InMemDbImpl implements InMemDb {
                 doc[key] = obj[key];
             }
 
-            this.update(collection, doc);
+            this.update(collection, dataModel, doc);
         }
     }
 
 
-    public addOrUpdateWhere(collection: LokiCollection<any>, query, obj, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
-        //remove loki information so not to overwrite it.
+    public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var cloneFunc: (obj: T) => T = (dataModel && dataModel.copyFunc) || stripMetaDataCloneDeep;
+
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
-        var results = this._findMultiProp(this.find(collection), query);
+        var results = this._findMultiProp(this.find(collection, dataModel), query);
 
         var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange = null;
         if (dstMetaData) {
@@ -425,7 +426,7 @@ class InMemDbImpl implements InMemDb {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
-                compoundDstMetaData.addChangeItemsModified(toUpdate.map(stripMetaDataCloneDeep));
+                compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
 
             // get obj props, except the lokijs specific ones
@@ -445,7 +446,7 @@ class InMemDbImpl implements InMemDb {
                     doc[key] = obj[key];
                 }
 
-                this.update(collection, doc);
+                this.update(collection, dataModel, doc);
             }
         }
         else {
@@ -459,36 +460,37 @@ class InMemDbImpl implements InMemDb {
                 obj[key] = query[key];
             }
 
-            this.add(collection, <any>obj, noModify, compoundDstMetaData);
+            this.add(collection, dataModel, obj, noModify, compoundDstMetaData);
         }
     }
 
 
-    public removeWhere(collection: LokiCollection<any>, query, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public removeWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query, dstMetaData?: Changes.CollectionChangeTracker): void {
         var docs = this.find(collection, query).data();
         for (var i = 0, size = docs.length; i < size; i++) {
             var doc = docs[i];
-            this.remove(collection, doc, dstMetaData);
+            this.remove(collection, dataModel, doc, dstMetaData);
         }
     }
 
 
-    public addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var existingData = this.find(collection).data();
+    public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var cloneFunc: (obj: T) => T = (dataModel && dataModel.copyFunc) || stripMetaDataCloneDeep;
+        var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];
         for (var ii = 0, sizeI = existingData.length; ii < sizeI; ii++) {
-            var prop = existingData[i][keyName];
+            var prop = existingData[ii][keyName];
             existingDataKeys.push(prop);
         }
 
-        var toAdd = [];
-        var toUpdate = [];
+        var toAdd: T[] = [];
+        var toUpdate: T[] = [];
         for (var i = 0, size = updatesArray.length; i < size; i++) {
             var update = updatesArray[i];
             var idx = existingDataKeys.indexOf(update[keyName]);
             if (idx === -1) {
-                toAdd.push(stripMetaDataCloneDeep(update));
+                toAdd.push(cloneFunc(update));
             }
             else {
                 toUpdate.push(update);
@@ -501,23 +503,23 @@ class InMemDbImpl implements InMemDb {
             dstMetaData.addChange(compoundDstMetaData);
         }
 
-        this.addAll(collection, toAdd, noModify, compoundDstMetaData);
+        this.addAll(collection, dataModel, toAdd, noModify, compoundDstMetaData);
 
         if (compoundDstMetaData && toUpdate.length > 0) {
-            compoundDstMetaData.addChangeItemsModified(toUpdate.map(stripMetaDataCloneDeep));
+            compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
         }
 
         for (var i = 0, size = toUpdate.length; i < size; i++) {
             var item = toUpdate[i];
             var query = {};
             query[keyName] = item[keyName];
-            this.updateWhere(collection, query, item);
+            this.updateWhere(collection, dataModel, query, item);
         }
     }
 
 
     // Array-like
-    public mapReduce(collection: LokiCollection<any>, map: (value, index: number, array: any[]) => any,
+    public mapReduce<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, map: (value: T, index: number, array: any[]) => any,
             reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any) {
         return collection.mapReduce(map, reduce);
     }

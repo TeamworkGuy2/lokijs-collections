@@ -13,7 +13,7 @@ var NonNullKeyMaintainer = (function () {
      */
     NonNullKeyMaintainer.prototype.manageKeys = function (collectionName, docs, throwErrorIfNull) {
         //Ensure a legacy uniqueId field is present
-        var keyNames = this.modelKeys.getUniqueIdNames(collectionName);
+        var keyNames = this.modelKeys.getDataModel(collectionName).primaryKeys;
         if (keyNames.length > 0) {
             if (throwErrorIfNull) {
                 for (var i = 0, size = docs.length; i < size; i++) {

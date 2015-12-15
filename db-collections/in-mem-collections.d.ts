@@ -32,17 +32,17 @@ interface InMemDb {
     setDataPersister(dataPersister: DataPersister.Adapter): Q.IPromise<void>;
 
     // Add, Remove, Update Operations
-    add(collection: LokiCollection<any>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): any;
+    add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
 
-    addAll(collection: LokiCollection<any>, docs: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
 
-    update(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
+    update<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
 
-    find<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
+    find<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
 
-    findSinglePropQuery<T>(collection: LokiCollection<T>, query?: any, queryProps?: string[]): T[];
+    findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): T[];
 
-    remove(collection: LokiCollection<any>, doc: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    remove<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Utility methods =====================================
     getCollections(): LokiCollection<any>[];
@@ -62,20 +62,20 @@ interface InMemDb {
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    findOne(collection: LokiCollection<any>, query: any);
+    findOne<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any);
 
     // the number of items modified
-    updateWhere(collection: LokiCollection<any>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    updateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // the number of items added and the number modified
-    addOrUpdateWhere(collection: LokiCollection<any>, query: any, obj: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    removeWhere(collection: LokiCollection<any>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    removeWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    addOrUpdateAll(collection: LokiCollection<any>, keyName: string, updatesArray: any[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Array-like
-    mapReduce(collection: LokiCollection<any>, map: (value, index: number, array: any[]) => any,
+    mapReduce<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, map: (value: T, index: number, array: T[]) => any,
         reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any);
 
 }
@@ -120,16 +120,18 @@ interface DataCollection<E, O> {
 
     initializeEventHandler(): void;
 
+    getDataModel(): CollectionDataModel<E>;
+
     destroyEventHandler(): void;
 
     getCollectionEventHandler(): Events.ListenerList<Changes.CollectionChange, Changes.ChangeListener>;
 
     /**
-     * @return {String} the name of this collection of data models
+     * @return {string} the name of this collection of data models
      */
     getName(): string;
 
-    // Crud Operations =========================
+    // ======== CRUD Operations ========
     /** Add a document to this collection
      */
     add(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E;
@@ -229,7 +231,6 @@ interface DataCollection<E, O> {
      */
     addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
-    // Utility methods =========================================
     /** Remove all documents from this collection
      */
     clearCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
@@ -237,7 +238,6 @@ interface DataCollection<E, O> {
     /** Remove this collection from the database instance
      */
     deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
-
 }
 
 
@@ -311,18 +311,27 @@ declare module DataPersister {
 
 
 
+interface CollectionDataModel<E> {
+    fieldNames: string[];
+    primaryKeys: string[];
+    autoGeneratedKeys: string[];
+    copyFunc?: (obj: any) => any;
+}
+
+
+
+
+interface CollectionModelDef<E> extends WebServiceModelDef {
+    copyFunc(obj: E): E;
+}
+
+
+
+
 /** ModelDefinitions - defines a set of data model meta-definitions
  * @author TeamworkGuy2
  */
 interface ModelDefinitions {
-    models: { [name: string]: WebServiceModelDef };
-
-    getUniqueIdNames(modelName: string): string[];
-
-    getAutoGeneratedKeyNames(modelName: string): string[];
-
-    getModelName(collectionName: string): string;
-
     // default data type attributes, these can be overridden by specifying custom attributes on individual model properties
     // for example, strings have a default value of 'null', you can change this to an empty string {@code ""} by adding a 'value: ""' attribute to a model property definition:
     // model: {
@@ -331,6 +340,17 @@ interface ModelDefinitions {
     //   }
     // }
     dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
+    models: { [name: string]: WebServiceModelDef };
+
+    getPrimaryKeyNames(modelName: string): string[];
+
+    getAutoGeneratedKeyNames(modelName: string): string[];
+
+    getFieldNames(modelName: string): string[];
+
+    getCopyFunc(modelName: string): (obj: any) => any;
+
+    getDataModel(modelName: string): CollectionDataModel<any>;
 }
 
 
@@ -367,11 +387,8 @@ interface ModelKeys {
 
     //constructor(modelDefs: ModelDefinitions)
 
-    //Get names of unique id fields per collection
-    getUniqueIdNames(collectionName: string): string[];
-
-    // Get names of auto-generated id fields per collection
-    getGeneratedIdNames(collectionName: string): string[];
+    // Return meta-data about a given collection's data type
+    getDataModel(collectionName: string): CollectionDataModel<any>;
 
     /** add missing IDs that should be auto-generated
      * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }

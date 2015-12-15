@@ -18,12 +18,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     private collectionName: string;
     private dbInst: InMemDb;
     private collection: LokiCollection<E>;
-    private primaryKeyFieldNames: string[]
     //private addCb: (added: E | E[]) => void;
     //private removeCb: (removed: E | E[]) => void;
     //private modifyCb: (modified: E | E[]) => void;
     private changes: ChangeTrackersImpl.ChangeTracker;
     private eventHandler: EventListenerListImpl<Changes.CollectionChange, Changes.ChangeListener>;
+    private dataModel: CollectionDataModel<E>;
 
 
     /** Create a new document collection backed by a provided 'InMemDb' instance.
@@ -33,11 +33,11 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    constructor(collectionName: string, dbInst: InMemDb, trackChanges: boolean = false) {
+    constructor(collectionName: string, dataModel: CollectionDataModel<E>, dbInst: InMemDb, trackChanges: boolean = false) {
         this.dbInst = dbInst;
-        this.collectionName = collectionName.toLowerCase();
+        this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
-        this.primaryKeyFieldNames = dbInst.getModelKeys().getUniqueIdNames(collectionName);
+        this.dataModel = dataModel;
         if (trackChanges) {
             this.initializeEventHandler();
         }
@@ -64,8 +64,13 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
+    public getDataModel() {
+        return this.dataModel;
+    }
+
+
     /**
-     * @return {String} the name of this collection of data models
+     * @return {string} the name of this collection of data models
      */
     public getName(): string {
         return this.collectionName;
@@ -91,7 +96,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     // Crud Operations =========================
     /** Add a document to this collection
      */
-    add(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
+    public add(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
         return this._add(docs, false, dstResultInfo);
     }
 
@@ -99,7 +104,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     /** Add a document to this collection AND do not run any collection actions on the document,
      * such as generating primary keys
      */
-    addNoModify(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
+    public addNoModify(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
         return this._add(docs, true, dstResultInfo);
     }
 
@@ -109,7 +114,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.add(this.collection, docs, noModify, change);
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -118,7 +123,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
     /** Add multiple documents to this collection
      */
-    addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this._addAll(docs, false, dstResultInfo);
     }
 
@@ -126,7 +131,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     /** Add multiple documents to this collection AND do not run any collection actions on the documents,
      * such as generating primary keys
      */
-    addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this._addAll(docs, true, dstResultInfo);
     }
 
@@ -136,7 +141,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addAll(this.collection, docs, noModify, change);
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -146,12 +151,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     /** Mark an existing document in this collection modified.
      * The document specified must already exist in the collection
      */
-    update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (doc == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.update(this.collection, doc, change);
+        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -161,12 +166,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     /** Mark multiple existing documents in this collection modified.
      * The documents specified must all already exist in the collection
      */
-    updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (docs == null || docs.length === 0) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.update(this.collection, docs, change);
+        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -177,20 +182,20 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param {Object} query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return {E[]} of objects
      */
-    data(query?: O): E[] {
+    public data(query?: O): E[] {
         var queryProps = query ? Object.keys(query) : null;
         if (queryProps && queryProps.length === 1) {
-            return this.dbInst.findSinglePropQuery(this.collection, query, queryProps);
+            return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
         }
-        return this.dbInst.find(this.collection, query, queryProps).data();
+        return this.dbInst.find(this.collection, this.dataModel, query, queryProps).data();
     }
 
 
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
-    find(query?: O): ResultSetLike<E> {
-        return this.dbInst.find(this.collection, query);
+    public find(query?: O): ResultSetLike<E> {
+        return this.dbInst.find(this.collection, this.dataModel, query);
     }
 
 
@@ -198,22 +203,8 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param func: a javascript {@link Array#filter} style function that accepts an object
      * and returns a flag indicating whether the object is a match or not
      */
-    where(func: (doc: E) => boolean): ResultSetLike<E> {
-        return this.dbInst.find(this.collection).where(func);
-    }
-
-
-    /** Remove a document from this collection.
-     */
-    remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
-        if (doc == null) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.remove(this.collection, doc, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
+    public where(func: (doc: E) => boolean): ResultSetLike<E> {
+        return this.dbInst.find(this.collection, this.dataModel).where(func);
     }
 
 
@@ -221,8 +212,8 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @return {Object} a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    findOne(query: O): E {
-        return this.dbInst.findOne(this.collection, query);
+    public findOne(query: O): E {
+        return this.dbInst.findOne(this.collection, this.dataModel, query);
     }
 
 
@@ -230,12 +221,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.updateWhere(this.collection, query, obj, change);
+        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -248,12 +239,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateWhere(this.collection, query, obj, true, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, true, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -265,24 +256,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateWhere(this.collection, query, obj, noModify, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
-    }
-
-
-    /** Remove documents from this collection that match a given query
-     */
-    removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.removeWhere(this.collection, query, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -297,7 +276,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this.addOrUpdateAll(updatesArray, true, dstResultInfo);
     }
 
@@ -309,9 +288,9 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (updatesArray == null || updatesArray.length === 0) { return; }
-        var keyNames = this.primaryKeyFieldNames;
+        var keyNames = this.dataModel.primaryKeys;
 
         if (keyNames.length !== 1) {
             throw new Error("cannot addOrUpdateAll() on '" + this.collectionName + "' it does not have exactly one primary key, primaryKeys=[" + keyNames + "]");
@@ -319,17 +298,42 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateAll(this.collection, keyNames[0], updatesArray, noModify, change);
+        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, keyNames[0], updatesArray, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
     }
 
 
-    // Utility methods =========================================
+    /** Remove a document from this collection.
+     */
+    public remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
+        if (doc == null) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.remove(this.collection, this.dataModel, doc, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    /** Remove documents from this collection that match a given query
+     */
+    public removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.removeWhere(this.collection, this.dataModel, query, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
     /** Remove all documents from this collection
      */
-    clearCollection(dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public clearCollection(dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
         var res = this.dbInst.clearCollection(this.collection, change);
@@ -341,7 +345,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
     /** Remove this collection from the database instance
      */
-    deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
         var res = this.dbInst.removeCollection(this.collection, change);

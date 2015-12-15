@@ -116,20 +116,20 @@ var InMemDbImpl = (function () {
         return this.saveRestore;
     };
     // ==== Database CRUD Operations ====
-    InMemDbImpl.prototype.add = function (collection, doc, noModify, dstMetaData) {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, [doc], dstMetaData);
+    InMemDbImpl.prototype.add = function (collection, dataModel, doc, noModify, dstMetaData) {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, [doc], dstMetaData);
     };
-    InMemDbImpl.prototype.addAll = function (collection, docs, noModify, dstMetaData) {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, docs, dstMetaData);
+    InMemDbImpl.prototype.addAll = function (collection, dataModel, docs, noModify, dstMetaData) {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, docs, dstMetaData);
     };
-    InMemDbImpl.prototype._addHandlePrimaryAndGeneratedKeys = function (collection, primaryConstraint, generateOption, docs, dstMetaData) {
+    InMemDbImpl.prototype._addHandlePrimaryAndGeneratedKeys = function (collection, dataModel, primaryConstraint, generateOption, docs, dstMetaData) {
         // TODO primaryConstraint and generateOption validation
         if (!docs || docs.length === 0) {
             return;
         }
-        // generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
+        // Generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
         this.getPrimaryKeyMaintainer().manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
-        //Ensure a legacy uniqueId field is present
+        // Ensure a legacy uniqueId field is present
         if (primaryConstraint === ModelKeysImpl.Constraint.NON_NULL) {
             this.getNonNullKeyMaintainer().manageKeys(collection.name, docs, true);
         }
@@ -143,7 +143,7 @@ var InMemDbImpl = (function () {
         this.dataAdded(collection, docs, null, dstMetaData);
         return collection.insert(docs);
     };
-    InMemDbImpl.prototype.update = function (collection, doc, dstMetaData) {
+    InMemDbImpl.prototype.update = function (collection, dataModel, doc, dstMetaData) {
         if (dstMetaData) {
             dstMetaData.addChangeItemsModified(doc);
         }
@@ -151,7 +151,7 @@ var InMemDbImpl = (function () {
         this.dataModified(collection, doc, null, dstMetaData);
         return collection.update(doc);
     };
-    InMemDbImpl.prototype.find = function (collection, query, queryProps) {
+    InMemDbImpl.prototype.find = function (collection, dataModel, query, queryProps) {
         // Check for empty collection
         // TODO remove, users should never request non-existent collections..?
         if (!collection) {
@@ -163,7 +163,7 @@ var InMemDbImpl = (function () {
         var results = this._findMultiProp(collection.chain(), query, queryProps);
         return results;
     };
-    InMemDbImpl.prototype.findSinglePropQuery = function (collection, query, queryProps) {
+    InMemDbImpl.prototype.findSinglePropQuery = function (collection, dataModel, query, queryProps) {
         if (!collection) {
             throw new Error("null collection with query: " + query);
         }
@@ -178,7 +178,7 @@ var InMemDbImpl = (function () {
         var results = collection.find(query);
         return results;
     };
-    InMemDbImpl.prototype.remove = function (collection, doc, dstMetaData) {
+    InMemDbImpl.prototype.remove = function (collection, dataModel, doc, dstMetaData) {
         if (!collection) {
             return;
         }
@@ -187,7 +187,7 @@ var InMemDbImpl = (function () {
         }
         collection.isDirty = true;
         this.dataRemoved(collection, doc, null, dstMetaData);
-        return collection.remove(doc);
+        collection.remove(doc);
     };
     // Utility methods =========================
     InMemDbImpl.prototype.getCollections = function () {
@@ -195,7 +195,7 @@ var InMemDbImpl = (function () {
     };
     InMemDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
         autoCreate = true;
-        collectionName = collectionName.toLowerCase();
+        collectionName = collectionName;
         var coll = this.db.getCollection(collectionName);
         if (!coll) {
             if (!autoCreate) {
@@ -234,13 +234,13 @@ var InMemDbImpl = (function () {
      * @return {Object} a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    InMemDbImpl.prototype.findOne = function (collection, query) {
-        return this._findNResults(collection, 1, 1, query);
+    InMemDbImpl.prototype.findOne = function (collection, dataModel, query) {
+        return this._findNResults(collection, dataModel, 1, 1, query);
     };
-    InMemDbImpl.prototype._findOneOrNull = function (collection, query) {
-        return this._findNResults(collection, 0, 1, query);
+    InMemDbImpl.prototype._findOneOrNull = function (collection, dataModel, query) {
+        return this._findNResults(collection, dataModel, 0, 1, query);
     };
-    InMemDbImpl.prototype._findNResults = function (collection, min, max, query) {
+    InMemDbImpl.prototype._findNResults = function (collection, dataModel, min, max, query) {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
@@ -271,7 +271,7 @@ var InMemDbImpl = (function () {
         }
         return results;
     };
-    InMemDbImpl.prototype.updateWhere = function (collection, query, obj, dstMetaData) {
+    InMemDbImpl.prototype.updateWhere = function (collection, dataModel, query, obj, dstMetaData) {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
         var results = this._findMultiProp(collection.chain(), query);
         var resData = results.data();
@@ -291,13 +291,13 @@ var InMemDbImpl = (function () {
                 var key = updateKeys[idx];
                 doc[key] = obj[key];
             }
-            this.update(collection, doc);
+            this.update(collection, dataModel, doc);
         }
     };
-    InMemDbImpl.prototype.addOrUpdateWhere = function (collection, query, obj, noModify, dstMetaData) {
-        //remove loki information so not to overwrite it.
+    InMemDbImpl.prototype.addOrUpdateWhere = function (collection, dataModel, query, obj, noModify, dstMetaData) {
+        var cloneFunc = (dataModel && dataModel.copyFunc) || stripMetaDataCloneDeep;
         query = this.modelKeys.validateQuery(collection.name, query, obj);
-        var results = this._findMultiProp(this.find(collection), query);
+        var results = this._findMultiProp(this.find(collection, dataModel), query);
         var compoundDstMetaData = null;
         if (dstMetaData) {
             compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
@@ -306,7 +306,7 @@ var InMemDbImpl = (function () {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
-                compoundDstMetaData.addChangeItemsModified(toUpdate.map(stripMetaDataCloneDeep));
+                compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
             // get obj props, except the lokijs specific ones
             var updateKeys = Object.keys(obj);
@@ -322,7 +322,7 @@ var InMemDbImpl = (function () {
                     var key = updateKeys[idx];
                     doc[key] = obj[key];
                 }
-                this.update(collection, doc);
+                this.update(collection, dataModel, doc);
             }
         }
         else {
@@ -335,22 +335,23 @@ var InMemDbImpl = (function () {
                 var key = queryKeys[idx];
                 obj[key] = query[key];
             }
-            this.add(collection, obj, noModify, compoundDstMetaData);
+            this.add(collection, dataModel, obj, noModify, compoundDstMetaData);
         }
     };
-    InMemDbImpl.prototype.removeWhere = function (collection, query, dstMetaData) {
+    InMemDbImpl.prototype.removeWhere = function (collection, dataModel, query, dstMetaData) {
         var docs = this.find(collection, query).data();
         for (var i = 0, size = docs.length; i < size; i++) {
             var doc = docs[i];
-            this.remove(collection, doc, dstMetaData);
+            this.remove(collection, dataModel, doc, dstMetaData);
         }
     };
-    InMemDbImpl.prototype.addOrUpdateAll = function (collection, keyName, updatesArray, noModify, dstMetaData) {
-        var existingData = this.find(collection).data();
+    InMemDbImpl.prototype.addOrUpdateAll = function (collection, dataModel, keyName, updatesArray, noModify, dstMetaData) {
+        var cloneFunc = (dataModel && dataModel.copyFunc) || stripMetaDataCloneDeep;
+        var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];
         for (var ii = 0, sizeI = existingData.length; ii < sizeI; ii++) {
-            var prop = existingData[i][keyName];
+            var prop = existingData[ii][keyName];
             existingDataKeys.push(prop);
         }
         var toAdd = [];
@@ -359,7 +360,7 @@ var InMemDbImpl = (function () {
             var update = updatesArray[i];
             var idx = existingDataKeys.indexOf(update[keyName]);
             if (idx === -1) {
-                toAdd.push(stripMetaDataCloneDeep(update));
+                toAdd.push(cloneFunc(update));
             }
             else {
                 toUpdate.push(update);
@@ -370,19 +371,19 @@ var InMemDbImpl = (function () {
             compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
         }
-        this.addAll(collection, toAdd, noModify, compoundDstMetaData);
+        this.addAll(collection, dataModel, toAdd, noModify, compoundDstMetaData);
         if (compoundDstMetaData && toUpdate.length > 0) {
-            compoundDstMetaData.addChangeItemsModified(toUpdate.map(stripMetaDataCloneDeep));
+            compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
         }
         for (var i = 0, size = toUpdate.length; i < size; i++) {
             var item = toUpdate[i];
             var query = {};
             query[keyName] = item[keyName];
-            this.updateWhere(collection, query, item);
+            this.updateWhere(collection, dataModel, query, item);
         }
     };
     // Array-like
-    InMemDbImpl.prototype.mapReduce = function (collection, map, reduce) {
+    InMemDbImpl.prototype.mapReduce = function (collection, dataModel, map, reduce) {
         return collection.mapReduce(map, reduce);
     };
     // ==== event loggers ====

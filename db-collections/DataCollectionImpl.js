@@ -21,12 +21,12 @@ var DataCollectionImpl = (function () {
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    function DataCollectionImpl(collectionName, dbInst, trackChanges) {
+    function DataCollectionImpl(collectionName, dataModel, dbInst, trackChanges) {
         if (trackChanges === void 0) { trackChanges = false; }
         this.dbInst = dbInst;
-        this.collectionName = collectionName.toLowerCase();
+        this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
-        this.primaryKeyFieldNames = dbInst.getModelKeys().getUniqueIdNames(collectionName);
+        this.dataModel = dataModel;
         if (trackChanges) {
             this.initializeEventHandler();
         }
@@ -45,8 +45,11 @@ var DataCollectionImpl = (function () {
     DataCollectionImpl.prototype.getCollectionEventHandler = function () {
         return this.eventHandler;
     };
+    DataCollectionImpl.prototype.getDataModel = function () {
+        return this.dataModel;
+    };
     /**
-     * @return {String} the name of this collection of data models
+     * @return {string} the name of this collection of data models
      */
     DataCollectionImpl.prototype.getName = function () {
         return this.collectionName;
@@ -80,7 +83,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.add(this.collection, docs, noModify, change);
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -100,7 +103,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addAll(this.collection, docs, noModify, change);
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -112,7 +115,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.update(this.collection, doc, change);
+        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -124,7 +127,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.update(this.collection, docs, change);
+        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -135,40 +138,29 @@ var DataCollectionImpl = (function () {
     DataCollectionImpl.prototype.data = function (query) {
         var queryProps = query ? Object.keys(query) : null;
         if (queryProps && queryProps.length === 1) {
-            return this.dbInst.findSinglePropQuery(this.collection, query, queryProps);
+            return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
         }
-        return this.dbInst.find(this.collection, query, queryProps).data();
+        return this.dbInst.find(this.collection, this.dataModel, query, queryProps).data();
     };
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
     DataCollectionImpl.prototype.find = function (query) {
-        return this.dbInst.find(this.collection, query);
+        return this.dbInst.find(this.collection, this.dataModel, query);
     };
     /** Starts a chained filter operation and returns a search result set which can be further refined
      * @param func: a javascript {@link Array#filter} style function that accepts an object
      * and returns a flag indicating whether the object is a match or not
      */
     DataCollectionImpl.prototype.where = function (func) {
-        return this.dbInst.find(this.collection).where(func);
-    };
-    /** Remove a document from this collection.
-     */
-    DataCollectionImpl.prototype.remove = function (doc, dstResultInfo) {
-        if (doc == null) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.remove(this.collection, doc, change);
-        this.collChange(change, dstResultInfo);
-        return res;
+        return this.dbInst.find(this.collection, this.dataModel).where(func);
     };
     /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
      * @return {Object} a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     DataCollectionImpl.prototype.findOne = function (query) {
-        return this.dbInst.findOne(this.collection, query);
+        return this.dbInst.findOne(this.collection, this.dataModel, query);
     };
     /** Update documents matching a query with properties from a provided update object
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -179,7 +171,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.updateWhere(this.collection, query, obj, change);
+        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -194,7 +186,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addOrUpdateWhere(this.collection, query, obj, true, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, true, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -208,15 +200,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addOrUpdateWhere(this.collection, query, obj, noModify, change);
-        this.collChange(change, dstResultInfo);
-        return res;
-    };
-    /** Remove documents from this collection that match a given query
-     */
-    DataCollectionImpl.prototype.removeWhere = function (query, dstResultInfo) {
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.removeWhere(this.collection, query, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -242,16 +226,34 @@ var DataCollectionImpl = (function () {
         if (updatesArray == null || updatesArray.length === 0) {
             return;
         }
-        var keyNames = this.primaryKeyFieldNames;
+        var keyNames = this.dataModel.primaryKeys;
         if (keyNames.length !== 1) {
             throw new Error("cannot addOrUpdateAll() on '" + this.collectionName + "' it does not have exactly one primary key, primaryKeys=[" + keyNames + "]");
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addOrUpdateAll(this.collection, keyNames[0], updatesArray, noModify, change);
+        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, keyNames[0], updatesArray, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
-    // Utility methods =========================================
+    /** Remove a document from this collection.
+     */
+    DataCollectionImpl.prototype.remove = function (doc, dstResultInfo) {
+        if (doc == null) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.remove(this.collection, this.dataModel, doc, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    /** Remove documents from this collection that match a given query
+     */
+    DataCollectionImpl.prototype.removeWhere = function (query, dstResultInfo) {
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.removeWhere(this.collection, this.dataModel, query, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
     /** Remove all documents from this collection
      */
     DataCollectionImpl.prototype.clearCollection = function (dstResultInfo) {
