@@ -11,6 +11,7 @@
   },
   "devDependencies": {
     "gulp-util": "~3.0.7",
+    "lokijs": "git://github.com/techfort/LokiJS.git#daeceff0ac3e25e977e9298a2e6da5996683aa59 -g",
     "qunit": "~0.7.7",
     "typescript": "~1.6.2"
   }

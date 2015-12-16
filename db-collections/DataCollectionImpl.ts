@@ -2,6 +2,7 @@
 /// <reference path="./in-mem-collections.d.ts" />
 import EventListenerListImpl = require("../lib/ts-mortar/events/EventListenerListImpl");
 import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
+import CollectionDataModelImpl = require("../data-models/CollectionDataModelImpl");
 
 /** DataCollectionImpl class
  * Represents an in-memory, synchronous, data collection with unique keys.
@@ -352,6 +353,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         this.collChange(change, dstResultInfo);
         return res;
+    }
+
+
+    public static fromWebServiceModel<U>(collectionName: string, dataModel: WebServiceModelDef | CollectionModelDef<U>, dbInst: InMemDb, trackChanges: boolean = false) {
+        var inst = new DataCollectionImpl(collectionName, CollectionDataModelImpl.modelDefToCollectionModelDef(collectionName, dataModel), dbInst, trackChanges);
+        return inst;
     }
 
 }

@@ -2,6 +2,7 @@
 /// <reference path="./in-mem-collections.d.ts" />
 var EventListenerListImpl = require("../lib/ts-mortar/events/EventListenerListImpl");
 var ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
+var CollectionDataModelImpl = require("../data-models/CollectionDataModelImpl");
 /** DataCollectionImpl class
  * Represents an in-memory, synchronous, data collection with unique keys.
  * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
@@ -269,6 +270,11 @@ var DataCollectionImpl = (function () {
         var res = this.dbInst.removeCollection(this.collection, change);
         this.collChange(change, dstResultInfo);
         return res;
+    };
+    DataCollectionImpl.fromWebServiceModel = function (collectionName, dataModel, dbInst, trackChanges) {
+        if (trackChanges === void 0) { trackChanges = false; }
+        var inst = new DataCollectionImpl(collectionName, CollectionDataModelImpl.modelDefToCollectionModelDef(collectionName, dataModel), dbInst, trackChanges);
+        return inst;
     };
     return DataCollectionImpl;
 })();
