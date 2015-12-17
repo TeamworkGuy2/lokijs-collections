@@ -114,7 +114,7 @@ class LokiDbImpl implements InMemDb {
 
     private getPrimaryKeyMaintainer() {
         if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelKeys);
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelDefinitions, this.modelKeys);
         }
         return this.primaryKeyMaintainer;
     }
@@ -122,7 +122,7 @@ class LokiDbImpl implements InMemDb {
 
     private getNonNullKeyMaintainer() {
         if (this.nonNullKeyMaintainer == null) {
-            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelKeys);
+            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelDefinitions);
         }
         return this.nonNullKeyMaintainer;
     }

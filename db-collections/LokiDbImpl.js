@@ -76,13 +76,13 @@ var LokiDbImpl = (function () {
     };
     LokiDbImpl.prototype.getPrimaryKeyMaintainer = function () {
         if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelKeys);
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelDefinitions, this.modelKeys);
         }
         return this.primaryKeyMaintainer;
     };
     LokiDbImpl.prototype.getNonNullKeyMaintainer = function () {
         if (this.nonNullKeyMaintainer == null) {
-            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelKeys);
+            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelDefinitions);
         }
         return this.nonNullKeyMaintainer;
     };

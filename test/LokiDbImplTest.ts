@@ -2,7 +2,7 @@
 import Objects = require("../lib/ts-mortar/utils/Objects");
 import LokiDbImpl = require("../db-collections/LokiDbImpl");
 import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
-import CollectionDataModelImpl = require("../data-models/CollectionDataModelImpl");
+import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
 
 var globalDbInst: LokiDbImpl;
@@ -69,7 +69,7 @@ QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
     var now = new Date();
     var persister = new DummyDataPersister(true);
     globalDbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false },
-        "collection_meta_data", new CollectionDataModelImpl(dataModelsMap, dataTypes), function createPersister(dbInst: InMemDb) { return persister; });
+        "collection_meta_data", ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes), function createPersister(dbInst: InMemDb) { return persister; });
 
     //var collARaw = globalDbInst.getCollection("coll_a", true);
     var collA = new DataCollectionImpl<MdA, MdAOpt>("coll_a", globalDbInst.getModelDefinitions().getDataModel("coll_a"), globalDbInst);

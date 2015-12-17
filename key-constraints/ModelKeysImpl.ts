@@ -12,14 +12,6 @@ class ModelKeysImpl implements ModelKeys {
     }
 
 
-    /**
-     * @return meta-data about a given collection's data type
-     */
-    public getDataModel(modelName: string): CollectionDataModel<any> {
-        return this.modelDefs.getDataModel(modelName);
-    }
-
-
     /** add missing IDs that should be auto-generated
      * @param {Array} autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */

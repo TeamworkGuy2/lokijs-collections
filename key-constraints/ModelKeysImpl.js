@@ -6,12 +6,6 @@ var ModelKeysImpl = (function () {
     function ModelKeysImpl(modelDefs) {
         this.modelDefs = modelDefs;
     }
-    /**
-     * @return meta-data about a given collection's data type
-     */
-    ModelKeysImpl.prototype.getDataModel = function (modelName) {
-        return this.modelDefs.getDataModel(modelName);
-    };
     /** add missing IDs that should be auto-generated
      * @param {Array} autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
