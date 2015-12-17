@@ -93,8 +93,8 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
 module ModelDefinitionsSet {
 
-    export function extendModelDef(parent: StringMap<DtoProperty>, child: StringMap<DtoProperty>): StringMap<DtoProperty> {
-        var res: StringMap<DtoProperty> = _.cloneDeep(parent);
+    export function extendModelDef(parent: StringMap<DtoPropertyTemplate>, child: StringMap<DtoPropertyTemplate>): StringMap<DtoPropertyTemplate> {
+        var res: StringMap<DtoPropertyTemplate> = _.cloneDeep(parent);
         for (var childProp in child) {
             res[childProp] = _.clone(child[childProp])
         }
@@ -106,7 +106,7 @@ module ModelDefinitionsSet {
      * equivalent to {@code extendModelDef(inheritanceChain[0], extendModelDef(inheritanceChain[1], extendModelDef(...)))}
      * @return {StringMap<ServiceProperty>} the original child class (last argument) extended by all other arguments
      */
-    export function multiExtendModelDef(...inheritanceChain: StringMap<DtoProperty>[]): StringMap<DtoProperty> {
+    export function multiExtendModelDef(...inheritanceChain: StringMap<DtoPropertyTemplate>[]): StringMap<DtoPropertyTemplate> {
         var childClass = inheritanceChain[inheritanceChain.length - 1];
         for (var i = inheritanceChain.length - 2; i > -1; i--) {
             childClass = extendModelDef(inheritanceChain[i], childClass);
