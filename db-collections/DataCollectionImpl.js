@@ -12,7 +12,7 @@ var CollectionDataModelImpl = require("../data-models/CollectionDataModelImpl");
  *
  * @author TeamworkGuy2
  * @param <E> the type of data stored in this data collection
- * @param <O> the filter/query type, this is normally type {@code E} with all properties optional
+ * @param <O> the filter/query type, this is normally type {@code E} with all most or all properties optional
  */
 var DataCollectionImpl = (function () {
     /** Create a new document collection backed by a provided 'InMemDb' instance.
@@ -27,15 +27,21 @@ var DataCollectionImpl = (function () {
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
-        this.dataModel = dataModel;
+        this.dataModel = dataModel || {};
         if (trackChanges) {
             this.initializeEventHandler();
         }
     }
+    /** Setup the event handler for this collection.
+     * NOTE: Must call this before calling {@link #getCollectionEventHandler()}.
+     */
     DataCollectionImpl.prototype.initializeEventHandler = function () {
         this.changes = new ChangeTrackersImpl.ChangeTracker(16);
         this.eventHandler = new EventListenerListImpl();
     };
+    /** Deregister event listeners and destroy the event handler for this collection.
+     * NOTE: After calling this method {@link #getCollectionEventHandler()} will return null
+     */
     DataCollectionImpl.prototype.destroyEventHandler = function () {
         if (this.changes) {
             this.changes = null;
@@ -43,9 +49,17 @@ var DataCollectionImpl = (function () {
             this.eventHandler = null;
         }
     };
+    /**
+     * @return the event handler for this collection.  Fires events when items in this collection are added, removed, or modified
+     * @see #initializeEventHandler()
+     * @see #destroyEventHandler()
+     */
     DataCollectionImpl.prototype.getCollectionEventHandler = function () {
         return this.eventHandler;
     };
+    /**
+     * @return the data model associated with the elements stored in this collection
+     */
     DataCollectionImpl.prototype.getDataModel = function () {
         return this.dataModel;
     };
@@ -67,7 +81,25 @@ var DataCollectionImpl = (function () {
     DataCollectionImpl.prototype.createCollChange = function (secondaryResultInfo) {
         return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackersImpl.CompoundCollectionChange() : null;
     };
-    // Crud Operations =========================
+    DataCollectionImpl.prototype._add = function (docs, noModify, dstResultInfo) {
+        if (docs == null) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    DataCollectionImpl.prototype._addAll = function (docs, noModify, dstResultInfo) {
+        if (docs == null || docs.length === 0) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    // ======== CRUD Operations ========
     /** Add a document to this collection
      */
     DataCollectionImpl.prototype.add = function (docs, dstResultInfo) {
@@ -79,15 +111,6 @@ var DataCollectionImpl = (function () {
     DataCollectionImpl.prototype.addNoModify = function (docs, dstResultInfo) {
         return this._add(docs, true, dstResultInfo);
     };
-    DataCollectionImpl.prototype._add = function (docs, noModify, dstResultInfo) {
-        if (docs == null) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
-        this.collChange(change, dstResultInfo);
-        return res;
-    };
     /** Add multiple documents to this collection
      */
     DataCollectionImpl.prototype.addAll = function (docs, dstResultInfo) {
@@ -98,15 +121,6 @@ var DataCollectionImpl = (function () {
      */
     DataCollectionImpl.prototype.addAllNoModify = function (docs, dstResultInfo) {
         return this._addAll(docs, true, dstResultInfo);
-    };
-    DataCollectionImpl.prototype._addAll = function (docs, noModify, dstResultInfo) {
-        if (docs == null || docs.length === 0) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
-        this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Mark an existing document in this collection modified.
      * The document specified must already exist in the collection

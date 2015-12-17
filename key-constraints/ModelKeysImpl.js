@@ -38,7 +38,7 @@ var ModelKeysImpl = (function () {
         //Allow empty query to automatically query by Id;
         if (!query) {
             query = {};
-            var idNames = this.getDataModel(collectionName).primaryKeys;
+            var idNames = this.modelDefs.getPrimaryKeyNames(collectionName);
             if (idNames.length <= 0) {
                 throw new Error("Can't call updateWhere without a where clause on collection " + collectionName + " which has no uniqueId.");
             }

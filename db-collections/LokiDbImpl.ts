@@ -64,7 +64,7 @@ class ResultsetMock<E> implements ResultSetLike<E> {
 
 /** An implementation of InMemDb that wraps a LokiJS database
  */
-class InMemDbImpl implements InMemDb {
+class LokiDbImpl implements InMemDb {
     private primaryKeyMaintainer: PrimaryKeyMaintainer;
     private nonNullKeyMaintainer: NonNullKeyMaintainer;
     private metaDataStorageCollectionName: string;
@@ -89,7 +89,7 @@ class InMemDbImpl implements InMemDb {
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
 
         this.getCollections = this.getCollections.bind(this);
-        this.saveRestore = InMemDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.saveRestore = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
 
 
@@ -105,7 +105,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    private static createDefaultDataPersister(dbDataInst: InMemDbImpl, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter): DataPersister.Adapter {
+    private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter): DataPersister.Adapter {
         var dataPersister = dataPersisterFactory(dbDataInst);
         var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
         dbDataInst.setDataPersister(persistAdapter);
@@ -143,7 +143,7 @@ class InMemDbImpl implements InMemDb {
     public resetDataStore(): Q.Promise<void> {
         var dfd = Q.defer<void>();
         this.db = null;
-        this.saveRestore = InMemDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
+        this.saveRestore = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
         dfd.resolve(null);
         return dfd.promise;
     }
@@ -553,4 +553,4 @@ class InMemDbImpl implements InMemDb {
 
 }
 
-export = InMemDbImpl;
+export = LokiDbImpl;

@@ -13,7 +13,7 @@ import CollectionDataModelImpl = require("../data-models/CollectionDataModelImpl
  *
  * @author TeamworkGuy2
  * @param <E> the type of data stored in this data collection
- * @param <O> the filter/query type, this is normally type {@code E} with all properties optional
+ * @param <O> the filter/query type, this is normally type {@code E} with all most or all properties optional
  */
 class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     private collectionName: string;
@@ -38,19 +38,25 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
-        this.dataModel = dataModel;
+        this.dataModel = dataModel || <any>{};
         if (trackChanges) {
             this.initializeEventHandler();
         }
     }
 
 
+    /** Setup the event handler for this collection.
+     * NOTE: Must call this before calling {@link #getCollectionEventHandler()}.
+     */
     public initializeEventHandler() {
         this.changes = new ChangeTrackersImpl.ChangeTracker(16);
         this.eventHandler = new EventListenerListImpl();
     }
 
 
+    /** Deregister event listeners and destroy the event handler for this collection.
+     * NOTE: After calling this method {@link #getCollectionEventHandler()} will return null
+     */
     public destroyEventHandler() {
         if (this.changes) {
             this.changes = null;
@@ -60,11 +66,19 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
+    /**
+     * @return the event handler for this collection.  Fires events when items in this collection are added, removed, or modified
+     * @see #initializeEventHandler()
+     * @see #destroyEventHandler()
+     */
     public getCollectionEventHandler() {
         return this.eventHandler;
     }
 
 
+    /**
+     * @return the data model associated with the elements stored in this collection
+     */
     public getDataModel() {
         return this.dataModel;
     }
@@ -94,7 +108,31 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    // Crud Operations =========================
+    private _add(docs: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
+        if (docs == null) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    private _addAll(docs: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
+        if (docs == null || docs.length === 0) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    // ======== CRUD Operations ========
     /** Add a document to this collection
      */
     public add(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
@@ -110,18 +148,6 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    private _add(docs: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
-        if (docs == null) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
-    }
-
-
     /** Add multiple documents to this collection
      */
     public addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
@@ -134,18 +160,6 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      */
     public addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this._addAll(docs, true, dstResultInfo);
-    }
-
-
-    private _addAll(docs: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
-        if (docs == null || docs.length === 0) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
@@ -356,8 +370,8 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    public static fromWebServiceModel<U>(collectionName: string, dataModel: WebServiceModelDef | CollectionModelDef<U>, dbInst: InMemDb, trackChanges: boolean = false) {
-        var inst = new DataCollectionImpl(collectionName, CollectionDataModelImpl.modelDefToCollectionModelDef(collectionName, dataModel), dbInst, trackChanges);
+    public static fromWebServiceModel<U, V>(collectionName: string, dataModel: DtoModelTemplate | CollectionModelDef<U>, dbInst: InMemDb, trackChanges: boolean = false) {
+        var inst = new DataCollectionImpl<U, V>(collectionName, CollectionDataModelImpl.modelDefToCollectionModelDef(collectionName, dataModel), dbInst, trackChanges);
         return inst;
     }
 
