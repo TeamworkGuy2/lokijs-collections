@@ -56,23 +56,25 @@ var LokiDbImpl = (function () {
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
-        this.dataPersisterFactory = dataPersisterFactory;
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
-        this.getCollections = this.getCollections.bind(this);
-        this.saveRestore = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.dataPersisterFactory = dataPersisterFactory;
+        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
-    // ==== private methods ====
-    LokiDbImpl.prototype._createNewDb = function (dbName, options) {
+    // ======== static methods ========
+    LokiDbImpl._createNewDb = function (dbName, options) {
         return new Loki(dbName, options);
     };
+    LokiDbImpl.createDefaultDataPersister = function (dbDataInst, dataPersisterFactory) {
+        dbDataInst.setDataPersister(function (dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) {
+            var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
+            var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
+            return persistAdapter;
+        });
+        return dbDataInst.getDataPersister();
+    };
+    // ======== private methods ========
     LokiDbImpl.prototype._setNewDb = function (dataStore) {
         this.db = dataStore;
-    };
-    LokiDbImpl.createDefaultDataPersister = function (dbDataInst, dataPersisterFactory) {
-        var dataPersister = dataPersisterFactory(dbDataInst);
-        var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
-        dbDataInst.setDataPersister(persistAdapter);
-        return persistAdapter;
     };
     LokiDbImpl.prototype.getPrimaryKeyMaintainer = function () {
         if (this.primaryKeyMaintainer == null) {
@@ -93,34 +95,23 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.getModelKeys = function () {
         return this.modelKeys;
     };
+    LokiDbImpl.prototype.initializeLokijsDb = function (options) {
+        this._setNewDb(LokiDbImpl._createNewDb(this.dbName, options));
+    };
     LokiDbImpl.prototype.resetDataStore = function () {
         var dfd = Q.defer();
         this.db = null;
-        this.saveRestore = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
+        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
         dfd.resolve(null);
         return dfd.promise;
     };
-    LokiDbImpl.prototype.setDataPersister = function (dataPersister) {
+    LokiDbImpl.prototype.setDataPersister = function (dataPersisterFactory) {
         var _this = this;
-        var dfd = Q.defer();
-        this.db = null;
-        this.saveRestore = dataPersister;
-        // link the data persister to this objects data collections and data store instances
-        dataPersister.setDataStoreInterface(function () { return _this.db; }, function (dataStore) { return _this._setNewDb(dataStore); }, function (options) { return _this._createNewDb(_this.dbName, options); });
-        dataPersister.setDataSources(this.getCollections);
-        dataPersister.setDataConverters(stripMetaData, null);
-        dfd.resolve(null);
-        return dfd.promise;
+        this.dataPersisterFactory = dataPersisterFactory;
+        this.dataPersisterInst = dataPersisterFactory(this, function () { return _this.getCollections(); }, function (collName) { return stripMetaData; }, function (collName) { return null; });
     };
     LokiDbImpl.prototype.getDataPersister = function () {
-        return this.saveRestore;
-    };
-    // ==== Database CRUD Operations ====
-    LokiDbImpl.prototype.add = function (collection, dataModel, doc, noModify, dstMetaData) {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, [doc], dstMetaData);
-    };
-    LokiDbImpl.prototype.addAll = function (collection, dataModel, docs, noModify, dstMetaData) {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, docs, dstMetaData);
+        return this.dataPersisterInst;
     };
     LokiDbImpl.prototype._addHandlePrimaryAndGeneratedKeys = function (collection, dataModel, primaryConstraint, generateOption, docs, dstMetaData) {
         // TODO primaryConstraint and generateOption validation
@@ -142,6 +133,47 @@ var LokiDbImpl = (function () {
         collection.isDirty = true;
         this.dataAdded(collection, docs, null, dstMetaData);
         return collection.insert(docs);
+    };
+    LokiDbImpl.prototype._findOneOrNull = function (collection, dataModel, query) {
+        return this._findNResults(collection, dataModel, 0, 1, query);
+    };
+    LokiDbImpl.prototype._findNResults = function (collection, dataModel, min, max, query) {
+        if (min > max) {
+            throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
+        }
+        var res = this.find(collection, query).data();
+        if (res.length < min || res.length > max) {
+            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+        }
+        return max === 1 ? res[0] : res;
+    };
+    /** Query with multiple criteria
+     */
+    LokiDbImpl.prototype._findMultiProp = function (resSet, query, queryProps) {
+        var results = resSet;
+        if (!queryProps) {
+            for (var prop in query) {
+                var localQuery = {};
+                localQuery[prop] = query[prop];
+                results = results.find(localQuery);
+            }
+        }
+        else {
+            for (var i = 0, size = queryProps.length; i < size; i++) {
+                var propI = queryProps[i];
+                var localQuery = {};
+                localQuery[propI] = query[propI];
+                results = results.find(localQuery);
+            }
+        }
+        return results;
+    };
+    // ======== Database CRUD Operations ========
+    LokiDbImpl.prototype.add = function (collection, dataModel, doc, noModify, dstMetaData) {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, [doc], dstMetaData);
+    };
+    LokiDbImpl.prototype.addAll = function (collection, dataModel, docs, noModify, dstMetaData) {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, docs, dstMetaData);
     };
     LokiDbImpl.prototype.update = function (collection, dataModel, doc, dstMetaData) {
         if (dstMetaData) {
@@ -189,87 +221,12 @@ var LokiDbImpl = (function () {
         this.dataRemoved(collection, doc, null, dstMetaData);
         collection.remove(doc);
     };
-    // Utility methods =========================
-    LokiDbImpl.prototype.getCollections = function () {
-        return this.db.collections;
-    };
-    LokiDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
-        autoCreate = true;
-        collectionName = collectionName;
-        var coll = this.db.getCollection(collectionName);
-        if (!coll) {
-            if (!autoCreate) {
-                return;
-            }
-            else {
-                coll = this.db.addCollection(collectionName, { asyncListeners: false }); // async listeners cause performance issues (2015-1)
-                coll.isDirty = true;
-            }
-        }
-        return coll;
-    };
-    LokiDbImpl.prototype.clearCollection = function (collection, dstMetaData) {
-        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
-        if (coll) {
-            if (dstMetaData) {
-                dstMetaData.addChangeItemsRemoved(coll.data.length);
-            }
-            coll.isDirty = true;
-            coll.clear();
-        }
-    };
-    LokiDbImpl.prototype.removeCollection = function (collection, dstMetaData) {
-        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
-        if (dstMetaData) {
-            var collRes = this.db.getCollection(coll.name);
-            if (collRes) {
-                dstMetaData.addChangeItemsRemoved(collRes.data.length);
-            }
-        }
-        if (coll) {
-            this.db.removeCollection(coll.name);
-        }
-    };
     /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
      * @return {Object} a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     LokiDbImpl.prototype.findOne = function (collection, dataModel, query) {
         return this._findNResults(collection, dataModel, 1, 1, query);
-    };
-    LokiDbImpl.prototype._findOneOrNull = function (collection, dataModel, query) {
-        return this._findNResults(collection, dataModel, 0, 1, query);
-    };
-    LokiDbImpl.prototype._findNResults = function (collection, dataModel, min, max, query) {
-        if (min > max) {
-            throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
-        }
-        var res = this.find(collection, query).data();
-        if (res.length < min || res.length > max) {
-            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
-        }
-        return max === 1 ? res[0] : res;
-    };
-    /** Query with multiple criteria
-     */
-    LokiDbImpl.prototype._findMultiProp = function (resSet, query, queryProps) {
-        var results = resSet;
-        if (!queryProps) {
-            for (var prop in query) {
-                var localQuery = {};
-                localQuery[prop] = query[prop];
-                results = results.find(localQuery);
-            }
-        }
-        else {
-            for (var i = 0, size = queryProps.length; i < size; i++) {
-                var propI = queryProps[i];
-                var localQuery = {};
-                localQuery[propI] = query[propI];
-                results = results.find(localQuery);
-            }
-        }
-        return results;
     };
     LokiDbImpl.prototype.updateWhere = function (collection, dataModel, query, obj, dstMetaData) {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
@@ -386,7 +343,48 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.mapReduce = function (collection, dataModel, map, reduce) {
         return collection.mapReduce(map, reduce);
     };
-    // ==== event loggers ====
+    // ======== Data Collection manipulation ========
+    LokiDbImpl.prototype.getCollections = function () {
+        return this.db.collections;
+    };
+    LokiDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
+        autoCreate = true;
+        collectionName = collectionName;
+        var coll = this.db.getCollection(collectionName);
+        if (!coll) {
+            if (!autoCreate) {
+                return;
+            }
+            else {
+                coll = this.db.addCollection(collectionName, { asyncListeners: false }); // async listeners cause performance issues (2015-1)
+                coll.isDirty = true;
+            }
+        }
+        return coll;
+    };
+    LokiDbImpl.prototype.clearCollection = function (collection, dstMetaData) {
+        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
+        if (coll) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
+            }
+            coll.isDirty = true;
+            coll.clear();
+        }
+    };
+    LokiDbImpl.prototype.removeCollection = function (collection, dstMetaData) {
+        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
+        if (dstMetaData) {
+            var collRes = this.db.getCollection(coll.name);
+            if (collRes) {
+                dstMetaData.addChangeItemsRemoved(collRes.data.length);
+            }
+        }
+        if (coll) {
+            this.db.removeCollection(coll.name);
+        }
+    };
+    // ======== event loggers ========
     LokiDbImpl.prototype.dataAdded = function (coll, newDoc, query, dstMetaData) {
         // events not yet implemented
     };
@@ -396,7 +394,7 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.dataRemoved = function (coll, removedDoc, query, dstMetaData) {
         // events not yet implemented
     };
-    // Utility functions =======================
+    // ======== Utility functions ========
     LokiDbImpl.prototype.stripMetaData = function (obj) {
         return stripMetaData(obj);
     };

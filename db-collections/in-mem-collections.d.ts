@@ -29,54 +29,57 @@ interface InMemDb {
 
     resetDataStore(): Q.IPromise<void>;
 
-    setDataPersister(dataPersister: DataPersister.Adapter): Q.IPromise<void>;
+    initializeLokijsDb(options: LokiConfigureOptions): void;
 
-    // Add, Remove, Update Operations
-    add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
-
-    addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
-
-    update<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
-
-    find<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
-
-    findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): T[];
-
-    remove<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void;
-
-    // Utility methods =====================================
-    getCollections(): LokiCollection<any>[];
-
-    clearCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
-
-    removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
+    setDataPersister(dataPersisterFactory: DataPersister.AdapterFactory): void;
 
 
-    getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
-
-    clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
-
-    removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
-
+    // ======== Add, Remove, Update Operations ========
     /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     findOne<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any);
 
-    // the number of items modified
-    updateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    find<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
+
+    findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): T[];
+
+    add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
+
+    addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
 
     // the number of items added and the number modified
     addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    removeWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
-
     addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+
+    update<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
+
+    // the number of items modified
+    updateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+
+    remove<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void;
+
+    removeWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Array-like
     mapReduce<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, map: (value: T, index: number, array: T[]) => any,
         reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any);
+
+
+    // ======== Collection manipulation ========
+    getCollections(): LokiCollection<any>[];
+
+    clearCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
+
+    removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
+
+    getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
+
+    clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
+
+    removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
 }
 
@@ -268,34 +271,8 @@ declare module DataPersister {
 
 
     export interface Adapter {
-        /**
-         * @param getDataStore: get the current data store, if this
-         * function returns null, then {@code setDataStore} is called with a new data store instance
-         * @param setDataStore: set a new data store, which will be returned by the next call to {@code getDataStore}
-         * @param createDataStore: create a new data store with the specified parameters
-         */
-        setDataStoreInterface(getDataStore: () => Loki, setDataStore: (newStore: Loki) => void, createDataStore: (options: LokiConfigureOptions) => Loki);
 
-        /**
-         * @param getDataSources: returns a list of data collections that contain the data to persist/restore to
-         */
-        setDataSources(getDataSources: () => LokiCollection<any>[]);
-
-        /**
-         * @param saveItemTransformation: a conversion function to pass items from {@code #getDataSources()}
-         * through before persisting them
-         * @param restoreItemTransformation: a conversion function to pass items through
-         * after restoring them and before storing them in {@code #getDataSources()}
-         */
-        setDataConverters(saveItemTransformation?: (item) => any, restoreItemTransformation?: (item) => any);
-
-
-        // Persistence methods =================
-        save(callback?: (err) => void);
-
-        load(options, callback?: (err) => void);
-
-        // Persist in-memory database to disk
+        // Save this in-memory database to some form of persistent storage
         // Removes tables from store that don't exist in in-memory db
         persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<PersistResult>;
 
@@ -304,6 +281,21 @@ declare module DataPersister {
         restore(options?: { decompress?: boolean; }): Q.Promise<RestoreResult>;
 
         clearPersistenceDb(): Q.Promise<void>;
+    }
+
+
+    export interface AdapterFactory {
+        /**
+         * @param dbInst: the in-memory database that the persister pulls data from
+         * @param getDataCollections: returns a list of data collections that contain the data to persist/restore to
+         * @param saveItemTransformation: a conversion function to pass items from {@code #getDataCollections()}
+         * through before persisting them
+         * @param restoreItemTransformation: a conversion function to pass items through
+         * after restoring them and before storing them in {@code #getDataCollections()}
+         */
+        (dbInst: InMemDb, getDataCollections: () => LokiCollection<any>[],
+            getSaveItemTransformFunc?: (collName: string) => ((item: any) => any),
+            getRestoreItemTransformFunc?: (collName: string) => ((item: any) => any)): DataPersister.Adapter;
     }
 
 }

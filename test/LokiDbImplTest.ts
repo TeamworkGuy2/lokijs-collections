@@ -5,7 +5,11 @@ import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
 
-var globalDbInst: LokiDbImpl;
+var global: { dbInst: LokiDbImpl; collA: DataCollection<MdA, MdAOpt>; collB: DataCollection<MdB, MdBOpt>; } = {
+    dbInst: null,
+    collA: null,
+    collB: null,
+};
 
 
 interface MdA {
@@ -33,6 +37,7 @@ interface MdBOpt {
     note?: string;
     timestamp?: Date;
 }
+
 
 var dataTypes = null;
 
@@ -62,44 +67,60 @@ var dataModels = {
 var dataModelsMap = <StringMap<CollectionModelDef<any>>><any>dataModels;
 
 
+
+
 QUnit.module("LokiDbImpl", {
 });
 
-QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
-    var now = new Date();
-    var persister = new DummyDataPersister(true);
-    globalDbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false },
-        "collection_meta_data", ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes), function createPersister(dbInst: InMemDb) { return persister; });
 
-    //var collARaw = globalDbInst.getCollection("coll_a", true);
-    var collA = new DataCollectionImpl<MdA, MdAOpt>("coll_a", globalDbInst.getModelDefinitions().getDataModel("coll_a"), globalDbInst);
+QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
+    var persister: DummyDataPersister;
+    global.dbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false },
+        "collection_meta_data", ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes),
+        function createPersister(dbInst: InMemDb) {
+            persister = new DummyDataPersister(() => dbInst.getCollections(), LokiDbImpl.stripMetaData, null);
+            return persister;
+        }
+    );
+    global.dbInst.initializeLokijsDb({});
+
+    global.collA = new DataCollectionImpl<MdA, MdAOpt>("coll_a", global.dbInst.getModelDefinitions().getDataModel("coll_a"), global.dbInst);
+
+    global.collB = new DataCollectionImpl<MdB, MdBOpt>("coll_b", global.dbInst.getModelDefinitions().getDataModel("coll_b"), global.dbInst);
+
+    sr.deepEqual(global.dbInst.getCollections().map((c) => c.name), ["coll_a", "coll_b"]);
+});
+
+
+QUnit.test("add/remove", function addRemoveTest(sr) {
+    var now = new Date();
+
     var aItem1: MdA = {
         id: null,
         name: "Alfred",
         styles: ["color: #F0F0F0", "font-size: 12px"]
     };
-    var aItem1Added = collA.add(aItem1);
+    var aItem1Added = global.collA.add(aItem1);
 
     sr.deepEqual(Objects.cloneDeep(aItem1), aItem1);
-    sr.equal(collA.data().length, 1);
+    sr.equal(global.collA.data().length, 1);
 
-    collA.removeWhere({ id: aItem1Added.id });
-    sr.equal(collA.data().length, 0);
+    global.collA.removeWhere({ id: aItem1Added.id });
+    sr.equal(global.collA.data().length, 0);
 
 
-    //var collBRaw = globalDbInst.getCollection("coll_b", true);
-    var collB = new DataCollectionImpl<MdB, MdBOpt>("coll_b", globalDbInst.getModelDefinitions().getDataModel("coll_b"), globalDbInst);
     var bItem1: MdB = {
         userId: "A0281",
         note: "the fabled warrior",
         token: "C8A33B1-3B8EA7D7F89",
         timestamp: now,
     };
-    var bItem1Added = collB.add(bItem1);
+    var bItem1Added = global.collB.add(bItem1);
 
     sr.deepEqual(Objects.cloneDeep(bItem1), bItem1);
-    sr.equal(collB.data().length, 1);
+    sr.equal(global.collB.data().length, 1);
 
-    collB.remove(bItem1Added);
-    sr.equal(collB.data().length, 0);
+    global.collB.remove(bItem1Added);
+    sr.equal(global.collB.data().length, 0);
+
 });

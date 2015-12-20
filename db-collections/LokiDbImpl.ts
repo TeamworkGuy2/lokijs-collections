@@ -72,8 +72,8 @@ class LokiDbImpl implements InMemDb {
     private modelKeys: ModelKeys;
     private db: Loki;
     private dbName: string;
-    private dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter;
-    private saveRestore: DataPersister.Adapter;
+    private dataPersisterFactory: DataPersister.AdapterFactory;
+    private dataPersisterInst: DataPersister.Adapter;
     private syncSettings: ReadWritePermission;
     private storeSettings: StorageFormatSettings;
 
@@ -85,31 +85,33 @@ class LokiDbImpl implements InMemDb {
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
-        this.dataPersisterFactory = dataPersisterFactory;
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
 
-        this.getCollections = this.getCollections.bind(this);
-        this.saveRestore = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.dataPersisterFactory = dataPersisterFactory;
+        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
 
 
-    // ==== private methods ====
+    // ======== static methods ========
 
-    private _createNewDb(dbName: string, options: LokiConfigureOptions) {
+    private static _createNewDb(dbName: string, options: LokiConfigureOptions) {
         return new Loki(dbName, options);
     }
 
+    private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: DataPersister.AdapterFactory): DataPersister.Adapter {
+        dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
+            var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
+            var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
+            return persistAdapter;
+        });
+        return dbDataInst.getDataPersister();
+    }
+
+    
+    // ======== private methods ========
 
     private _setNewDb(dataStore: Loki) {
         this.db = dataStore;
-    }
-
-
-    private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter): DataPersister.Adapter {
-        var dataPersister = dataPersisterFactory(dbDataInst);
-        var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
-        dbDataInst.setDataPersister(persistAdapter);
-        return persistAdapter;
     }
 
     private getPrimaryKeyMaintainer() {
@@ -118,7 +120,6 @@ class LokiDbImpl implements InMemDb {
         }
         return this.primaryKeyMaintainer;
     }
-
 
     private getNonNullKeyMaintainer() {
         if (this.nonNullKeyMaintainer == null) {
@@ -140,51 +141,28 @@ class LokiDbImpl implements InMemDb {
     }
 
 
+    public initializeLokijsDb(options: LokiConfigureOptions) {
+        this._setNewDb(LokiDbImpl._createNewDb(this.dbName, options));
+    }
+
+
     public resetDataStore(): Q.Promise<void> {
         var dfd = Q.defer<void>();
         this.db = null;
-        this.saveRestore = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
+        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
         dfd.resolve(null);
         return dfd.promise;
     }
 
 
-    public setDataPersister(dataPersister: DataPersister.Adapter): Q.Promise<void> {
-        var dfd = Q.defer<void>();
-        this.db = null;
-        this.saveRestore = dataPersister;
-        // link the data persister to this objects data collections and data store instances
-        dataPersister.setDataStoreInterface(
-            () => this.db,
-            (dataStore: Loki) => this._setNewDb(dataStore),
-            (options) => this._createNewDb(this.dbName, options)
-        );
-        dataPersister.setDataSources(this.getCollections);
-        dataPersister.setDataConverters(stripMetaData, null);
-
-        dfd.resolve(null);
-        return dfd.promise;
+    public setDataPersister(dataPersisterFactory: DataPersister.AdapterFactory): void {
+        this.dataPersisterFactory = dataPersisterFactory;
+        this.dataPersisterInst = dataPersisterFactory(this, () => this.getCollections(), (collName: string) => stripMetaData, (collName: string) => null);
     }
 
 
     public getDataPersister(): DataPersister.Adapter {
-        return this.saveRestore;
-    }
-
-
-    // ==== Database CRUD Operations ====
-
-    public add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
-            noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
-            [doc], dstMetaData);
-    }
-
-
-    public addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
-            noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
-            docs, dstMetaData);
+        return this.dataPersisterInst;
     }
 
 
@@ -212,6 +190,64 @@ class LokiDbImpl implements InMemDb {
         collection.isDirty = true;
         this.dataAdded(collection, docs, null, dstMetaData);
         return collection.insert(docs);
+    }
+
+
+    private _findOneOrNull<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query) {
+        return this._findNResults(collection, dataModel, 0, 1, query);
+    }
+
+
+    private _findNResults<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, min: number, max: number, query): any | any[] {
+        if (min > max) {
+            throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
+        }
+
+        var res = this.find(collection, query).data();
+        if (res.length < min || res.length > max) {
+            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+        }
+        return max === 1 ? res[0] : res;
+    }
+
+
+    /** Query with multiple criteria
+     */
+    private _findMultiProp<S>(resSet: ResultSetLike<S>, query: any, queryProps?: string[]): ResultSetLike<S> {
+        var results = resSet;
+        if (!queryProps) {
+            for (var prop in query) {
+                var localQuery = {};
+                localQuery[prop] = query[prop];
+                results = results.find(localQuery);
+            }
+        }
+        else {
+            for (var i = 0, size = queryProps.length; i < size; i++) {
+                var propI = queryProps[i];
+                var localQuery = {};
+                localQuery[propI] = query[propI];
+                results = results.find(localQuery);
+            }
+        }
+
+        return results;
+    }
+
+
+    // ======== Database CRUD Operations ========
+
+    public add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
+            noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
+            [doc], dstMetaData);
+    }
+
+
+    public addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
+        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
+            noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
+            docs, dstMetaData);
     }
 
 
@@ -273,108 +309,12 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    // Utility methods =========================
-
-    public getCollections(): LokiCollection<any>[] {
-        return this.db.collections;
-    }
-
-
-    public getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any> {
-        autoCreate = true;
-        collectionName = collectionName;
-        var coll = this.db.getCollection(collectionName);
-        if (!coll) {
-            if (!autoCreate) {
-                return;
-            }
-            else {
-                coll = this.db.addCollection(collectionName, { asyncListeners: false }); // async listeners cause performance issues (2015-1)
-                coll.isDirty = true;
-            }
-        }
-        return coll;
-    }
-
-
-    public clearCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var coll: LokiCollection<any> = typeof collection === "string" ? this.getCollection(collection) : collection;
-
-        if (coll) {
-            if (dstMetaData) {
-                dstMetaData.addChangeItemsRemoved(coll.data.length);
-            }
-
-            coll.isDirty = true;
-            coll.clear();
-        }
-    }
-
-
-    public removeCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
-
-        if (dstMetaData) {
-            var collRes = this.db.getCollection<any>(coll.name);
-            if (collRes) {
-                dstMetaData.addChangeItemsRemoved(collRes.data.length);
-            }
-        }
-
-        if (coll) {
-            this.db.removeCollection(coll.name);
-        }
-    }
-
-
     /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
      * @return {Object} a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     public findOne<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query) {
         return this._findNResults(collection, dataModel, 1, 1, query);
-    }
-
-
-    _findOneOrNull<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query) {
-        return this._findNResults(collection, dataModel, 0, 1, query);
-    }
-
-
-    _findNResults<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, min: number, max: number, query): any | any[] {
-        if (min > max) {
-            throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
-        }
-
-        var res = this.find(collection, query).data();
-        if (res.length < min || res.length > max) {
-            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
-        }
-        return max === 1 ? res[0] : res;
-    }
-
-
-    /** Query with multiple criteria
-     */
-    _findMultiProp<S>(resSet: ResultSetLike<S>, query: any, queryProps?: string[]): ResultSetLike<S> {
-        var results = resSet;
-        if (!queryProps) {
-            for (var prop in query) {
-                var localQuery = {};
-                localQuery[prop] = query[prop];
-                results = results.find(localQuery);
-            }
-        }
-        else {
-            for (var i = 0, size = queryProps.length; i < size; i++) {
-                var propI = queryProps[i];
-                var localQuery = {};
-                localQuery[propI] = query[propI];
-                results = results.find(localQuery);
-            }
-        }
-
-        return results;
     }
 
 
@@ -525,7 +465,61 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    // ==== event loggers ====
+    // ======== Data Collection manipulation ========
+
+    public getCollections(): LokiCollection<any>[] {
+        return this.db.collections;
+    }
+
+
+    public getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any> {
+        autoCreate = true;
+        collectionName = collectionName;
+        var coll = this.db.getCollection(collectionName);
+        if (!coll) {
+            if (!autoCreate) {
+                return;
+            }
+            else {
+                coll = this.db.addCollection(collectionName, { asyncListeners: false }); // async listeners cause performance issues (2015-1)
+                coll.isDirty = true;
+            }
+        }
+        return coll;
+    }
+
+
+    public clearCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var coll: LokiCollection<any> = typeof collection === "string" ? this.getCollection(collection) : collection;
+
+        if (coll) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
+            }
+
+            coll.isDirty = true;
+            coll.clear();
+        }
+    }
+
+
+    public removeCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
+
+        if (dstMetaData) {
+            var collRes = this.db.getCollection<any>(coll.name);
+            if (collRes) {
+                dstMetaData.addChangeItemsRemoved(collRes.data.length);
+            }
+        }
+
+        if (coll) {
+            this.db.removeCollection(coll.name);
+        }
+    }
+
+
+    // ======== event loggers ========
     private dataAdded(coll: LokiCollection<any>, newDoc, query, dstMetaData: Changes.CollectionChangeTracker) {
         // events not yet implemented
     }
@@ -541,7 +535,7 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    // Utility functions =======================
+    // ======== Utility functions ========
     public stripMetaData(obj: any): any {
         return stripMetaData(obj);
     }

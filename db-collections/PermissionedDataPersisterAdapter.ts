@@ -15,35 +15,6 @@ class PermissionedDataPersisterAdapter implements DataPersister.Adapter {
     }
 
 
-    public setDataStoreInterface(getDataStore: () => Loki, setDataStore: (newStore: Loki) => void, createDataStore: (options: LokiConfigureOptions) => Loki) {
-        this.persister.setDataStoreInterface(getDataStore, setDataStore, createDataStore);
-    }
-
-
-    public setDataSources(getDataSources: () => LokiCollection<any>[]) {
-        this.persister.setDataSources(getDataSources);
-    }
-
-
-    public setDataConverters(saveItemTransformation?: (item) => any, restoreItemTransformation?: (item) => any) {
-        this.persister.setDataConverters(saveItemTransformation, restoreItemTransformation);
-    }
-
-
-    public save(callback?: (err) => void) {
-        if (this.syncSettings.writeAllow) {
-            this.persister.save(callback);
-        }
-    }
-
-
-    public load(options, callback?: (err) => void) {
-        if (this.syncSettings.readAllow) {
-            this.persister.save(callback);
-        }
-    }
-
-
     public persist(): Q.Promise<DataPersister.PersistResult> {
         if (this.syncSettings.writeAllow) {
             return this.persister.persist({ compress: this.storeSettings.compressLocalStores });

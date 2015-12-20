@@ -7,25 +7,6 @@ var PermissionedDataPersisterAdapter = (function () {
         this.storeSettings = storeSettings;
         this.persister = persister;
     }
-    PermissionedDataPersisterAdapter.prototype.setDataStoreInterface = function (getDataStore, setDataStore, createDataStore) {
-        this.persister.setDataStoreInterface(getDataStore, setDataStore, createDataStore);
-    };
-    PermissionedDataPersisterAdapter.prototype.setDataSources = function (getDataSources) {
-        this.persister.setDataSources(getDataSources);
-    };
-    PermissionedDataPersisterAdapter.prototype.setDataConverters = function (saveItemTransformation, restoreItemTransformation) {
-        this.persister.setDataConverters(saveItemTransformation, restoreItemTransformation);
-    };
-    PermissionedDataPersisterAdapter.prototype.save = function (callback) {
-        if (this.syncSettings.writeAllow) {
-            this.persister.save(callback);
-        }
-    };
-    PermissionedDataPersisterAdapter.prototype.load = function (options, callback) {
-        if (this.syncSettings.readAllow) {
-            this.persister.save(callback);
-        }
-    };
     PermissionedDataPersisterAdapter.prototype.persist = function () {
         if (this.syncSettings.writeAllow) {
             return this.persister.persist({ compress: this.storeSettings.compressLocalStores });
