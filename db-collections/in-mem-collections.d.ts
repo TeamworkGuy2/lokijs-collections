@@ -75,7 +75,7 @@ interface InMemDb {
 
     removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
+    getCollection(collectionName: string, autoCreate?: boolean, settings?: LokiCollectionOptions): LokiCollection<any>;
 
     clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
 

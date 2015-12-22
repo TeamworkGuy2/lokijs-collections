@@ -4,6 +4,7 @@ var _ = require("lodash");
 var Q = require("q");
 var Loki = require("lokijs");
 var Arrays = require("../lib/ts-mortar/utils/Arrays");
+var Objects = require("../lib/ts-mortar/utils/Objects");
 var ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
@@ -141,7 +142,7 @@ var LokiDbImpl = (function () {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
-        var res = this.find(collection, query).data();
+        var res = this.find(collection, dataModel, query).data();
         if (res.length < min || res.length > max) {
             throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
         }
@@ -296,8 +297,8 @@ var LokiDbImpl = (function () {
         }
     };
     LokiDbImpl.prototype.removeWhere = function (collection, dataModel, query, dstMetaData) {
-        var docs = this.find(collection, query).data();
-        for (var i = 0, size = docs.length; i < size; i++) {
+        var docs = this.find(collection, dataModel, query).data();
+        for (var i = docs.length - 1; i > -1; i--) {
             var doc = docs[i];
             this.remove(collection, dataModel, doc, dstMetaData);
         }
@@ -347,7 +348,8 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.getCollections = function () {
         return this.db.collections;
     };
-    LokiDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
+    LokiDbImpl.prototype.getCollection = function (collectionName, autoCreate, settings) {
+        if (settings === void 0) { settings = {}; }
         autoCreate = true;
         collectionName = collectionName;
         var coll = this.db.getCollection(collectionName);
@@ -356,7 +358,8 @@ var LokiDbImpl = (function () {
                 return;
             }
             else {
-                coll = this.db.addCollection(collectionName, { asyncListeners: false }); // async listeners cause performance issues (2015-1)
+                settings = Objects.assign({ asyncListeners: false }, settings);
+                coll = this.db.addCollection(collectionName, settings); // async listeners cause performance issues (2015-1)
                 coll.isDirty = true;
             }
         }

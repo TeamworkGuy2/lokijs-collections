@@ -4,6 +4,7 @@ import _ = require("lodash");
 import Q = require("q");
 import Loki = require("lokijs");
 import Arrays = require("../lib/ts-mortar/utils/Arrays");
+import Objects = require("../lib/ts-mortar/utils/Objects");
 import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
@@ -203,7 +204,7 @@ class LokiDbImpl implements InMemDb {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
 
-        var res = this.find(collection, query).data();
+        var res = this.find(collection, dataModel, query).data();
         if (res.length < min || res.length > max) {
             throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
         }
@@ -406,8 +407,8 @@ class LokiDbImpl implements InMemDb {
 
 
     public removeWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var docs = this.find(collection, query).data();
-        for (var i = 0, size = docs.length; i < size; i++) {
+        var docs = this.find(collection, dataModel, query).data();
+        for (var i = docs.length - 1; i > -1; i--) {
             var doc = docs[i];
             this.remove(collection, dataModel, doc, dstMetaData);
         }
@@ -472,7 +473,7 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any> {
+    public getCollection(collectionName: string, autoCreate?: boolean, settings: LokiCollectionOptions = {}): LokiCollection<any> {
         autoCreate = true;
         collectionName = collectionName;
         var coll = this.db.getCollection(collectionName);
@@ -481,7 +482,8 @@ class LokiDbImpl implements InMemDb {
                 return;
             }
             else {
-                coll = this.db.addCollection(collectionName, { asyncListeners: false }); // async listeners cause performance issues (2015-1)
+                settings = Objects.assign({ asyncListeners: false }, settings);
+                coll = this.db.addCollection(collectionName, settings); // async listeners cause performance issues (2015-1)
                 coll.isDirty = true;
             }
         }
