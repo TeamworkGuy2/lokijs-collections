@@ -85,7 +85,7 @@ var PrimaryKeyMaintainer = (function () {
     PrimaryKeyMaintainer.initMetaDataCollection = function (dataColl, collectionName, dataModel, dbDataInst) {
         if (dataColl == null) {
             var collModel = dbDataInst.getModelDefinitions().addModel(collectionName, dataModel);
-            return new DataCollectionImpl(collectionName, collModel, dbDataInst);
+            return new DataCollectionImpl(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
         }
         return dataColl;
     };

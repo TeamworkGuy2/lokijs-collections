@@ -252,8 +252,8 @@ var LokiDbImpl = (function () {
             this.update(collection, dataModel, doc);
         }
     };
-    LokiDbImpl.prototype.addOrUpdateWhere = function (collection, dataModel, query, obj, noModify, dstMetaData) {
-        var cloneFunc = (dataModel && dataModel.copyFunc) || stripMetaDataCloneDeep;
+    LokiDbImpl.prototype.addOrUpdateWhere = function (collection, dataModel, dataModelFuncs, query, obj, noModify, dstMetaData) {
+        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || stripMetaDataCloneDeep;
         query = this.modelKeys.validateQuery(collection.name, query, obj);
         var results = this._findMultiProp(this.find(collection, dataModel), query);
         var compoundDstMetaData = null;
@@ -303,8 +303,8 @@ var LokiDbImpl = (function () {
             this.remove(collection, dataModel, doc, dstMetaData);
         }
     };
-    LokiDbImpl.prototype.addOrUpdateAll = function (collection, dataModel, keyName, updatesArray, noModify, dstMetaData) {
-        var cloneFunc = (dataModel && dataModel.copyFunc) || stripMetaDataCloneDeep;
+    LokiDbImpl.prototype.addOrUpdateAll = function (collection, dataModel, dataModelFuncs, keyName, updatesArray, noModify, dstMetaData) {
+        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || stripMetaDataCloneDeep;
         var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];

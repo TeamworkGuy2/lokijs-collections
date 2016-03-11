@@ -1,5 +1,4 @@
-﻿"use strict";
-import _ = require("lodash");
+﻿import _ = require("lodash");
 
 /** Contains a set of model definitions.
  * Model templates are designed around server-side object property names and values
@@ -13,15 +12,18 @@ class ModelDefinitionsSet implements ModelDefinitions {
     private static EMPTY_ARRAY = Object.freeze([]);
 
     public dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
-    public models: { [id: string]: DtoModelTemplate | CollectionModelDef<any> };
-    private modelDefs: { [id: string]: CollectionDataModel<any> };
+    public models: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> };
+    private modelDefs: { [id: string]: DataCollectionModel<any> };
+    private modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> };
 
 
     // generate model information the first time this JS module loads
-    constructor(dataModels: { [id: string]: DtoModelTemplate | CollectionModelDef<any> }, dataTypes: { [id: string]: { value: any; toService: any; } }) {
+    constructor(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> }, dataTypes: { [id: string]: { value: any; toService: any; } }) {
         this.dataTypes = dataTypes;
         this.models = _.cloneDeep(dataModels);
-        this.modelDefs = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels);
+        var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels);
+        this.modelDefs = modelDefs;
+        this.modelsFuncs = modelsFuncs;
     }
 
 
@@ -34,13 +36,14 @@ class ModelDefinitionsSet implements ModelDefinitions {
     */
 
 
-    public addModel<U>(modelName: string, model: DtoModelTemplate | CollectionModelDef<U>): CollectionDataModel<U> {
+    public addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionModelWithSvcDef<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
         if (this.modelDefs[modelName] != null) {
             throw new Error("model named '" + modelName + "' already exists, cannot add new model by that name");
         }
         var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, model);
         this.models[modelName] = model;
-        this.modelDefs[modelName] = collModel;
+        this.modelDefs[modelName] = collModel.modelDef;
+        this.modelsFuncs[modelName] = collModel.modelFuncs;
         return collModel;
     }
 
@@ -74,17 +77,22 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
 
     public getCopyFunc(modelName: string): (obj: any) => any {
-        var modelDef = this.modelDefs[modelName];
-        return modelDef && modelDef.copyFunc || null;
+        var modelFuncs = this.modelsFuncs[modelName];
+        return modelFuncs && modelFuncs.copyFunc || null;
     }
 
 
-    public getDataModel(modelName: string): CollectionDataModel<any> {
+    public getDataModel(modelName: string): DataCollectionModel<any> {
         return this.modelDefs[modelName];
     }
 
 
-    public static fromCollectionModels(dataModels: { [id: string]: DtoModelTemplate | CollectionModelDef<any> }, dataTypes: { [id: string]: { value: any; toService: any; } }) {
+    public getDataModelFuncs(modelName: string): DataCollectionModelAllFuncs<any, any> {
+        return this.modelsFuncs[modelName];
+    }
+
+
+    public static fromCollectionModels(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> }, dataTypes: { [id: string]: { value: any; toService: any; } }) {
         var inst = new ModelDefinitionsSet(dataModels, dataTypes);
         return inst;
     }
@@ -116,17 +124,21 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefToCollectionModelDef<U>(collectionName: string, dataModel: DtoModelTemplate | CollectionModelDef<U>): CollectionDataModel<U> {
-        var dataModels: { [id: string]: DtoModelTemplate | CollectionModelDef<any> } = {};
+    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModelTemplate | CollectionModelWithSvcDef<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
+        var dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> } = {};
         dataModels[collectionName] = dataModel;
         var res = modelDefsToCollectionModelDefs(dataModels, [collectionName]);
-        return res[collectionName];
+        return {
+            modelDef: res.modelDefs[collectionName],
+            modelFuncs: res.modelsFuncs[collectionName]
+        };
     }
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefsToCollectionModelDefs<U>(dataModels: { [id: string]: DtoModelTemplate | CollectionModelDef<U> }, modelNames?: string[]): { [name: string]: CollectionDataModel<U> } {
-        var models: { [id: string]: CollectionDataModel<any> } = {};
+    export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<U, W> }, modelNames?: string[]): { modelDefs: { [name: string]: DataCollectionModel<U> }; modelsFuncs: { [name: string]: DataCollectionModelAllFuncs<U, W> } } {
+        var modelDefs: { [id: string]: DataCollectionModel<any> } = {};
+        var modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> } = {};
 
         modelNames = modelNames || Object.keys(dataModels);
         for (var i = 0, size = modelNames.length; i < size; i++) {
@@ -150,15 +162,22 @@ module ModelDefinitionsSet {
                 }
             }
 
-            models[modelName] = {
+            modelDefs[modelName] = {
                 fieldNames,
                 primaryKeys,
-                autoGeneratedKeys,
-                copyFunc: (<CollectionModelDef<any>>table).copyFunc,
+                autoGeneratedKeys
+            };
+
+            var tableFuncs = <CollectionModelWithSvcDef<any, any>>table;
+
+            modelsFuncs[modelName] = {
+                copyFunc: tableFuncs.copyFunc,
+                convertToLocalObjectFunc: tableFuncs.convertToLocalObjectFunc,
+                convertToSvcObjectFunc: tableFuncs.convertToSvcObjectFunc
             };
         }
 
-        return models;
+        return { modelDefs, modelsFuncs };
     }
 
 }

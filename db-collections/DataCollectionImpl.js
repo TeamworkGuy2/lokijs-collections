@@ -22,12 +22,13 @@ var DataCollectionImpl = (function () {
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    function DataCollectionImpl(collectionName, dataModel, dbInst, trackChanges) {
+    function DataCollectionImpl(collectionName, dataModel, dataModelFuncs, dbInst, trackChanges) {
         if (trackChanges === void 0) { trackChanges = false; }
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
         this.dataModel = dataModel || {};
+        this.dataModelFuncs = dataModelFuncs || {};
         if (trackChanges) {
             this.initializeEventHandler();
         }
@@ -62,6 +63,12 @@ var DataCollectionImpl = (function () {
      */
     DataCollectionImpl.prototype.getDataModel = function () {
         return this.dataModel;
+    };
+    /**
+     * @return the data model manipulation functions associated with the elements stored in this collection
+     */
+    DataCollectionImpl.prototype.getDataModelFuncs = function () {
+        return this.dataModelFuncs;
     };
     /**
      * @return {string} the name of this collection of data models
@@ -201,7 +208,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, true, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, this.dataModelFuncs, query, obj, true, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -215,7 +222,7 @@ var DataCollectionImpl = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, noModify, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, this.dataModelFuncs, query, obj, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -246,7 +253,7 @@ var DataCollectionImpl = (function () {
             throw new Error("cannot addOrUpdateAll() on '" + this.collectionName + "' it does not have exactly one primary key, primaryKeys=[" + keyNames + "]");
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, keyNames[0], updatesArray, noModify, change);
+        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, this.dataModelFuncs, keyNames[0], updatesArray, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };
@@ -287,7 +294,8 @@ var DataCollectionImpl = (function () {
     };
     DataCollectionImpl.fromWebServiceModel = function (collectionName, dataModel, dbInst, trackChanges) {
         if (trackChanges === void 0) { trackChanges = false; }
-        var inst = new DataCollectionImpl(collectionName, ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel), dbInst, trackChanges);
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel);
+        var inst = new DataCollectionImpl(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     };
     return DataCollectionImpl;

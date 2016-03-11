@@ -39,32 +39,32 @@ interface InMemDb {
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    findOne<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any);
+    findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any);
 
-    find<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
+    find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
 
-    findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query?: any, queryProps?: string[]): T[];
+    findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): T[];
 
-    add<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
+    add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
 
-    addAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    addAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
 
     // the number of items added and the number modified
-    addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DataCollectionModelFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DataCollectionModelFuncs<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    update<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
+    update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
 
     // the number of items modified
-    updateWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    remove<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void;
+    remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    removeWhere<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Array-like
-    mapReduce<T>(collection: LokiCollection<T>, dataModel: CollectionDataModel<T>, map: (value: T, index: number, array: T[]) => any,
+    mapReduce<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: T[]) => any,
         reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any);
 
 
@@ -123,7 +123,9 @@ interface DataCollection<E, O> {
 
     initializeEventHandler(): void;
 
-    getDataModel(): CollectionDataModel<E>;
+    getDataModel(): DataCollectionModel<E>;
+
+    getDataModelFuncs(): DataCollectionModelFuncs<E>;
 
     destroyEventHandler(): void;
 
@@ -303,25 +305,52 @@ declare module DataPersister {
 
 
 
+/** Retrival/query functions for items in a collection
+ * @since 2016-3-11
+ */
+interface DataCollectionModelFuncs<E> {
+    /** an optional function that copies a model, if none is provided, implementations should fall back on a default clone function */
+    copyFunc: (obj: E) => E;
+}
+
+
+/** Conversion functions for items from a local to/from a server collection
+ * @since 2016-3-11
+ */
+interface DataCollectionModelSvcFuncs<E, S> {
+    convertToLocalObjectFunc: (item: S) => E;
+    convertToSvcObjectFunc: (item: E) => S;
+}
+
+
+/** All functions retrival, querying, and conversion of items from a local collection to/from a server collection
+ * @since 2016-3-11
+ */
+interface DataCollectionModelAllFuncs<E, S> extends DataCollectionModelFuncs<E>, DataCollectionModelSvcFuncs<E, S> {
+}
+
+
+
 /** Represents meta-data about the items in a collection
  * @since 2015-12-15
  */
-interface CollectionDataModel<E> {
+interface DataCollectionModel<E> {
     /** all the top level property names of the model */
     fieldNames: string[];
     /** the names of all the properties which together uniquely represent each model instance */
     primaryKeys: string[];
     /** the names of the properties which are auto generated (i.e. auto-increment ID keys) */
     autoGeneratedKeys: string[];
-    /** an optional function that copies a model, if none is provided, implementations should fall back on a default clone function */
-    copyFunc?: (obj: E) => E;
 }
 
 
 
 
-interface CollectionModelDef<E> extends DtoModelTemplate {
-    copyFunc(obj: E): E;
+interface CollectionModelDef<E> extends DtoModelTemplate, DataCollectionModelFuncs<E> {
+}
+
+
+interface CollectionModelWithSvcDef<E, S> extends CollectionModelDef<E>, DataCollectionModelSvcFuncs<E, S> {
 }
 
 
@@ -341,7 +370,7 @@ interface ModelDefinitions {
     dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
     models: { [name: string]: DtoModelTemplate };
 
-    addModel<U>(modelName: string, model: DtoModelTemplate | CollectionModelDef<U>): CollectionDataModel<U>;
+    addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionModelDef<U> | CollectionModelWithSvcDef<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DataCollectionModelAllFuncs<U, W> };
 
     getPrimaryKeyNames(modelName: string): string[];
 
@@ -351,7 +380,9 @@ interface ModelDefinitions {
 
     getCopyFunc(modelName: string): (obj: any) => any;
 
-    getDataModel(modelName: string): CollectionDataModel<any>;
+    getDataModel(modelName: string): DataCollectionModel<any>;
+
+    getDataModelFuncs(modelName: string): DataCollectionModelAllFuncs<any, any>;
 }
 
 

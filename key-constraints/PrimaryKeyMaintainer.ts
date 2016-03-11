@@ -102,7 +102,7 @@ class PrimaryKeyMaintainer {
             collectionName: string, dataModel: DtoModelTemplate | CollectionModelDef<any>, dbDataInst: InMemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
         if (dataColl == null) {
             var collModel = dbDataInst.getModelDefinitions().addModel(collectionName, dataModel);
-            return new DataCollectionImpl<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, collModel, dbDataInst);
+            return new DataCollectionImpl<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
         }
         return dataColl;
     }

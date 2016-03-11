@@ -24,7 +24,8 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     //private modifyCb: (modified: E | E[]) => void;
     private changes: ChangeTrackersImpl.ChangeTracker;
     private eventHandler: EventListenerListImpl<Changes.CollectionChange, Changes.ChangeListener>;
-    private dataModel: CollectionDataModel<E>;
+    private dataModel: DataCollectionModel<E>;
+    private dataModelFuncs: DataCollectionModelFuncs<E>;
 
 
     /** Create a new document collection backed by a provided 'InMemDb' instance.
@@ -34,11 +35,12 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    constructor(collectionName: string, dataModel: CollectionDataModel<E>, dbInst: InMemDb, trackChanges: boolean = false) {
+    constructor(collectionName: string, dataModel: DataCollectionModel<E>, dataModelFuncs: DataCollectionModelFuncs<E>, dbInst: InMemDb, trackChanges: boolean = false) {
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
         this.dataModel = dataModel || <any>{};
+        this.dataModelFuncs = dataModelFuncs || <any>{};
         if (trackChanges) {
             this.initializeEventHandler();
         }
@@ -81,6 +83,14 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      */
     public getDataModel() {
         return this.dataModel;
+    }
+
+
+    /**
+     * @return the data model manipulation functions associated with the elements stored in this collection
+     */
+    public getDataModelFuncs() {
+        return this.dataModelFuncs;
     }
 
 
@@ -259,7 +269,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, true, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, this.dataModelFuncs, query, obj, true, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -276,7 +286,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, query, obj, noModify, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, this.dataModelFuncs, query, obj, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -313,7 +323,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, keyNames[0], updatesArray, noModify, change);
+        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, this.dataModelFuncs, keyNames[0], updatesArray, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -370,8 +380,9 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    public static fromWebServiceModel<U, V>(collectionName: string, dataModel: DtoModelTemplate | CollectionModelDef<U>, dbInst: InMemDb, trackChanges: boolean = false) {
-        var inst = new DataCollectionImpl<U, V>(collectionName, ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel), dbInst, trackChanges);
+    public static fromWebServiceModel<U, V, W>(collectionName: string, dataModel: DtoModelTemplate | CollectionModelWithSvcDef<U, W>, dbInst: InMemDb, trackChanges: boolean = false) {
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel);
+        var inst = new DataCollectionImpl<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     }
 
