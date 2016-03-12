@@ -1,5 +1,15 @@
 var Arrays = require("../lib/ts-mortar/utils/Arrays");
-/**
+/** Builder for SyncSettings, SyncUpSettings, and/or SyncDownSettings instances.
+ * Both SyncUpSettings and SyncDownSettings require a base SyncSettings instance to build on top of.
+ * SyncUpSettings and SyncDownSettings can be combined, but only one is required.
+ * So using this class normally looks like:
+ *   new SyncSettingsBuilder()
+ *     .addSettings(...)
+ *     .addSyncUpSettings(...)
+ * AND/OR
+ *     .addSyncDownSettings(...)
+ * THEN
+ *     .build()
  * @author TeamworkGuy2
  * @since 2016-3-7
  */
@@ -13,7 +23,7 @@ var SyncSettingsBuilder = (function () {
         this.copyObjectFunc = copyObjectFunc;
         return this;
     };
-    SyncSettingsBuilder.prototype.setSettings = function (settings) {
+    SyncSettingsBuilder.prototype.addSettingsInst = function (settings) {
         this.localCollection = settings.localCollection;
         this.primaryKeys = settings.primaryKeys;
         this.findFilterFunc = settings.findFilterFunc;
@@ -30,7 +40,7 @@ var SyncSettingsBuilder = (function () {
         this.convertToLocalObjectFunc = convertToLocalObjectFunc;
         return this;
     };
-    SyncSettingsBuilder.prototype.setSyncDown = function (syncDown) {
+    SyncSettingsBuilder.prototype.addSyncDownSettings = function (syncDown) {
         this.syncDownFunc = syncDown.syncDownFunc;
         this.convertToLocalObjectFunc = syncDown.convertToLocalObjectFunc;
         return this;
@@ -45,7 +55,7 @@ var SyncSettingsBuilder = (function () {
         this.convertToSvcObjectFunc = convertToSvcObjectFunc;
         return this;
     };
-    SyncSettingsBuilder.prototype.setSyncUp = function (syncUp) {
+    SyncSettingsBuilder.prototype.addSyncUpSettings = function (syncUp) {
         this.syncUpFunc = syncUp.syncUpFunc;
         this.convertToSvcObjectFunc = syncUp.convertToSvcObjectFunc;
         return this;
@@ -56,13 +66,13 @@ var SyncSettingsBuilder = (function () {
     SyncSettingsBuilder.copy = function (src, deepCopy) {
         if (deepCopy === void 0) { deepCopy = true; }
         if (deepCopy) {
-            return new SyncSettingsBuilder().setSettings(SyncSettingsBuilder.SyncSettingsImpl.copy(src))
-                .setSyncDown(SyncSettingsBuilder.SyncDownSettingsImpl.copy(src))
-                .setSyncUp(SyncSettingsBuilder.SyncUpSettingsImpl.copy(src));
+            return new SyncSettingsBuilder().addSettingsInst(SyncSettingsBuilder.SyncSettingsImpl.copy(src))
+                .addSyncDownSettings(SyncSettingsBuilder.SyncDownSettingsImpl.copy(src))
+                .addSyncUpSettings(SyncSettingsBuilder.SyncUpSettingsImpl.copy(src));
         }
-        return new SyncSettingsBuilder().setSettings(src)
-            .setSyncDown(src)
-            .setSyncUp(src);
+        return new SyncSettingsBuilder().addSettingsInst(src)
+            .addSyncDownSettings(src)
+            .addSyncUpSettings(src);
     };
     SyncSettingsBuilder.fromSettingsConvert = function (localCollection, primaryKeys, findFilterFunc, copyObjectFunc, convertUrlToSyncDownFunc, convertUrlToSyncUpFunc) {
         var inst = new SyncSettingsBuilder();
@@ -90,14 +100,13 @@ var SyncSettingsBuilder = (function () {
         inst.copyObjectFunc = settings.copyObjectFunc;
         return inst;
     };
-    SyncSettingsBuilder.fromDataCollectionAndSyncFuncs = function (table, findFilterFunc, syncDownFunc, syncUpFunc) {
+    SyncSettingsBuilder.fromDataCollectionAndSyncFuncs = function (table, syncDownFunc, syncUpFunc) {
         var tableModel = table.getDataModel();
         var tableFuncs = table.getDataModelFuncs();
         var inst = new SyncSettingsBuilder();
         // sync settings
         inst.localCollection = table;
         inst.primaryKeys = tableModel.primaryKeys;
-        inst.findFilterFunc = findFilterFunc;
         inst.copyObjectFunc = tableFuncs.copyFunc;
         // sync down
         inst.syncDownFunc = syncDownFunc;
@@ -105,7 +114,12 @@ var SyncSettingsBuilder = (function () {
         // sync up
         inst.syncUpFunc = syncUpFunc;
         inst.convertToSvcObjectFunc = tableFuncs.convertToSvcObjectFunc;
-        return inst;
+        return {
+            addFilterFuncs: function (findFilterFunc) {
+                inst.findFilterFunc = findFilterFunc;
+                return inst;
+            }
+        };
     };
     return SyncSettingsBuilder;
 })();

@@ -1,12 +1,30 @@
 var Arrays = require("../lib/ts-mortar/utils/Arrays");
 var Defer = require("../lib/ts-mortar/promises/Defer");
-/**
+/** Combines functionality for two operations in one class:
+ *  - Sync a local data collection to a remote data collection (refered to as 'syncing up').
+ *  - Sync a remote data collection to a local data collection (refered to as 'syncing down').
+ * The local and remote collections can have different data models (automatic conversion occurs using SyncSettingsWithUp.convertToSvcObjectFunc and SyncSettingsWithDown.convertToLocalObjectFunc).
+ *
+ * 'Syncing up' send items with a 'isSynchedPropName' value of false to the remote collection.
+ * 'Syncing down' retrieves items from the remote collection based on the 'params' parameter passed to the syncing down function and
+ * then merges the remote data with the local data based on the SyncDownOp, primary keys, and 'lastModifiedPropName' timestamp values.
+ *
+ * There are a number of paradigms for merging data; the entire collection can be cleared and refilled,
+ * items can be merged by comparing local and remote primary keys, or items can simple be added without any constraints.
+ * For a full list of actions, see SyncDataCollection.SyncDownOp
  * @since 2016-1-29
  */
 var SyncDataCollection = (function () {
-    function SyncDataCollection(getLastSyncDate, updateLastSyncDate, isDeletedPropName, isSynchedPropName, lastModifiedPropName) {
-        this.getLastSyncDate = getLastSyncDate;
-        this.updateLastSyncDate = updateLastSyncDate;
+    /**
+     * @param getLastSyncDownTimestamp a function to get a collection's last sync down timestamp (unix style millisecond number)
+     * @param updateLastSyncDownTimestamp a function to update a collection's last sync down timestamp
+     * @param isDeletedPropName the name of the property on both local and remote data models which contains the item's 'deleted' boolean flag
+     * @param isSynchedPropName the name of the property on both local and remote data models which contains the item's 'synched' boolean flag
+     * @param lastModifiedPropName the name of the property on both local and remote data models which contains the item's last-modified unix style millisecond timestamp number
+     */
+    function SyncDataCollection(getLastSyncDownTimestamp, updateLastSyncDownTimestamp, isDeletedPropName, isSynchedPropName, lastModifiedPropName) {
+        this.getLastSyncDownTimestamp = getLastSyncDownTimestamp;
+        this.updateLastSyncDownTimestamp = updateLastSyncDownTimestamp;
         this.isDeletedPropName = isDeletedPropName;
         this.isSynchedPropName = isSynchedPropName;
         this.lastModifiedPropName = lastModifiedPropName;
@@ -45,7 +63,7 @@ var SyncDataCollection = (function () {
         }
         function saveData() {
             // update the last sync time for this table to right now
-            self.updateLastSyncDate(table);
+            self.updateLastSyncDownTimestamp(table);
             dfd.resolve(null);
         }
         syncDownFunc(params).done(function (items) {
@@ -129,6 +147,8 @@ var SyncDataCollection = (function () {
         });
         return dfd.promise;
     };
+    /** Search for items in a table using multiple primary keys and 'lastModifiedPropName' and use updateWhere(...) to update matching items
+     */
     SyncDataCollection.prototype.updateMultiPrimaryKeyItems = function (table, items, primaryKeys) {
         // set each item's synched flag to true once the items have been synched with the server
         var synchedProp = {};
@@ -148,6 +168,8 @@ var SyncDataCollection = (function () {
             table.updateWhere(whereFilter, synchedProp);
         }
     };
+    /** Search for items in a table using a single primary key and 'lastModifiedPropName' and use updateWhere(...) to update matching items
+     */
     SyncDataCollection.prototype.updateSinglePrimaryKeyItems = function (table, items, primaryKey) {
         // set each item's synched flag to true once the items have been synched with the server
         var synchedProp = {};
@@ -257,16 +279,28 @@ var SyncDataCollection = (function () {
 })();
 var SyncDataCollection;
 (function (SyncDataCollection) {
+    /** Definitions of how to sync down data and merge it with local data, currently includes:
+     *  - REMOVE_DELETED_AND_MERGE_NEW
+     *  - REMOVE_NONE_AND_MERGE_NEW
+     *  - REMOVE_ALL_AND_ADD_NEW
+     *  - REMOVE_DELETED_AND_ADD_NEW
+     *  - REMOVE_NONE_AND_ADD_NEW
+     */
     var SyncDownOp = (function () {
         function SyncDownOp(removeAll, removeDeleted, merge) {
             this.removeAll = removeAll;
             this.removeDeleted = removeDeleted;
             this.merge = merge;
         }
+        /** if a remote item is synched down with a deleted prop of 'true' delete it from the local collection (based on primary key) and addOrUpdateWhere(...) all other items */
         SyncDownOp.REMOVE_DELETED_AND_MERGE_NEW = new SyncDownOp(false, true, true);
+        /** use addOrUpdateWhere(...) to merge each remote synched down item into the local collection */
         SyncDownOp.REMOVE_NONE_AND_MERGE_NEW = new SyncDownOp(false, false, true);
+        /** remove all existing local collection items before using addAll(...) to add the remote synched down items to the local collection */
         SyncDownOp.REMOVE_ALL_AND_ADD_NEW = new SyncDownOp(true, false, false);
+        /** if a remote item is synched down with a deleted prop of 'true' delete it from the local collection (based on primary key) and add(...) all other items */
         SyncDownOp.REMOVE_DELETED_AND_ADD_NEW = new SyncDownOp(false, true, false);
+        /** no constraints, use addAll(...) to add the remote synched down items to the local collection */
         SyncDownOp.REMOVE_NONE_AND_ADD_NEW = new SyncDownOp(false, false, false);
         return SyncDownOp;
     })();
