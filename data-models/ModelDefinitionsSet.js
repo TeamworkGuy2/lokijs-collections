@@ -1,4 +1,5 @@
-var _ = require("lodash");
+"use strict";
+var Objects = require("../../ts-mortar/utils/Objects");
 /** Contains a set of model definitions.
  * Model templates are designed around server-side object property names and values
  * being formatted differently than local model property names and values.
@@ -9,9 +10,11 @@ var _ = require("lodash");
  */
 var ModelDefinitionsSet = (function () {
     // generate model information the first time this JS module loads
-    function ModelDefinitionsSet(dataModels, dataTypes) {
+    function ModelDefinitionsSet(dataModels, dataTypes, cloneDeep) {
+        if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
+        this.cloneDeep = cloneDeep;
         this.dataTypes = dataTypes;
-        this.models = _.cloneDeep(dataModels);
+        this.models = cloneDeep(dataModels);
         var _a = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels), modelDefs = _a.modelDefs, modelsFuncs = _a.modelsFuncs;
         this.modelDefs = modelDefs;
         this.modelsFuncs = modelsFuncs;
@@ -65,19 +68,20 @@ var ModelDefinitionsSet = (function () {
     ModelDefinitionsSet.prototype.getDataModelFuncs = function (modelName) {
         return this.modelsFuncs[modelName];
     };
-    ModelDefinitionsSet.fromCollectionModels = function (dataModels, dataTypes) {
-        var inst = new ModelDefinitionsSet(dataModels, dataTypes);
+    ModelDefinitionsSet.fromCollectionModels = function (dataModels, dataTypes, cloneDeep) {
+        if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
+        var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     };
     ModelDefinitionsSet.EMPTY_ARRAY = Object.freeze([]);
     return ModelDefinitionsSet;
-})();
+}());
 var ModelDefinitionsSet;
 (function (ModelDefinitionsSet) {
-    function extendModelDef(parent, child) {
-        var res = _.cloneDeep(parent);
+    function extendModelDef(parent, child, cloneDeep) {
+        var res = Objects.cloneMap(parent, null, cloneDtoPropertyTemplate);
         for (var childProp in child) {
-            res[childProp] = _.clone(child[childProp]);
+            res[childProp] = cloneDtoPropertyTemplate(child[childProp], cloneDeep);
         }
         return res;
     }
@@ -147,5 +151,30 @@ var ModelDefinitionsSet;
         return { modelDefs: modelDefs, modelsFuncs: modelsFuncs };
     }
     ModelDefinitionsSet.modelDefsToCollectionModelDefs = modelDefsToCollectionModelDefs;
+    function cloneDtoPropertyTemplate(prop, cloneDeep) {
+        if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
+        return {
+            arrayDimensionCount: prop.arrayDimensionCount,
+            autoGenerate: prop.autoGenerate,
+            defaultValue: cloneDeep(prop.defaultValue),
+            primaryKey: prop.primaryKey,
+            readOnly: prop.readOnly,
+            required: prop.required,
+            server: prop.server == null ? null : {
+                arrayDimensionCount: prop.server.arrayDimensionCount,
+                autoGenerate: prop.server.autoGenerate,
+                defaultValue: cloneDeep(prop.server.defaultValue),
+                name: prop.server.name,
+                primaryKey: prop.server.primaryKey,
+                readOnly: prop.server.readOnly,
+                required: prop.server.required,
+                type: prop.server.type,
+            },
+            toLocal: prop.toLocal,
+            toService: prop.toService,
+            type: prop.type,
+        };
+    }
+    ModelDefinitionsSet.cloneDtoPropertyTemplate = cloneDtoPropertyTemplate;
 })(ModelDefinitionsSet || (ModelDefinitionsSet = {}));
 module.exports = ModelDefinitionsSet;

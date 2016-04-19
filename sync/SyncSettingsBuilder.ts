@@ -1,4 +1,4 @@
-﻿import Arrays = require("../lib/ts-mortar/utils/Arrays");
+﻿import Arrays = require("../../ts-mortar/utils/Arrays");
 
 /** Builder for SyncSettings, SyncUpSettings, and/or SyncDownSettings instances.
  * Both SyncUpSettings and SyncDownSettings require a base SyncSettings instance to build on top of.

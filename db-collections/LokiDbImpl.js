@@ -1,23 +1,25 @@
-/// <reference path="../definitions/lib/Q.d.ts" />
-/// <reference path="../definitions/lib/lokijs.d.ts" />
-var _ = require("lodash");
+"use strict";
+/// <reference path="../../definitions/lib/Q.d.ts" />
+/// <reference path="../../definitions/lib/lokijs.d.ts" />
 var Q = require("q");
 var Loki = require("lokijs");
-var Arrays = require("../lib/ts-mortar/utils/Arrays");
-var Objects = require("../lib/ts-mortar/utils/Objects");
+var Arrays = require("../../ts-mortar/utils/Arrays");
+var Objects = require("../../ts-mortar/utils/Objects");
 var ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
 var PermissionedDataPersisterAdapter = require("./PermissionedDataPersisterAdapter");
-function stripMetaData(obj, doCloneDeep) {
-    var returnValue = _.clone(obj, doCloneDeep);
+function stripMetaData(obj, doCloneDeep, cloneDeep) {
+    if (cloneDeep === void 0) { cloneDeep = (doCloneDeep ? Objects.cloneDeep : Objects.clone); }
+    var returnValue = cloneDeep(obj);
     delete returnValue.$loki;
     delete returnValue.meta;
     return returnValue;
 }
-function stripMetaDataCloneDeep(obj) {
-    var returnValue = _.cloneDeep(obj);
+function stripMetaDataCloneDeep(obj, cloneDeep) {
+    if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
+    var returnValue = cloneDeep(obj);
     delete returnValue.$loki;
     delete returnValue.meta;
     return returnValue;
@@ -47,7 +49,7 @@ var ResultsetMock = (function () {
         return this;
     };
     return ResultsetMock;
-})();
+}());
 /** An implementation of InMemDb that wraps a LokiJS database
  */
 var LokiDbImpl = (function () {
@@ -405,5 +407,5 @@ var LokiDbImpl = (function () {
         return stripMetaData(obj);
     };
     return LokiDbImpl;
-})();
+}());
 module.exports = LokiDbImpl;

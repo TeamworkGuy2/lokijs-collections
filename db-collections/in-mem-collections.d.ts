@@ -1,5 +1,7 @@
-﻿/// <reference path="../definitions/lib/lokijs.d.ts" />
-/// <reference path="../lib/ts-code-generator/code-types/model-types.d.ts" />
+﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
+/// <reference path="../../ts-mortar/promises/tspromises.d.ts" />
+/// <reference path="../../ts-mortar/events/events.d.ts" />
+/// <reference path="../../ts-code-generator/code-types/model-types.d.ts" />
 
 /* lokijs-collection interfaces - Data storage/retrieval interface, specifically for storing/retrieving strongly typed data models
  * @author TeamworkGuy2

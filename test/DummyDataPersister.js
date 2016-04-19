@@ -30,5 +30,5 @@ var DummyDataPersister = (function () {
         throw new Error("DummyDataPersister.clearPersistenceDb() not yet implemented");
     };
     return DummyDataPersister;
-})();
+}());
 module.exports = DummyDataPersister;

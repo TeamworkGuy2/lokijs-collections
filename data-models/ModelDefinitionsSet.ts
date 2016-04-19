@@ -1,4 +1,4 @@
-﻿import _ = require("lodash");
+﻿import Objects = require("../../ts-mortar/utils/Objects");
 
 /** Contains a set of model definitions.
  * Model templates are designed around server-side object property names and values
@@ -11,6 +11,7 @@
 class ModelDefinitionsSet implements ModelDefinitions {
     private static EMPTY_ARRAY = Object.freeze([]);
 
+    private cloneDeep: (obj: any) => any;
     public dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
     public models: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> };
     private modelDefs: { [id: string]: DataCollectionModel<any> };
@@ -18,9 +19,11 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
 
     // generate model information the first time this JS module loads
-    constructor(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> }, dataTypes: { [id: string]: { value: any; toService: any; } }) {
+    constructor(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> },
+            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: (obj: any) => any = Objects.cloneDeep) {
+        this.cloneDeep = cloneDeep;
         this.dataTypes = dataTypes;
-        this.models = _.cloneDeep(dataModels);
+        this.models = cloneDeep(dataModels);
         var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels);
         this.modelDefs = modelDefs;
         this.modelsFuncs = modelsFuncs;
@@ -92,8 +95,9 @@ class ModelDefinitionsSet implements ModelDefinitions {
     }
 
 
-    public static fromCollectionModels(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> }, dataTypes: { [id: string]: { value: any; toService: any; } }) {
-        var inst = new ModelDefinitionsSet(dataModels, dataTypes);
+    public static fromCollectionModels(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> },
+            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: (obj: any) => any = Objects.cloneDeep): ModelDefinitionsSet {
+        var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     }
 
@@ -101,10 +105,11 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
 module ModelDefinitionsSet {
 
-    export function extendModelDef(parent: StringMap<DtoPropertyTemplate>, child: StringMap<DtoPropertyTemplate>): StringMap<DtoPropertyTemplate> {
-        var res: StringMap<DtoPropertyTemplate> = _.cloneDeep(parent);
+    export function extendModelDef(parent: StringMap<DtoPropertyTemplate>, child: StringMap<DtoPropertyTemplate>, cloneDeep?: (obj: any) => any): StringMap<DtoPropertyTemplate> {
+        var res = Objects.cloneMap(parent, null, cloneDtoPropertyTemplate);
+
         for (var childProp in child) {
-            res[childProp] = _.clone(child[childProp])
+            res[childProp] = cloneDtoPropertyTemplate(child[childProp], cloneDeep);
         }
         return res;
     }
@@ -136,7 +141,8 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<U, W> }, modelNames?: string[]): { modelDefs: { [name: string]: DataCollectionModel<U> }; modelsFuncs: { [name: string]: DataCollectionModelAllFuncs<U, W> } } {
+    export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<U, W> },
+            modelNames?: string[]): { modelDefs: { [name: string]: DataCollectionModel<U> }; modelsFuncs: { [name: string]: DataCollectionModelAllFuncs<U, W> } } {
         var modelDefs: { [id: string]: DataCollectionModel<any> } = {};
         var modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> } = {};
 
@@ -178,6 +184,31 @@ module ModelDefinitionsSet {
         }
 
         return { modelDefs, modelsFuncs };
+    }
+
+
+    export function cloneDtoPropertyTemplate(prop: DtoPropertyTemplate, cloneDeep: (obj: any) => any = Objects.cloneDeep): DtoPropertyTemplate {
+        return {
+            arrayDimensionCount: prop.arrayDimensionCount,
+            autoGenerate: prop.autoGenerate,
+            defaultValue: cloneDeep(prop.defaultValue),
+            primaryKey: prop.primaryKey,
+            readOnly: prop.readOnly,
+            required: prop.required,
+            server: prop.server == null ? null : {
+                arrayDimensionCount: prop.server.arrayDimensionCount,
+                autoGenerate: prop.server.autoGenerate,
+                defaultValue: cloneDeep(prop.server.defaultValue),
+                name: prop.server.name,
+                primaryKey: prop.server.primaryKey,
+                readOnly: prop.server.readOnly,
+                required: prop.server.required,
+                type: prop.server.type,
+            },
+            toLocal: prop.toLocal,
+            toService: prop.toService,
+            type: prop.type,
+        };
     }
 
 }

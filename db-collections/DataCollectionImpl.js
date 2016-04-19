@@ -1,6 +1,7 @@
-/// <reference path="../definitions/lib/lokijs.d.ts" />
+"use strict";
+/// <reference path="../../definitions/lib/lokijs.d.ts" />
 /// <reference path="./in-mem-collections.d.ts" />
-var EventListenerListImpl = require("../lib/ts-mortar/events/EventListenerListImpl");
+var EventListenerListImpl = require("../../ts-mortar/events/EventListenerListImpl");
 var ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 /** DataCollectionImpl class
@@ -299,5 +300,5 @@ var DataCollectionImpl = (function () {
         return inst;
     };
     return DataCollectionImpl;
-})();
+}());
 module.exports = DataCollectionImpl;

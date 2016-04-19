@@ -1,3 +1,4 @@
+"use strict";
 /** CollectionMetaData - data about a document collection, including name, primary key field names, and auto-generate key names
  * @author TeamworkGuy2
  */
@@ -23,5 +24,5 @@ var CollectionMetaData = (function () {
         }
     }
     return CollectionMetaData;
-})();
+}());
 module.exports = CollectionMetaData;

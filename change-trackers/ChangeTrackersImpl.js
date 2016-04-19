@@ -1,4 +1,5 @@
 /// <reference path="./collection-changes.d.ts" />
+"use strict";
 /**
  * @author TeamworkGuy2
  */
@@ -43,7 +44,7 @@ var ChangeTrackersImpl;
             this.changeInfo.removed += (!isNaN(change.removed) ? change.removed : 0);
         };
         return CompoundCollectionChange;
-    })();
+    }());
     ChangeTrackersImpl.CompoundCollectionChange = CompoundCollectionChange;
     /** Default {@link CollectionChangeInfo} implementation using a change history buffer with a maximum size
      */
@@ -104,7 +105,7 @@ var ChangeTrackersImpl;
             };
         };
         return ChangeTracker;
-    })();
+    }());
     ChangeTrackersImpl.ChangeTracker = ChangeTracker;
 })(ChangeTrackersImpl || (ChangeTrackersImpl = {}));
 module.exports = ChangeTrackersImpl;

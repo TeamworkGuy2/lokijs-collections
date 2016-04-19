@@ -1,5 +1,5 @@
 ﻿"use strict";
-import Objects = require("../lib/ts-mortar/utils/Objects");
+import Objects = require("../../ts-mortar/utils/Objects");
 import LokiDbImpl = require("../db-collections/LokiDbImpl");
 import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");

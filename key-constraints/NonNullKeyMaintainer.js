@@ -1,3 +1,4 @@
+"use strict";
 /** Check that a collection of objects have non null values for certain keys
  * @author TeamworkGuy2
  */
@@ -50,5 +51,5 @@ var NonNullKeyMaintainer = (function () {
         }
     };
     return NonNullKeyMaintainer;
-})();
+}());
 module.exports = NonNullKeyMaintainer;

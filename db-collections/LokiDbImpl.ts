@@ -1,10 +1,9 @@
-﻿/// <reference path="../definitions/lib/Q.d.ts" />
-/// <reference path="../definitions/lib/lokijs.d.ts" />
-import _ = require("lodash");
+﻿/// <reference path="../../definitions/lib/Q.d.ts" />
+/// <reference path="../../definitions/lib/lokijs.d.ts" />
 import Q = require("q");
 import Loki = require("lokijs");
-import Arrays = require("../lib/ts-mortar/utils/Arrays");
-import Objects = require("../lib/ts-mortar/utils/Objects");
+import Arrays = require("../../ts-mortar/utils/Arrays");
+import Objects = require("../../ts-mortar/utils/Objects");
 import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
@@ -12,8 +11,8 @@ import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer")
 import PermissionedDataPersisterAdapter = require("./PermissionedDataPersisterAdapter");
 
 
-function stripMetaData(obj: any, doCloneDeep?: boolean): any {
-    var returnValue = _.clone(obj, doCloneDeep);
+function stripMetaData(obj: any, doCloneDeep?: boolean, cloneDeep: (obj: any) => any = (doCloneDeep ? Objects.cloneDeep : Objects.clone)): any {
+    var returnValue = cloneDeep(obj);
 
     delete returnValue.$loki;
     delete returnValue.meta;
@@ -21,8 +20,8 @@ function stripMetaData(obj: any, doCloneDeep?: boolean): any {
     return returnValue;
 }
 
-function stripMetaDataCloneDeep(obj: any): any {
-    var returnValue = _.cloneDeep(obj);
+function stripMetaDataCloneDeep(obj: any, cloneDeep: (obj: any) => any = Objects.cloneDeep): any {
+    var returnValue = cloneDeep(obj);
 
     delete returnValue.$loki;
     delete returnValue.meta;

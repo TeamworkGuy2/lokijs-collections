@@ -1,6 +1,6 @@
-﻿/// <reference path="../definitions/lib/lokijs.d.ts" />
+﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
 /// <reference path="./in-mem-collections.d.ts" />
-import EventListenerListImpl = require("../lib/ts-mortar/events/EventListenerListImpl");
+import EventListenerListImpl = require("../../ts-mortar/events/EventListenerListImpl");
 import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 

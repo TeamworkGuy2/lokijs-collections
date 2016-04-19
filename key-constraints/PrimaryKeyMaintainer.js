@@ -1,3 +1,4 @@
+"use strict";
 var CollectionMetaData = require("./CollectionMetaData");
 var DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
@@ -90,5 +91,5 @@ var PrimaryKeyMaintainer = (function () {
         return dataColl;
     };
     return PrimaryKeyMaintainer;
-})();
+}());
 module.exports = PrimaryKeyMaintainer;

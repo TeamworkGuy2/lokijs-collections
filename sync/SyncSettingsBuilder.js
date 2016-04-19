@@ -1,4 +1,5 @@
-var Arrays = require("../lib/ts-mortar/utils/Arrays");
+"use strict";
+var Arrays = require("../../ts-mortar/utils/Arrays");
 /** Builder for SyncSettings, SyncUpSettings, and/or SyncDownSettings instances.
  * Both SyncUpSettings and SyncDownSettings require a base SyncSettings instance to build on top of.
  * SyncUpSettings and SyncDownSettings can be combined, but only one is required.
@@ -122,7 +123,7 @@ var SyncSettingsBuilder = (function () {
         };
     };
     return SyncSettingsBuilder;
-})();
+}());
 var SyncSettingsBuilder;
 (function (SyncSettingsBuilder) {
     /** SyncSettings class
@@ -141,7 +142,7 @@ var SyncSettingsBuilder;
             return new SyncSettingsImpl(src.localCollection, src.primaryKeys, src.findFilterFunc, src.copyObjectFunc, src.convertUrlToSyncDownFunc, src.convertUrlToSyncUpFunc);
         };
         return SyncSettingsImpl;
-    })();
+    }());
     SyncSettingsBuilder.SyncSettingsImpl = SyncSettingsImpl;
     /** Settings for syncing up (uploading) server data from a local data collection
      */
@@ -154,7 +155,7 @@ var SyncSettingsBuilder;
             return new SyncUpSettingsImpl(src.syncUpFunc, src.convertToSvcObjectFunc);
         };
         return SyncUpSettingsImpl;
-    })();
+    }());
     SyncSettingsBuilder.SyncUpSettingsImpl = SyncUpSettingsImpl;
     /** Settings for syncing down (downloading) server data to a local data collection
      */
@@ -167,7 +168,7 @@ var SyncSettingsBuilder;
             return new SyncDownSettingsImpl(src.syncDownFunc, src.convertToLocalObjectFunc);
         };
         return SyncDownSettingsImpl;
-    })();
+    }());
     SyncSettingsBuilder.SyncDownSettingsImpl = SyncDownSettingsImpl;
 })(SyncSettingsBuilder || (SyncSettingsBuilder = {}));
 module.exports = SyncSettingsBuilder;

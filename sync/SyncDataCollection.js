@@ -1,5 +1,6 @@
-var Arrays = require("../lib/ts-mortar/utils/Arrays");
-var Defer = require("../lib/ts-mortar/promises/Defer");
+"use strict";
+var Arrays = require("../../ts-mortar/utils/Arrays");
+var Defer = require("../../ts-mortar/promises/Defer");
 /** Combines functionality for two operations in one class:
  *  - Sync a local data collection to a remote data collection (refered to as 'syncing up').
  *  - Sync a remote data collection to a local data collection (refered to as 'syncing down').
@@ -276,7 +277,7 @@ var SyncDataCollection = (function () {
         return resultItems;
     };
     return SyncDataCollection;
-})();
+}());
 var SyncDataCollection;
 (function (SyncDataCollection) {
     /** Definitions of how to sync down data and merge it with local data, currently includes:
@@ -303,7 +304,7 @@ var SyncDataCollection;
         /** no constraints, use addAll(...) to add the remote synched down items to the local collection */
         SyncDownOp.REMOVE_NONE_AND_ADD_NEW = new SyncDownOp(false, false, false);
         return SyncDownOp;
-    })();
+    }());
     SyncDataCollection.SyncDownOp = SyncDownOp;
     function createSyncDownOp(clearData, removeDeletedData, mergeWithExistingData) {
         if (clearData) {

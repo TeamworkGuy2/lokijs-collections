@@ -1,3 +1,4 @@
+"use strict";
 /** ModelKeys - helper for primary keys from a {@link ModelDefinitions}
  * For managing the primary and auto-generated keys from a data model
  * @author TeamworkGuy2
@@ -48,7 +49,7 @@ var ModelKeysImpl = (function () {
         return query;
     };
     return ModelKeysImpl;
-})();
+}());
 var ModelKeysImpl;
 (function (ModelKeysImpl) {
     /** Constrains the value of a field
@@ -60,7 +61,7 @@ var ModelKeysImpl;
         Constraint.NON_NULL = new Constraint(1);
         Constraint.UNIQUE = new Constraint(2);
         return Constraint;
-    })();
+    }());
     ModelKeysImpl.Constraint = Constraint;
     /** How to handle auto generated fields (i.e. primary keys)
      */
@@ -71,7 +72,7 @@ var ModelKeysImpl;
         Generated.AUTO_GENERATE = new Generated(1);
         Generated.PRESERVE_EXISTING = new Generated(2);
         return Generated;
-    })();
+    }());
     ModelKeysImpl.Generated = Generated;
 })(ModelKeysImpl || (ModelKeysImpl = {}));
 module.exports = ModelKeysImpl;

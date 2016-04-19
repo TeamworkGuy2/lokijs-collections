@@ -1,5 +1,5 @@
-﻿import Arrays = require("../lib/ts-mortar/utils/Arrays");
-import Defer = require("../lib/ts-mortar/promises/Defer");
+﻿import Arrays = require("../../ts-mortar/utils/Arrays");
+import Defer = require("../../ts-mortar/promises/Defer");
 
 /** Combines functionality for two operations in one class:
  *  - Sync a local data collection to a remote data collection (refered to as 'syncing up').
