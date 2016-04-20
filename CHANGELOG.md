@@ -4,7 +4,7 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.8.2](N/A) - 2016-04-18
+### [0.8.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/1260e20a5db55b146cbed7b6395dfcb49f748019) - 2016-04-18
 #### Added
 * A CHANGELOG.md covering all previous releases after being reminded about the need for change longs on http://keepachangelog.com/
 * ModelDefinitionsSet.cloneDtoPropertyTemplate()

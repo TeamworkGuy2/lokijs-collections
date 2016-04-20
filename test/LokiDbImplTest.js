@@ -58,7 +58,7 @@ QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
         persister = new DummyDataPersister(function () { return dbInst.getCollections(); }, LokiDbImpl.stripMetaData, null);
         return persister;
     });
-    dbInst.initializeLokijsDb({});
+    dbInst.initializeDb({});
     var modelA = dbInst.getModelDefinitions().getDataModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
     var modelB = dbInst.getModelDefinitions().getDataModel("coll_b");

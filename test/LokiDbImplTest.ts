@@ -106,7 +106,7 @@ QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
             return persister;
         }
     );
-    dbInst.initializeLokijsDb({});
+    dbInst.initializeDb({});
 
     var modelA = dbInst.getModelDefinitions().getDataModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");

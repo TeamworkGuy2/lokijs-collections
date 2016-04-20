@@ -98,7 +98,7 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.getModelKeys = function () {
         return this.modelKeys;
     };
-    LokiDbImpl.prototype.initializeLokijsDb = function (options) {
+    LokiDbImpl.prototype.initializeDb = function (options) {
         this._setNewDb(LokiDbImpl._createNewDb(this.dbName, options));
     };
     LokiDbImpl.prototype.resetDataStore = function () {
@@ -400,11 +400,11 @@ var LokiDbImpl = (function () {
         // events not yet implemented
     };
     // ======== Utility functions ========
-    LokiDbImpl.prototype.stripMetaData = function (obj) {
-        return stripMetaData(obj);
+    LokiDbImpl.prototype.stripMetaData = function (obj, cloneDeep) {
+        return stripMetaData(obj, cloneDeep != null && cloneDeep !== false, cloneDeep !== true ? cloneDeep : null);
     };
-    LokiDbImpl.stripMetaData = function (obj) {
-        return stripMetaData(obj);
+    LokiDbImpl.stripMetaData = function (obj, cloneDeep) {
+        return stripMetaData(obj, cloneDeep != null && cloneDeep !== false, cloneDeep !== true ? cloneDeep : null);
     };
     return LokiDbImpl;
 }());

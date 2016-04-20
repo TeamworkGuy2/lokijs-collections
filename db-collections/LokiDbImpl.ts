@@ -141,7 +141,7 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public initializeLokijsDb(options: LokiConfigureOptions) {
+    public initializeDb(options: LokiConfigureOptions) {
         this._setNewDb(LokiDbImpl._createNewDb(this.dbName, options));
     }
 
@@ -537,13 +537,13 @@ class LokiDbImpl implements InMemDb {
 
 
     // ======== Utility functions ========
-    public stripMetaData(obj: any): any {
-        return stripMetaData(obj);
+    public stripMetaData(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
+        return stripMetaData(obj, cloneDeep != null && cloneDeep !== false, cloneDeep !== true ? <any>cloneDeep : null);
     }
 
 
-    public static stripMetaData(obj: any): any {
-        return stripMetaData(obj);
+    public static stripMetaData(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
+        return stripMetaData(obj, cloneDeep != null && cloneDeep !== false, cloneDeep !== true ? <any>cloneDeep : null);
     }
 
 }

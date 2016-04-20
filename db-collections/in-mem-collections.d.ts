@@ -31,7 +31,7 @@ interface InMemDb {
 
     resetDataStore(): Q.IPromise<void>;
 
-    initializeLokijsDb(options: LokiConfigureOptions): void;
+    initializeDb(options: LokiConfigureOptions): void;
 
     setDataPersister(dataPersisterFactory: DataPersister.AdapterFactory): void;
 

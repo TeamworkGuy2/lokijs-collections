@@ -156,14 +156,14 @@ var ModelDefinitionsSet;
         return {
             arrayDimensionCount: prop.arrayDimensionCount,
             autoGenerate: prop.autoGenerate,
-            defaultValue: cloneDeep(prop.defaultValue),
+            defaultValue: prop.defaultValue != null ? cloneDeep(prop.defaultValue) : null,
             primaryKey: prop.primaryKey,
             readOnly: prop.readOnly,
             required: prop.required,
             server: prop.server == null ? null : {
                 arrayDimensionCount: prop.server.arrayDimensionCount,
                 autoGenerate: prop.server.autoGenerate,
-                defaultValue: cloneDeep(prop.server.defaultValue),
+                defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : null,
                 name: prop.server.name,
                 primaryKey: prop.server.primaryKey,
                 readOnly: prop.server.readOnly,
