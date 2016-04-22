@@ -106,7 +106,7 @@ class ModelDefinitionsSet implements ModelDefinitions {
 module ModelDefinitionsSet {
 
     export function extendModelDef(parent: StringMap<DtoPropertyTemplate>, child: StringMap<DtoPropertyTemplate>, cloneDeep?: (obj: any) => any): StringMap<DtoPropertyTemplate> {
-        var res = Objects.cloneMap(parent, null, cloneDtoPropertyTemplate);
+        var res = Objects.map(parent, null, (k, v) => cloneDtoPropertyTemplate(v));
 
         for (var childProp in child) {
             res[childProp] = cloneDtoPropertyTemplate(child[childProp], cloneDeep);

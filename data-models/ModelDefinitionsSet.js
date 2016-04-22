@@ -79,7 +79,7 @@ var ModelDefinitionsSet = (function () {
 var ModelDefinitionsSet;
 (function (ModelDefinitionsSet) {
     function extendModelDef(parent, child, cloneDeep) {
-        var res = Objects.cloneMap(parent, null, cloneDtoPropertyTemplate);
+        var res = Objects.map(parent, null, function (k, v) { return cloneDtoPropertyTemplate(v); });
         for (var childProp in child) {
             res[childProp] = cloneDtoPropertyTemplate(child[childProp], cloneDeep);
         }

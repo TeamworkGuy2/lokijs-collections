@@ -3,8 +3,12 @@ All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
 
+### [Unreleased]
+* Updated to use latest version of ts-mortar 0.5.4 (renamed Objects.cloneMap() -> map())
+
+
 --------
-### [0.8.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/1260e20a5db55b146cbed7b6395dfcb49f748019) - 2016-04-18
+### [0.8.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/025a7db56bc4c2359a42a72175eed7ae54969a85) - 2016-04-20
 #### Added
 * A CHANGELOG.md covering all previous releases after being reminded about the need for change longs on http://keepachangelog.com/
 * ModelDefinitionsSet.cloneDtoPropertyTemplate()
