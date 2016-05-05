@@ -3,7 +3,11 @@ All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
 
-### [0.9.0](N/A) - 2016-05-05
+#### [Unreleased]
+* Added cloneWithoutMetaData_clone_delete() to mirror original clone functionality
+
+
+### [0.9.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/59f4dad4c5a7b6edfd563ae5a137b5c32ed6e3b2) - 2016-05-05
 #### Changed
 * Updated to use latest version of ts-mortar 0.5.4 (renamed Objects.cloneMap() -> map())
 * Added cloneType string parameter to LokiDbImpl constructor

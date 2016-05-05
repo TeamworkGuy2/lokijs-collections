@@ -65,7 +65,7 @@ class LokiDbImpl implements InMemDb {
     private cloneFunc: InMemDbCloneFunc;
 
 
-    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for", metaDataStorageCollectionName: string,
+    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete", metaDataStorageCollectionName: string,
             modelDefinitions: ModelDefinitions, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter) {
         this.dbName = dbName;
         this.syncSettings = settings;
@@ -73,7 +73,7 @@ class LokiDbImpl implements InMemDb {
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
-        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneWithoutMetaData_for_in_if : (cloneType === "keys-for-if" ? LokiDbImpl.cloneWithoutMetaData_keys_for_if : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneWithoutMetaData_keys_excluding_for : null));
+        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneWithoutMetaData_for_in_if : (cloneType === "keys-for-if" ? LokiDbImpl.cloneWithoutMetaData_keys_for_if : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneWithoutMetaData_keys_excluding_for : (cloneType === "clone-delete" ? LokiDbImpl.cloneWithoutMetaData_clone_delete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
@@ -576,12 +576,24 @@ class LokiDbImpl implements InMemDb {
     }
 
 
+    static cloneWithoutMetaData_clone_delete(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
+        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
+
+        var copy = cloneFunc(obj);
+
+        delete copy.$loki;
+        delete copy.meta;
+
+        return copy;
+    }
+
+
     static cloneDeepWithoutMetaData(obj: any, cloneDeep: (obj: any) => any = Objects.cloneDeep, type: InMemDbCloneFunc): any {
         return type(obj, cloneDeep);
     }
 
 
-    static benchmarkClone<T>(objs: T[], loops: number, cloneDeep?: boolean | ((obj: any) => any), averagedLoops = 10): { items: number; loops: number; for_in_if: number; keys_for_if: number; keys_excluding_for: number; _res: any; } {
+    static benchmarkClone<T>(objs: T[], loops: number, cloneDeep?: boolean | ((obj: any) => any), averagedLoops = 10): { items: number; loops: number; clone_delete: number; for_in_if: number; keys_for_if: number; keys_excluding_for: number; _res: any; } {
         var _res = [];
         var warmupLoops = Math.max(Math.round(loops / 2), 2);
         var items = objs.length;
@@ -596,6 +608,9 @@ class LokiDbImpl implements InMemDb {
             }
             for (var ii = 0; ii < items; ii++) {
                 resI += LokiDbImpl.cloneWithoutMetaData_keys_excluding_for(objs[ii], cloneDeep) !== null ? 1 : 0;
+            }
+            for (var ii = 0; ii < items; ii++) {
+                resI += LokiDbImpl.cloneWithoutMetaData_clone_delete(objs[ii], cloneDeep) !== null ? 1 : 0;
             }
             _res.push(resI);
         }
@@ -633,7 +648,18 @@ class LokiDbImpl implements InMemDb {
             return window.performance.now() - start;
         }
 
+        function clone_delete_func() {
+            var start = window.performance.now();
+            for (var i = 0; i < loops; i++) {
+                for (var ii = 0; ii < items; ii++) {
+                    resI += LokiDbImpl.cloneWithoutMetaData_clone_delete(objs[ii], cloneDeep) !== null ? 1 : 0;
+                }
+            }
+            return window.performance.now() - start;
+        }
+
         var tasksAndTimes = [
+            { totalTime: 0, func: clone_delete_func },
             { totalTime: 0, func: for_in_if_func },
             { totalTime: 0, func: keys_excluding_for_func },
             { totalTime: 0, func: keys_for_if_func },
@@ -643,11 +669,14 @@ class LokiDbImpl implements InMemDb {
             tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
             tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
             tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
+            tasksAndTimes[3].totalTime += tasksAndTimes[3].func();
 
             tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
             tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
+            tasksAndTimes[3].totalTime += tasksAndTimes[3].func();
             tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
 
+            tasksAndTimes[3].totalTime += tasksAndTimes[3].func();
             tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
             tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
             tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
@@ -659,9 +688,10 @@ class LokiDbImpl implements InMemDb {
             items,
             loops,
             _res,
-            for_in_if: tasksAndTimes[0].totalTime / (averagedLoops * 3),
-            keys_excluding_for: tasksAndTimes[1].totalTime / (averagedLoops * 3),
-            keys_for_if: tasksAndTimes[2].totalTime / (averagedLoops * 3),
+            clone_delete: tasksAndTimes[0].totalTime / (averagedLoops * 3),
+            for_in_if: tasksAndTimes[1].totalTime / (averagedLoops * 3),
+            keys_excluding_for: tasksAndTimes[2].totalTime / (averagedLoops * 3),
+            keys_for_if: tasksAndTimes[3].totalTime / (averagedLoops * 3),
         }
     }
 
