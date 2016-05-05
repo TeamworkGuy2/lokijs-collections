@@ -3,8 +3,12 @@ All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
 
-### [Unreleased]
+### [0.9.0](N/A) - 2016-05-05
+#### Changed
 * Updated to use latest version of ts-mortar 0.5.4 (renamed Objects.cloneMap() -> map())
+* Added cloneType string parameter to LokiDbImpl constructor
+* Renamed LokiDbImpl.prototype.stripMetaData() -> cloneWithoutMetaData()
+* Renamed LokiDbImpl.stripMetaData() in favor of cloneDeepWithoutMetaData() or one of the specific implementations: cloneWithoutMetaData_for_in_if(), cloneWithoutMetaData_keys_for_if(), or cloneWithoutMetaData_keys_excluding_for()
 
 
 --------

@@ -10,20 +10,6 @@ var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
 var PermissionedDataPersisterAdapter = require("./PermissionedDataPersisterAdapter");
-function stripMetaData(obj, doCloneDeep, cloneDeep) {
-    if (cloneDeep === void 0) { cloneDeep = (doCloneDeep ? Objects.cloneDeep : Objects.clone); }
-    var returnValue = cloneDeep(obj);
-    delete returnValue.$loki;
-    delete returnValue.meta;
-    return returnValue;
-}
-function stripMetaDataCloneDeep(obj, cloneDeep) {
-    if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
-    var returnValue = cloneDeep(obj);
-    delete returnValue.$loki;
-    delete returnValue.meta;
-    return returnValue;
-}
 /** A {@link ResultSetLike} implementation for an empty collection
  * @author TeamworkGuy2
  */
@@ -53,13 +39,17 @@ var ResultsetMock = (function () {
 /** An implementation of InMemDb that wraps a LokiJS database
  */
 var LokiDbImpl = (function () {
-    function LokiDbImpl(dbName, settings, storeSettings, metaDataStorageCollectionName, modelDefinitions, dataPersisterFactory) {
+    function LokiDbImpl(dbName, settings, storeSettings, cloneType, metaDataStorageCollectionName, modelDefinitions, dataPersisterFactory) {
         this.dbName = dbName;
         this.syncSettings = settings;
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
+        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneWithoutMetaData_for_in_if : (cloneType === "keys-for-if" ? LokiDbImpl.cloneWithoutMetaData_keys_for_if : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneWithoutMetaData_keys_excluding_for : null));
+        if (this.cloneFunc == null) {
+            throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
+        }
         this.dataPersisterFactory = dataPersisterFactory;
         this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
@@ -111,7 +101,7 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.setDataPersister = function (dataPersisterFactory) {
         var _this = this;
         this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersisterInst = dataPersisterFactory(this, function () { return _this.getCollections(); }, function (collName) { return stripMetaData; }, function (collName) { return null; });
+        this.dataPersisterInst = dataPersisterFactory(this, function () { return _this.getCollections(); }, function (collName) { return _this.cloneFunc; }, function (collName) { return null; });
     };
     LokiDbImpl.prototype.getDataPersister = function () {
         return this.dataPersisterInst;
@@ -255,7 +245,8 @@ var LokiDbImpl = (function () {
         }
     };
     LokiDbImpl.prototype.addOrUpdateWhere = function (collection, dataModel, dataModelFuncs, query, obj, noModify, dstMetaData) {
-        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || stripMetaDataCloneDeep;
+        var _this = this;
+        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
         query = this.modelKeys.validateQuery(collection.name, query, obj);
         var results = this._findMultiProp(this.find(collection, dataModel), query);
         var compoundDstMetaData = null;
@@ -306,7 +297,8 @@ var LokiDbImpl = (function () {
         }
     };
     LokiDbImpl.prototype.addOrUpdateAll = function (collection, dataModel, dataModelFuncs, keyName, updatesArray, noModify, dstMetaData) {
-        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || stripMetaDataCloneDeep;
+        var _this = this;
+        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
         var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];
@@ -400,11 +392,120 @@ var LokiDbImpl = (function () {
         // events not yet implemented
     };
     // ======== Utility functions ========
-    LokiDbImpl.prototype.stripMetaData = function (obj, cloneDeep) {
-        return stripMetaData(obj, cloneDeep != null && cloneDeep !== false, cloneDeep !== true ? cloneDeep : null);
+    LokiDbImpl.prototype.cloneWithoutMetaData = function (obj, cloneDeep) {
+        return this.cloneFunc(obj, cloneDeep);
     };
-    LokiDbImpl.stripMetaData = function (obj, cloneDeep) {
-        return stripMetaData(obj, cloneDeep != null && cloneDeep !== false, cloneDeep !== true ? cloneDeep : null);
+    LokiDbImpl.cloneWithoutMetaData_for_in_if = function (obj, cloneDeep) {
+        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
+        var copy = {};
+        for (var key in obj) {
+            if (copy.hasOwnProperty(key) && key !== "$loki" && key !== "meta") {
+                copy[key] = cloneFunc(obj[key]);
+            }
+        }
+        return copy;
+    };
+    LokiDbImpl.cloneWithoutMetaData_keys_for_if = function (obj, cloneDeep) {
+        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
+        var copy = {};
+        var keys = Object.keys(obj);
+        for (var i = 0, size = keys.length; i < size; i++) {
+            var key = keys[i];
+            if (key !== "$loki" && key !== "meta") {
+                copy[key] = cloneFunc(obj[key]);
+            }
+        }
+        return copy;
+    };
+    LokiDbImpl.cloneWithoutMetaData_keys_excluding_for = function (obj, cloneDeep) {
+        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
+        var copy = {};
+        var keys = Object.keys(obj);
+        Arrays.fastRemove(keys, "$loki");
+        Arrays.fastRemove(keys, "meta");
+        for (var i = 0, size = keys.length; i < size; i++) {
+            var key = keys[i];
+            copy[key] = cloneFunc(obj[key]);
+        }
+        return copy;
+    };
+    LokiDbImpl.cloneDeepWithoutMetaData = function (obj, cloneDeep, type) {
+        if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
+        return type(obj, cloneDeep);
+    };
+    LokiDbImpl.benchmarkClone = function (objs, loops, cloneDeep, averagedLoops) {
+        if (averagedLoops === void 0) { averagedLoops = 10; }
+        var _res = [];
+        var warmupLoops = Math.max(Math.round(loops / 2), 2);
+        var items = objs.length;
+        // warmup
+        for (var i = 0; i < warmupLoops; i++) {
+            var resI = 0;
+            for (var ii = 0; ii < items; ii++) {
+                resI += LokiDbImpl.cloneWithoutMetaData_for_in_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+            }
+            for (var ii = 0; ii < items; ii++) {
+                resI += LokiDbImpl.cloneWithoutMetaData_keys_for_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+            }
+            for (var ii = 0; ii < items; ii++) {
+                resI += LokiDbImpl.cloneWithoutMetaData_keys_excluding_for(objs[ii], cloneDeep) !== null ? 1 : 0;
+            }
+            _res.push(resI);
+        }
+        var resI = 0;
+        // test with timers
+        function for_in_if_func() {
+            var start = window.performance.now();
+            for (var i = 0; i < loops; i++) {
+                for (var ii = 0; ii < items; ii++) {
+                    resI += LokiDbImpl.cloneWithoutMetaData_for_in_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+                }
+            }
+            return window.performance.now() - start;
+        }
+        function keys_for_if_func() {
+            var start = window.performance.now();
+            for (var i = 0; i < loops; i++) {
+                for (var ii = 0; ii < items; ii++) {
+                    resI += LokiDbImpl.cloneWithoutMetaData_keys_for_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+                }
+            }
+            return window.performance.now() - start;
+        }
+        function keys_excluding_for_func() {
+            var start = window.performance.now();
+            for (var i = 0; i < loops; i++) {
+                for (var ii = 0; ii < items; ii++) {
+                    resI += LokiDbImpl.cloneWithoutMetaData_keys_excluding_for(objs[ii], cloneDeep) !== null ? 1 : 0;
+                }
+            }
+            return window.performance.now() - start;
+        }
+        var tasksAndTimes = [
+            { totalTime: 0, func: for_in_if_func },
+            { totalTime: 0, func: keys_excluding_for_func },
+            { totalTime: 0, func: keys_for_if_func },
+        ];
+        for (var k = 0; k < averagedLoops; k++) {
+            tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
+            tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
+            tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
+            tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
+            tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
+            tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
+            tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
+            tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
+            tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
+        }
+        _res.push(resI);
+        return {
+            items: items,
+            loops: loops,
+            _res: _res,
+            for_in_if: tasksAndTimes[0].totalTime / (averagedLoops * 3),
+            keys_excluding_for: tasksAndTimes[1].totalTime / (averagedLoops * 3),
+            keys_for_if: tasksAndTimes[2].totalTime / (averagedLoops * 3),
+        };
     };
     return LokiDbImpl;
 }());
