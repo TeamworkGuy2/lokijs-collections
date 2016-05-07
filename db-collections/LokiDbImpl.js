@@ -46,7 +46,7 @@ var LokiDbImpl = (function () {
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
-        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneWithoutMetaData_for_in_if : (cloneType === "keys-for-if" ? LokiDbImpl.cloneWithoutMetaData_keys_for_if : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneWithoutMetaData_keys_excluding_for : (cloneType === "clone-delete" ? LokiDbImpl.cloneWithoutMetaData_clone_delete : null)));
+        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf : (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor : (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
@@ -395,17 +395,17 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.cloneWithoutMetaData = function (obj, cloneDeep) {
         return this.cloneFunc(obj, cloneDeep);
     };
-    LokiDbImpl.cloneWithoutMetaData_for_in_if = function (obj, cloneDeep) {
+    LokiDbImpl.cloneForInIf = function (obj, cloneDeep) {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
         var copy = {};
         for (var key in obj) {
-            if (copy.hasOwnProperty(key) && key !== "$loki" && key !== "meta") {
+            if (key !== "$loki" && key !== "meta") {
                 copy[key] = cloneFunc(obj[key]);
             }
         }
         return copy;
     };
-    LokiDbImpl.cloneWithoutMetaData_keys_for_if = function (obj, cloneDeep) {
+    LokiDbImpl.cloneKeysForIf = function (obj, cloneDeep) {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
         var copy = {};
         var keys = Object.keys(obj);
@@ -417,7 +417,7 @@ var LokiDbImpl = (function () {
         }
         return copy;
     };
-    LokiDbImpl.cloneWithoutMetaData_keys_excluding_for = function (obj, cloneDeep) {
+    LokiDbImpl.cloneKeysExcludingFor = function (obj, cloneDeep) {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
         var copy = {};
         var keys = Object.keys(obj);
@@ -429,7 +429,7 @@ var LokiDbImpl = (function () {
         }
         return copy;
     };
-    LokiDbImpl.cloneWithoutMetaData_clone_delete = function (obj, cloneDeep) {
+    LokiDbImpl.cloneCloneDelete = function (obj, cloneDeep) {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
         var copy = cloneFunc(obj);
         delete copy.$loki;
@@ -440,6 +440,10 @@ var LokiDbImpl = (function () {
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
         return type(obj, cloneDeep);
     };
+    LokiDbImpl.prototype.benchmarkClone = function (objs, loops, cloneDeep, averagedLoops) {
+        if (averagedLoops === void 0) { averagedLoops = 10; }
+        return LokiDbImpl.benchmarkClone(objs, loops, cloneDeep, averagedLoops);
+    };
     LokiDbImpl.benchmarkClone = function (objs, loops, cloneDeep, averagedLoops) {
         if (averagedLoops === void 0) { averagedLoops = 10; }
         var _res = [];
@@ -449,16 +453,16 @@ var LokiDbImpl = (function () {
         for (var i = 0; i < warmupLoops; i++) {
             var resI = 0;
             for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneWithoutMetaData_for_in_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+                resI += LokiDbImpl.cloneForInIf(objs[ii], cloneDeep) !== null ? 1 : 0;
             }
             for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneWithoutMetaData_keys_for_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+                resI += LokiDbImpl.cloneKeysForIf(objs[ii], cloneDeep) !== null ? 1 : 0;
             }
             for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneWithoutMetaData_keys_excluding_for(objs[ii], cloneDeep) !== null ? 1 : 0;
+                resI += LokiDbImpl.cloneKeysExcludingFor(objs[ii], cloneDeep) !== null ? 1 : 0;
             }
             for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneWithoutMetaData_clone_delete(objs[ii], cloneDeep) !== null ? 1 : 0;
+                resI += LokiDbImpl.cloneCloneDelete(objs[ii], cloneDeep) !== null ? 1 : 0;
             }
             _res.push(resI);
         }
@@ -468,7 +472,7 @@ var LokiDbImpl = (function () {
             var start = window.performance.now();
             for (var i = 0; i < loops; i++) {
                 for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneWithoutMetaData_for_in_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+                    resI += LokiDbImpl.cloneForInIf(objs[ii], cloneDeep) !== null ? 1 : 0;
                 }
             }
             return window.performance.now() - start;
@@ -477,7 +481,7 @@ var LokiDbImpl = (function () {
             var start = window.performance.now();
             for (var i = 0; i < loops; i++) {
                 for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneWithoutMetaData_keys_for_if(objs[ii], cloneDeep) !== null ? 1 : 0;
+                    resI += LokiDbImpl.cloneKeysForIf(objs[ii], cloneDeep) !== null ? 1 : 0;
                 }
             }
             return window.performance.now() - start;
@@ -486,7 +490,7 @@ var LokiDbImpl = (function () {
             var start = window.performance.now();
             for (var i = 0; i < loops; i++) {
                 for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneWithoutMetaData_keys_excluding_for(objs[ii], cloneDeep) !== null ? 1 : 0;
+                    resI += LokiDbImpl.cloneKeysExcludingFor(objs[ii], cloneDeep) !== null ? 1 : 0;
                 }
             }
             return window.performance.now() - start;
@@ -495,7 +499,7 @@ var LokiDbImpl = (function () {
             var start = window.performance.now();
             for (var i = 0; i < loops; i++) {
                 for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneWithoutMetaData_clone_delete(objs[ii], cloneDeep) !== null ? 1 : 0;
+                    resI += LokiDbImpl.cloneCloneDelete(objs[ii], cloneDeep) !== null ? 1 : 0;
                 }
             }
             return window.performance.now() - start;

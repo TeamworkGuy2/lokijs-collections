@@ -3,16 +3,20 @@ All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
 
-#### [Unreleased]
+--------
+### [0.9.1](N/A) - 2016-05-06
+#### Changed
 * Added cloneWithoutMetaData_clone_delete() to mirror original clone functionality
+* Renamed LokiDbImpl clone methods to cloneCloneDelete(), cloneForInIf(), cloneKeysExcludingFor(), cloneKeysForIf()
 
 
+--------
 ### [0.9.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/59f4dad4c5a7b6edfd563ae5a137b5c32ed6e3b2) - 2016-05-05
 #### Changed
 * Updated to use latest version of ts-mortar 0.5.4 (renamed Objects.cloneMap() -> map())
 * Added cloneType string parameter to LokiDbImpl constructor
 * Renamed LokiDbImpl.prototype.stripMetaData() -> cloneWithoutMetaData()
-* Renamed LokiDbImpl.stripMetaData() in favor of cloneDeepWithoutMetaData() or one of the specific implementations: cloneWithoutMetaData_for_in_if(), cloneWithoutMetaData_keys_for_if(), or cloneWithoutMetaData_keys_excluding_for()
+* Renamed LokiDbImpl.stripMetaData() in favor of cloneDeepWithoutMetaData() or one of the specific implementations: cloneWithoutMetaData_for_in_if(), cloneWithoutMetaData_keys_excluding_for(), cloneWithoutMetaData_keys_for_if()
 
 
 --------

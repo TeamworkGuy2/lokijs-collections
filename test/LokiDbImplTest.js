@@ -55,7 +55,7 @@ QUnit.module("LokiDbImpl", {});
 QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
     var persister;
     var dbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if", "collection_meta_data", ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes), function createPersister(dbInst) {
-        persister = new DummyDataPersister(function () { return dbInst.getCollections(); }, LokiDbImpl.cloneWithoutMetaData_for_in_if, null);
+        persister = new DummyDataPersister(function () { return dbInst.getCollections(); }, LokiDbImpl.cloneForInIf, null);
         return persister;
     });
     dbInst.initializeDb({});
