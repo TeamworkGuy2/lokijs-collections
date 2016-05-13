@@ -14,10 +14,11 @@ var ModelDefinitionsSet = (function () {
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
         this.cloneDeep = cloneDeep;
         this.dataTypes = dataTypes;
-        this.models = cloneDeep(dataModels);
+        this.models = Objects.map(dataModels, function (k, v) { return Objects.assign(cloneDeep(v), { name: k }); });
         var _a = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels), modelDefs = _a.modelDefs, modelsFuncs = _a.modelsFuncs;
         this.modelDefs = modelDefs;
         this.modelsFuncs = modelsFuncs;
+        this.modelNames = Object.keys(dataModels);
     }
     /* planning to implement in future
     function checkModelName(modelName) {
@@ -30,8 +31,11 @@ var ModelDefinitionsSet = (function () {
         if (this.modelDefs[modelName] != null) {
             throw new Error("model named '" + modelName + "' already exists, cannot add new model by that name");
         }
-        var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, model);
-        this.models[modelName] = model;
+        // clone the model first, so we're not modifying it when we attach the name
+        var modelCopy = Objects.assign(this.cloneDeep(model), { name: modelName });
+        var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, modelCopy);
+        this.modelNames.push(modelName);
+        this.models[modelName] = modelCopy;
         this.modelDefs[modelName] = collModel.modelDef;
         this.modelsFuncs[modelName] = collModel.modelFuncs;
         return collModel;

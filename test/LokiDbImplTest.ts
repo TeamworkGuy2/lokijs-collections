@@ -40,7 +40,7 @@ var now = new Date();
 var dataTypes = null;
 
 var dataModels = {
-    "coll_a": <CollectionModelDef<any>>{
+    "coll_a": <CollectionModel<any>>{
         properties: {
             "id": { primaryKey: true, autoGenerate: true, type: "number", server: { type: "long" } },
             "name": { type: "string", server: { type: "string" } },
@@ -50,7 +50,7 @@ var dataModels = {
         toServiceNameConverter: null,
         copyFunc: (a) => { return { id: a.id, name: a.name, styles: Array.prototype.slice.call(a.style || []) }; },
     },
-    "coll_b": <CollectionModelDef<any>>{
+    "coll_b": <CollectionModel<any>>{
         properties: {
             "userId": { type: "string" },
             "token": { type: "string" },
@@ -88,7 +88,7 @@ var bItem2: MdB = {
     timestamp: null,
 };
 
-var dataModelsMap = <StringMap<CollectionModelDef<any>>><any>dataModels;
+var dataModelsMap = <StringMap<CollectionModel<any>>><any>dataModels;
 
 
 

@@ -4,7 +4,24 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.9.1](N/A) - 2016-05-06
+### [0.10.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/78027fe330f1777e523e803cf0c6628283d244da) - 2016-05-06
+#### Added
+* ModelDefinitions.modelNames array (also added to subclass ModelDefinitionsSet) for easy access instead of having to use Object.keys()
+* Added CollectionSvcModelNamed interface
+
+#### Changed
+* ModelDefinitions.models (and ModelDefinitionsSet.addModel() and constructor) now add a 'name' property to the models
+* Improved ModelDefinitionsSet.cloneDeep data type.
+* Renamed interfaces:
+  * CollectionModelDef -> CollectionModel
+  * CollectionModelWithSvcDef -> CollectionSvcModel
+
+#### Fixed
+* ModelDefinitionsSet.addModel() now copies when storing it internally to match constructor behavior
+
+
+--------
+### [0.9.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/78027fe330f1777e523e803cf0c6628283d244da) - 2016-05-06
 #### Changed
 * Added cloneWithoutMetaData_clone_delete() to mirror original clone functionality
 * Renamed LokiDbImpl clone methods to cloneCloneDelete(), cloneForInIf(), cloneKeysExcludingFor(), cloneKeysForIf()

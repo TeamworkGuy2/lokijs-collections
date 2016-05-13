@@ -11,22 +11,24 @@
 class ModelDefinitionsSet implements ModelDefinitions {
     private static EMPTY_ARRAY = Object.freeze([]);
 
-    private cloneDeep: (obj: any) => any;
+    private cloneDeep: <T1>(obj: T1) => T1;
     public dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
-    public models: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> };
+    public modelNames: string[];
+    public models: { [id: string]: DtoModelTemplateNamed | CollectionSvcModelNamed<any, any> };
     private modelDefs: { [id: string]: DataCollectionModel<any> };
     private modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> };
 
 
     // generate model information the first time this JS module loads
-    constructor(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> },
-            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: (obj: any) => any = Objects.cloneDeep) {
+    constructor(dataModels: { [id: string]: DtoModelTemplate | CollectionSvcModel<any, any> },
+            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
         this.cloneDeep = cloneDeep;
         this.dataTypes = dataTypes;
-        this.models = cloneDeep(dataModels);
+        this.models = Objects.map(dataModels, (k, v) => Objects.assign(cloneDeep(v), { name: k }));
         var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels);
         this.modelDefs = modelDefs;
         this.modelsFuncs = modelsFuncs;
+        this.modelNames = Object.keys(dataModels);
     }
 
 
@@ -39,12 +41,16 @@ class ModelDefinitionsSet implements ModelDefinitions {
     */
 
 
-    public addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionModelWithSvcDef<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
+    public addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
         if (this.modelDefs[modelName] != null) {
             throw new Error("model named '" + modelName + "' already exists, cannot add new model by that name");
         }
-        var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, model);
-        this.models[modelName] = model;
+        // clone the model first, so we're not modifying it when we attach the name
+        var modelCopy = Objects.assign(this.cloneDeep(model), { name: modelName });
+
+        var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, modelCopy);
+        this.modelNames.push(modelName);
+        this.models[modelName] = modelCopy;
         this.modelDefs[modelName] = collModel.modelDef;
         this.modelsFuncs[modelName] = collModel.modelFuncs;
         return collModel;
@@ -95,8 +101,8 @@ class ModelDefinitionsSet implements ModelDefinitions {
     }
 
 
-    public static fromCollectionModels(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> },
-            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: (obj: any) => any = Objects.cloneDeep): ModelDefinitionsSet {
+    public static fromCollectionModels(dataModels: { [id: string]: DtoModelTemplate | CollectionSvcModel<any, any> },
+            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
         var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     }
@@ -105,7 +111,7 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
 module ModelDefinitionsSet {
 
-    export function extendModelDef(parent: StringMap<DtoPropertyTemplate>, child: StringMap<DtoPropertyTemplate>, cloneDeep?: (obj: any) => any): StringMap<DtoPropertyTemplate> {
+    export function extendModelDef(parent: StringMap<DtoPropertyTemplate>, child: StringMap<DtoPropertyTemplate>, cloneDeep?: <T1>(obj: T1) => T1): StringMap<DtoPropertyTemplate> {
         var res = Objects.map(parent, null, (k, v) => cloneDtoPropertyTemplate(v));
 
         for (var childProp in child) {
@@ -129,8 +135,8 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModelTemplate | CollectionModelWithSvcDef<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
-        var dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<any, any> } = {};
+    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModelTemplate | CollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
+        var dataModels: { [id: string]: DtoModelTemplate | CollectionSvcModel<any, any> } = {};
         dataModels[collectionName] = dataModel;
         var res = modelDefsToCollectionModelDefs(dataModels, [collectionName]);
         return {
@@ -141,7 +147,7 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModelTemplate | CollectionModelWithSvcDef<U, W> },
+    export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModelTemplate | CollectionSvcModel<U, W> },
             modelNames?: string[]): { modelDefs: { [name: string]: DataCollectionModel<U> }; modelsFuncs: { [name: string]: DataCollectionModelAllFuncs<U, W> } } {
         var modelDefs: { [id: string]: DataCollectionModel<any> } = {};
         var modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> } = {};
@@ -174,7 +180,7 @@ module ModelDefinitionsSet {
                 autoGeneratedKeys
             };
 
-            var tableFuncs = <CollectionModelWithSvcDef<any, any>>table;
+            var tableFuncs = <CollectionSvcModel<any, any>>table;
 
             modelsFuncs[modelName] = {
                 copyFunc: tableFuncs.copyFunc,
@@ -187,7 +193,7 @@ module ModelDefinitionsSet {
     }
 
 
-    export function cloneDtoPropertyTemplate(prop: DtoPropertyTemplate, cloneDeep: (obj: any) => any = Objects.cloneDeep): DtoPropertyTemplate {
+    export function cloneDtoPropertyTemplate(prop: DtoPropertyTemplate, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): DtoPropertyTemplate {
         return {
             arrayDimensionCount: prop.arrayDimensionCount,
             autoGenerate: prop.autoGenerate,

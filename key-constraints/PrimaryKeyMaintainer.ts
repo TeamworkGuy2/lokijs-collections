@@ -10,7 +10,7 @@ class PrimaryKeyMaintainer {
     private dataSrc: InMemDb;
     private modelDefs: ModelDefinitions;
     private modelKeys: ModelKeys;
-    private metaDataCollectionModel: CollectionModelDef<CollectionMetaData> = {
+    private metaDataCollectionModel: CollectionModel<CollectionMetaData> = {
         toServiceNameConverter: null,
         properties: {
             collectionName: { type: "string" },
@@ -99,7 +99,7 @@ class PrimaryKeyMaintainer {
 
     // creates an {@link DataCollection} if {@code dataColl} is null, otherwise returns {@code dataColl} unmodified
     private static initMetaDataCollection(dataColl: DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel>,
-            collectionName: string, dataModel: DtoModelTemplate | CollectionModelDef<any>, dbDataInst: InMemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
+            collectionName: string, dataModel: DtoModelTemplate | CollectionModel<any>, dbDataInst: InMemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
         if (dataColl == null) {
             var collModel = dbDataInst.getModelDefinitions().addModel(collectionName, dataModel);
             return new DataCollectionImpl<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);

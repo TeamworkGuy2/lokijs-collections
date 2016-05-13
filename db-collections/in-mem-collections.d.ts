@@ -348,11 +348,17 @@ interface DataCollectionModel<E> {
 
 
 
-interface CollectionModelDef<E> extends DtoModelTemplate, DataCollectionModelFuncs<E> {
+interface CollectionModel<E> extends DtoModelTemplate, DataCollectionModelFuncs<E> {
 }
 
 
-interface CollectionModelWithSvcDef<E, S> extends CollectionModelDef<E>, DataCollectionModelSvcFuncs<E, S> {
+interface CollectionSvcModel<E, S> extends CollectionModel<E>, DataCollectionModelSvcFuncs<E, S> {
+}
+
+
+interface CollectionSvcModelNamed<E, S> extends CollectionSvcModel<E, S> {
+    /** the name of the model */
+    name: string;
 }
 
 
@@ -362,17 +368,21 @@ interface CollectionModelWithSvcDef<E, S> extends CollectionModelDef<E>, DataCol
  * @author TeamworkGuy2
  */
 interface ModelDefinitions {
-    // default data type attributes, these can be overridden by specifying custom attributes on individual model properties
-    // for example, strings have a default value of 'null', you can change this to an empty string {@code ""} by adding a 'value: ""' attribute to a model property definition:
-    // model: {
-    //   properties: {
-    //     userName: { type: "string", value: "", toService: "$var$ || \"\"" }
-    //   }
-    // }
+    /** Default data type attributes, these can be overridden by specifying custom attributes on individual model properties.
+     * For example, strings have a default value of 'null', you can change this to an empty string {@code ""} by adding a 'value: ""' attribute to a model property definition:
+     * model: {
+     *   properties: {
+     *     userName: { type: "string", value: "", toService: "$var$ || \"\"" }
+     *   }
+     * }
+     */
     dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
-    models: { [name: string]: DtoModelTemplate };
+    /** model names in the order they should be read/generated */
+    modelNames: string[];
+    /** models by name (all the names can be found in 'modelNames') */
+    models: { [name: string]: DtoModelTemplateNamed };
 
-    addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionModelDef<U> | CollectionModelWithSvcDef<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DataCollectionModelAllFuncs<U, W> };
+    addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionModel<U> | CollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DataCollectionModelAllFuncs<U, W> };
 
     getPrimaryKeyNames(modelName: string): string[];
 
