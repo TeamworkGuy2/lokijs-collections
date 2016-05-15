@@ -12,7 +12,7 @@ class ModelDefinitionsSet implements ModelDefinitions {
     private static EMPTY_ARRAY = Object.freeze([]);
 
     private cloneDeep: <T1>(obj: T1) => T1;
-    public dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
+    public dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault };
     public modelNames: string[];
     public models: { [id: string]: DtoModelNamed | DtoCollectionSvcModelNamed<any, any> };
     private modelDefs: { [id: string]: DataCollectionModel<any> };
@@ -21,7 +21,7 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
     // generate model information the first time this JS module loads
     constructor(dataModels: { [id: string]: DtoModel | DtoCollectionSvcModel<any, any> },
-            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
+            dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
         this.cloneDeep = cloneDeep;
         this.dataTypes = dataTypes;
         this.models = Objects.map(dataModels, (k, v) => Objects.assign(cloneDeep(v), { name: k }));
@@ -102,7 +102,7 @@ class ModelDefinitionsSet implements ModelDefinitions {
 
 
     public static fromCollectionModels(dataModels: { [id: string]: DtoModel | DtoCollectionSvcModel<any, any> },
-            dataTypes: { [id: string]: { value: any; toService: any; } }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
+            dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
         var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     }
@@ -149,6 +149,7 @@ module ModelDefinitionsSet {
     // creates maps of model names to primary key property and auto-generate property names
     export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModel | DtoCollectionModel<U> | DtoCollectionSvcModel<U, W> },
             modelNames?: string[]): { modelDefs: { [name: string]: DataCollectionModel<U> }; modelsFuncs: { [name: string]: DataCollectionModelAllFuncs<U, W> } } {
+
         var modelDefs: { [id: string]: DataCollectionModel<any> } = {};
         var modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> } = {};
 
