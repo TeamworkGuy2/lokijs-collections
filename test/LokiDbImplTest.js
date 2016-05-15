@@ -1,6 +1,7 @@
 "use strict";
 var Objects = require("../../ts-mortar/utils/Objects");
 var DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
+var TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
 var LokiDbImpl = require("../db-collections/LokiDbImpl");
 var DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -14,7 +15,7 @@ var dataModels = {
             "id": { primaryKey: true, autoGenerate: true, type: "number", server: { type: "long" } },
             "name": { type: "string", server: { type: "string" } },
             "styles": { type: "string[]", server: { type: "IList<String>" } },
-        }, true, true),
+        }, function (t) { return TypeConverter.TypeScript.parseTypeTemplate(t, true); }, function (t) { return (typeof t === "string" ? TypeConverter.parseTypeTemplate(t) : t); }),
         copyFunc: function (a) { return { id: a.id, name: a.name, styles: Array.prototype.slice.call(a.style || []) }; },
     },
     "coll_b": {
@@ -23,7 +24,7 @@ var dataModels = {
             "token": { type: "string" },
             "note": { type: "string" },
             "timestamp": { autoGenerate: true, type: "Date", server: { type: "DateTime" } },
-        }, true, true),
+        }, function (t) { return TypeConverter.TypeScript.parseTypeTemplate(t, true); }, function (t) { return (typeof t === "string" ? TypeConverter.parseTypeTemplate(t) : t); }),
         copyFunc: function (a) { return { userId: a.userId, token: a.token, note: a.note, timestamp: a.timestamp }; },
     }
 };

@@ -2,8 +2,13 @@
 All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
+
+[Unreleased]
+* changes to work with latest ts-code-generator patches
+
+
 --------
-### [0.10.1](N/A) - 2016-05-14
+### [0.10.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/3f3c02986468191c1246f155dbdd7204642e07f7) - 2016-05-14
 #### Changed
 * updated ts-code-generator package version, requires 0.14.1 or higher,
 * updated interfaces name referencess to matched new/renamed interfaces from ts-code-generator interface definitions

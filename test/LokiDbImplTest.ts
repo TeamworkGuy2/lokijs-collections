@@ -1,6 +1,7 @@
 ﻿"use strict";
 import Objects = require("../../ts-mortar/utils/Objects");
 import DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
+import TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
 import LokiDbImpl = require("../db-collections/LokiDbImpl");
 import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -45,7 +46,7 @@ var dataModels = {
             "id": { primaryKey: true, autoGenerate: true, type: "number", server: { type: "long" } },
             "name": { type: "string", server: { type: "string" } },
             "styles": { type: "string[]", server: { type: "IList<String>" } },
-        }, true, true),
+        }, (t) => TypeConverter.TypeScript.parseTypeTemplate(t, true), (t) => (typeof t === "string" ? TypeConverter.parseTypeTemplate(t) : t)),
         copyFunc: (a) => { return { id: a.id, name: a.name, styles: Array.prototype.slice.call(a.style || []) }; },
     },
     "coll_b": <DtoCollectionModel<any>>{
@@ -54,7 +55,7 @@ var dataModels = {
             "token": { type: "string" },
             "note": { type: "string" },
             "timestamp": { autoGenerate: true, type: "Date", server: { type: "DateTime" } },
-        }, true, true),
+        }, (t) => TypeConverter.TypeScript.parseTypeTemplate(t, true), (t) => (typeof t === "string" ? TypeConverter.parseTypeTemplate(t) : t)),
         copyFunc: (a) => { return { userId: a.userId, token: a.token, note: a.note, timestamp: a.timestamp }; },
     }
 };
