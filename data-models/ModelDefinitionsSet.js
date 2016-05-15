@@ -159,13 +159,13 @@ var ModelDefinitionsSet;
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
         return {
             autoGenerate: prop.autoGenerate,
-            defaultValue: prop.defaultValue != null ? cloneDeep(prop.defaultValue) : null,
+            defaultValue: prop.defaultValue != null ? cloneDeep(prop.defaultValue) : prop.defaultValue,
             primaryKey: prop.primaryKey,
             readOnly: prop.readOnly,
             required: prop.required,
             server: prop.server == null ? null : {
                 autoGenerate: prop.server.autoGenerate,
-                defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : null,
+                defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : prop.server.defaultValue,
                 name: prop.server.name,
                 primaryKey: prop.server.primaryKey,
                 readOnly: prop.server.readOnly,

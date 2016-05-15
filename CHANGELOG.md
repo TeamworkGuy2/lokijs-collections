@@ -6,6 +6,7 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 [Unreleased]
 * changes to work with latest ts-code-generator patches
 * Moved ModelDefinitions.dataTypes type to it's own ModelDefinitions.DataTypeDefault interface
+* Fixed ModelDefinitionsSet.cloneDtoPropertyTemplate() incorrectly converting 'undefined' default values to 'null'
 
 
 --------
