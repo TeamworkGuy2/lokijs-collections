@@ -3,12 +3,15 @@ All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
 
-[Unreleased]
-* changes to work with latest ts-code-generator patches
-* Moved ModelDefinitions.dataTypes type to it's own ModelDefinitions.DataTypeDefault interface
-* Fixed ModelDefinitionsSet.cloneDtoPropertyTemplate() incorrectly converting 'undefined' default values to 'null'
+--------
+### [0.11.0](N/A) - 2016-05-15
+#### Added
 * Added DtoCollection which extends DataCollection and changes the parameters/return types of some functions with the goal of making a collection interface for DTO server syncable collections
   * renamed DataCollectionImpl.fromWebServiceModel() -> fromDtoModel() (which returns the new DtoCollection type) and added fromDataModel() (which returns the existing DataCollection type)
+
+#### Changed
+* ts-code-generator library required version bumped to 0.15.0 - small name and type changes to work with latest version
+* Moved ModelDefinitions.dataTypes type to it's own ModelDefinitions.DataTypeDefault interface
 * Refactored collection models, they are now split into two pieces: DtoModel and DtoFuncs or DtoAllFuncs, instead of being combined, this changes several interfaces and function signatures:
   * Renamed interfaces:
     * DataCollectionModelFuncs -> DtoFuncs
@@ -17,6 +20,9 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
   * Function signature includes new 'modelFuncs' or similar parameter:
     * DataCollectionImpl.fromWebServiceModel()
     * ModelDefinitionsSet: addModel(), modelDefToCollectionModelDef(), and modelDefsToCollectionModelDefs()
+
+#### Fixed
+* ModelDefinitionsSet.cloneDtoPropertyTemplate() was incorrectly converting 'undefined' default values to 'null'
 
 
 --------
