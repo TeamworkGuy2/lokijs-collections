@@ -147,7 +147,7 @@ class SyncSettingsBuilder<E, F, P, S, U, R> implements SettingsBuilder<E, F> {
     public static fromDataCollectionAndSyncFuncs<E, F, P, S, U, R>(table: DataCollection<E, F>,
         syncDownFunc: (params: P) => PsPromise<S[], R>, syncUpFunc: (params: P, items: S[]) => PsPromise<U, R>): { addFilterFuncs: (findFilterFunc: (item: S) => F) => BuilderEnd<E, F, P, S, U, R> } {
         var tableModel = table.getDataModel();
-        var tableFuncs = <DataCollectionModelAllFuncs<E, S>>table.getDataModelFuncs();
+        var tableFuncs = <DtoAllFuncs<E, S>>table.getDataModelFuncs();
         var inst = new SyncSettingsBuilder<E, F, P, S, U, R>();
         // sync settings
         inst.localCollection = table;

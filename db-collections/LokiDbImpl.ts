@@ -341,7 +341,7 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DataCollectionModelFuncs<T>, query, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
 
         query = this.modelKeys.validateQuery(collection.name, query, obj);
@@ -405,7 +405,7 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DataCollectionModelFuncs<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
         var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data

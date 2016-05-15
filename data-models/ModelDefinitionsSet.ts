@@ -14,41 +14,33 @@ class ModelDefinitionsSet implements ModelDefinitions {
     private cloneDeep: <T1>(obj: T1) => T1;
     public dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault };
     public modelNames: string[];
-    public models: { [id: string]: DtoModelNamed | DtoCollectionSvcModelNamed<any, any> };
+    public models: { [id: string]: DtoModelNamed };
     private modelDefs: { [id: string]: DataCollectionModel<any> };
-    private modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> };
+    private modelsFuncs: { [id: string]: DtoAllFuncs<any, any> };
 
 
     // generate model information the first time this JS module loads
-    constructor(dataModels: { [id: string]: DtoModel | DtoCollectionSvcModel<any, any> },
-            dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
+    constructor(dataModels: StringMap<DtoModel | (DtoModel & DtoAllFuncs<any, any>)>,
+            dataTypes: StringMap<ModelDefinitions.DataTypeDefault>, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
         this.cloneDeep = cloneDeep;
         this.dataTypes = dataTypes;
         this.models = Objects.map(dataModels, (k, v) => Objects.assign(cloneDeep(v), { name: k }));
-        var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels);
+        var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels, <StringMap<DtoAllFuncs<any, any>>><any>dataModels);
         this.modelDefs = modelDefs;
         this.modelsFuncs = modelsFuncs;
         this.modelNames = Object.keys(dataModels);
     }
 
 
-    /* planning to implement in future
-    function checkModelName(modelName) {
-        if(modelDefsByName[modelName] == null) {
-            throw new Error("unknown model name: " + modelName);
-        }
-    }
-    */
-
-
-    public addModel<U, W>(modelName: string, model: DtoModel | DtoCollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
+    public addModel<U, W>(modelName: string, model: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DtoAllFuncs<U, W> } {
         if (this.modelDefs[modelName] != null) {
             throw new Error("model named '" + modelName + "' already exists, cannot add new model by that name");
         }
         // clone the model first, so we're not modifying it when we attach the name
         var modelCopy = Objects.assign(this.cloneDeep(model), { name: modelName });
+        var modelFuncsCopy = Objects.assign({}, modelFuncs);
 
-        var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, modelCopy);
+        var collModel = ModelDefinitionsSet.modelDefToCollectionModelDef(modelName, modelCopy, modelFuncsCopy);
         this.modelNames.push(modelName);
         this.models[modelName] = modelCopy;
         this.modelDefs[modelName] = collModel.modelDef;
@@ -96,13 +88,13 @@ class ModelDefinitionsSet implements ModelDefinitions {
     }
 
 
-    public getDataModelFuncs(modelName: string): DataCollectionModelAllFuncs<any, any> {
+    public getDataModelFuncs(modelName: string): DtoAllFuncs<any, any> {
         return this.modelsFuncs[modelName];
     }
 
 
-    public static fromCollectionModels(dataModels: { [id: string]: DtoModel | DtoCollectionSvcModel<any, any> },
-            dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault }, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
+    public static fromCollectionModels(dataModels: StringMap<DtoModel | (DtoModel & DtoAllFuncs<any, any>)>,
+            dataTypes: StringMap<ModelDefinitions.DataTypeDefault>, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
         var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     }
@@ -135,10 +127,13 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModel | DtoCollectionModel<U> | DtoCollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DataCollectionModelAllFuncs<U, W> } {
-        var dataModels: { [id: string]: DtoModel | DtoCollectionSvcModel<any, any> } = {};
+    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModel, modelFunc: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DtoAllFuncs<U, W> } {
+        var dataModels: StringMap<DtoModel> = {};
         dataModels[collectionName] = dataModel;
-        var res = modelDefsToCollectionModelDefs(dataModels, [collectionName]);
+        var modelFuncs: StringMap<DtoFuncs<U> | DtoAllFuncs<any, any>> = {};
+        modelFuncs[collectionName] = modelFunc;
+
+        var res = modelDefsToCollectionModelDefs(dataModels, modelFuncs, [collectionName]);
         return {
             modelDef: res.modelDefs[collectionName],
             modelFuncs: res.modelsFuncs[collectionName]
@@ -147,16 +142,17 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefsToCollectionModelDefs<U, W>(dataModels: { [id: string]: DtoModel | DtoCollectionModel<U> | DtoCollectionSvcModel<U, W> },
-            modelNames?: string[]): { modelDefs: { [name: string]: DataCollectionModel<U> }; modelsFuncs: { [name: string]: DataCollectionModelAllFuncs<U, W> } } {
+    export function modelDefsToCollectionModelDefs<U, W>(dataModels: StringMap<DtoModel>, modelFuncs: StringMap<DtoFuncs<U> | DtoAllFuncs<U, W>>,
+            modelNames?: string[]): { modelDefs: StringMap<DataCollectionModel<U>>; modelsFuncs: StringMap<DtoAllFuncs<U, W>> } {
 
-        var modelDefs: { [id: string]: DataCollectionModel<any> } = {};
-        var modelsFuncs: { [id: string]: DataCollectionModelAllFuncs<any, any> } = {};
+        var modelDefs: StringMap<DataCollectionModel<any>> = {};
+        var modelsFuncs: StringMap<DtoAllFuncs<any, any>> = {};
 
         modelNames = modelNames || Object.keys(dataModels);
         for (var i = 0, size = modelNames.length; i < size; i++) {
             var modelName = modelNames[i];
             var table = dataModels[modelName];
+            var tableFuncs = <DtoAllFuncs<U, W>>modelFuncs[modelName] || <DtoAllFuncs<U, W>>{};
             var tableProps = table.properties;
 
             // setup mapping of model names to collection names and vice versa
@@ -180,8 +176,6 @@ module ModelDefinitionsSet {
                 primaryKeys,
                 autoGeneratedKeys
             };
-
-            var tableFuncs = <DtoCollectionSvcModel<any, any>>table;
 
             modelsFuncs[modelName] = {
                 copyFunc: tableFuncs.copyFunc,

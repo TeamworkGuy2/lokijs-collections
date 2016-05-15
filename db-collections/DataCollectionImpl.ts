@@ -25,7 +25,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     private changes: ChangeTrackersImpl.ChangeTracker;
     private eventHandler: EventListenerListImpl<Changes.CollectionChange, Changes.ChangeListener>;
     private dataModel: DataCollectionModel<E>;
-    private dataModelFuncs: DataCollectionModelFuncs<E>;
+    private dataModelFuncs: DtoFuncs<E>;
 
 
     /** Create a new document collection backed by a provided 'InMemDb' instance.
@@ -35,7 +35,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    constructor(collectionName: string, dataModel: DataCollectionModel<E>, dataModelFuncs: DataCollectionModelFuncs<E>, dbInst: InMemDb, trackChanges: boolean = false) {
+    constructor(collectionName: string, dataModel: DataCollectionModel<E>, dataModelFuncs: DtoFuncs<E>, dbInst: InMemDb, trackChanges: boolean = false) {
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
@@ -380,8 +380,8 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    public static fromWebServiceModel<U, V, W>(collectionName: string, dataModel: DtoModel | DtoCollectionModel<U> | DtoCollectionSvcModel<U, W>, dbInst: InMemDb, trackChanges: boolean = false) {
-        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel);
+    public static fromWebServiceModel<U, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false) {
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
         var inst = new DataCollectionImpl<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     }

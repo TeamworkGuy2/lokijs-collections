@@ -293,9 +293,9 @@ var DataCollectionImpl = (function () {
         this.collChange(change, dstResultInfo);
         return res;
     };
-    DataCollectionImpl.fromWebServiceModel = function (collectionName, dataModel, dbInst, trackChanges) {
+    DataCollectionImpl.fromWebServiceModel = function (collectionName, dataModel, modelFuncs, dbInst, trackChanges) {
         if (trackChanges === void 0) { trackChanges = false; }
-        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel);
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
         var inst = new DataCollectionImpl(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     };

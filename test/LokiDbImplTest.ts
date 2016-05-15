@@ -41,7 +41,7 @@ var now = new Date();
 var dataTypes = null;
 
 var dataModels = {
-    "coll_a": <DtoCollectionModel<any>>{
+    "coll_a": <DtoModel & DtoFuncs<any>>{
         properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "id": { primaryKey: true, autoGenerate: true, type: "number", server: { type: "long" } },
             "name": { type: "string", server: { type: "string" } },
@@ -49,7 +49,7 @@ var dataModels = {
         }, (t) => TypeConverter.TypeScript.parseTypeTemplate(t, true), (t) => (typeof t === "string" ? TypeConverter.parseTypeTemplate(t) : t)),
         copyFunc: (a) => { return { id: a.id, name: a.name, styles: Array.prototype.slice.call(a.style || []) }; },
     },
-    "coll_b": <DtoCollectionModel<any>>{
+    "coll_b": <DtoModel & DtoFuncs<any>>{
         properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "userId": { type: "string" },
             "token": { type: "string" },
@@ -86,7 +86,7 @@ var bItem2: MdB = {
     timestamp: null,
 };
 
-var dataModelsMap = <StringMap<DtoCollectionModel<any>>><any>dataModels;
+var dataModelsMap = <StringMap<DtoModel & DtoFuncs<any>>><any>dataModels;
 
 
 

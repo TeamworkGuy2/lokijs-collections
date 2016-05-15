@@ -7,6 +7,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 * changes to work with latest ts-code-generator patches
 * Moved ModelDefinitions.dataTypes type to it's own ModelDefinitions.DataTypeDefault interface
 * Fixed ModelDefinitionsSet.cloneDtoPropertyTemplate() incorrectly converting 'undefined' default values to 'null'
+* Refactored collection models, they are now split into two pieces: DtoModel and DtoFuncs or DtoAllFuncs, instead of being combined, this changes several interfaces and function signatures:
+  * Renamed interfaces:
+    * DataCollectionModelFuncs -> DtoFuncs
+	* DataCollectionModelSvcFuncs -> DtoSvcFuncs
+	* DataCollectionModelAllFuncs -> DtoAllFuncs
+  * Function signature includes new 'modelFuncs' or similar parameter:
+    * DataCollectionImpl.fromWebServiceModel()
+    * ModelDefinitionsSet: addModel(), modelDefToCollectionModelDef(), and modelDefsToCollectionModelDefs()
 
 
 --------
