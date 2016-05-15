@@ -293,7 +293,13 @@ var DataCollectionImpl = (function () {
         this.collChange(change, dstResultInfo);
         return res;
     };
-    DataCollectionImpl.fromWebServiceModel = function (collectionName, dataModel, modelFuncs, dbInst, trackChanges) {
+    DataCollectionImpl.fromDataModel = function (collectionName, dataModel, dbInst, trackChanges) {
+        if (trackChanges === void 0) { trackChanges = false; }
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, null);
+        var inst = new DataCollectionImpl(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
+        return inst;
+    };
+    DataCollectionImpl.fromDtoModel = function (collectionName, dataModel, modelFuncs, dbInst, trackChanges) {
         if (trackChanges === void 0) { trackChanges = false; }
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
         var inst = new DataCollectionImpl(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);

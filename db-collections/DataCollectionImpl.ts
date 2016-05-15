@@ -380,10 +380,17 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    public static fromWebServiceModel<U, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false) {
-        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
+    public static fromDataModel<U, V>(collectionName: string, dataModel: DtoModel, dbInst: InMemDb, trackChanges: boolean = false): DataCollection<U, V> {
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef<U, V>(collectionName, dataModel, null);
         var inst = new DataCollectionImpl<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
+    }
+
+
+    public static fromDtoModel<U, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
+        var inst = new DataCollectionImpl<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
+        return <DtoCollection<U, V, W>><any>inst;
     }
 
 }

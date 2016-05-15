@@ -122,7 +122,7 @@ interface ResultSetLike<E> {
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
  *
  * @author TeamworkGuy2
- * @param <E> the type of data stored in this data collection
+ * @param <E> the type of data stored in this collection
  * @param <O> the filter/query type, this is normally type {@code E} with all properties optional
  */
 interface DataCollection<E, O> {
@@ -249,6 +249,20 @@ interface DataCollection<E, O> {
     /** Remove this collection from the database instance
      */
     deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
+}
+
+
+
+
+/**
+ * @author TeamworkGuy2
+ * @param <E> the type of data stored in this collection
+ * @param <F> the filter/query type, this is normally type {@code E} with all properties optional
+ * @param <S> the server data type stored in this collection
+ */
+interface DtoCollection<E, F, S> extends DataCollection<E, F> {
+
+    getDataModelFuncs(): DtoAllFuncs<E, S>;
 }
 
 
