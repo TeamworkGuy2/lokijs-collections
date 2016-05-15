@@ -2,9 +2,22 @@
 All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
+--------
+### [0.10.1](N/A) - 2016-05-14
+#### Changed
+* updated ts-code-generator package version, requires 0.14.1 or higher,
+* updated interfaces name referencess to matched new/renamed interfaces from ts-code-generator interface definitions
+* Renamed ModelDefinitionsSet methods:
+  * extendModelDef() -> extendModelTemplate()
+  * multiExtendModelDef() -> multiExtendModelTemplate()
+* Renamed in-mem-collections.d.ts interfaces:
+  * CollectionModel -> DtoCollectionModel
+  * CollectionSvcModel -> DtoCollectionSvcModel
+  * CollectionSvcModelNamed -> DtoCollectionSvcModelNamed
+
 
 --------
-### [0.10.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/78027fe330f1777e523e803cf0c6628283d244da) - 2016-05-06
+### [0.10.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/8c272049bf7536d3d94b600416a7698a2f733480) - 2016-05-13
 #### Added
 * ModelDefinitions.modelNames array (also added to subclass ModelDefinitionsSet) for easy access instead of having to use Object.keys()
 * Added CollectionSvcModelNamed interface

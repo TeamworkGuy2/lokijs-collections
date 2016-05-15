@@ -1,10 +1,10 @@
 ﻿"use strict";
 import Objects = require("../../ts-mortar/utils/Objects");
+import DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
 import LokiDbImpl = require("../db-collections/LokiDbImpl");
 import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
-
 
 interface MdA {
     id: number;
@@ -40,24 +40,21 @@ var now = new Date();
 var dataTypes = null;
 
 var dataModels = {
-    "coll_a": <CollectionModel<any>>{
-        properties: {
+    "coll_a": <DtoCollectionModel<any>>{
+        properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "id": { primaryKey: true, autoGenerate: true, type: "number", server: { type: "long" } },
             "name": { type: "string", server: { type: "string" } },
-            "styles": { type: "string[]", server: { type: "IList<string>" } },
-        },
-
-        toServiceNameConverter: null,
+            "styles": { type: "string[]", server: { type: "IList<String>" } },
+        }, true, true),
         copyFunc: (a) => { return { id: a.id, name: a.name, styles: Array.prototype.slice.call(a.style || []) }; },
     },
-    "coll_b": <CollectionModel<any>>{
-        properties: {
+    "coll_b": <DtoCollectionModel<any>>{
+        properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "userId": { type: "string" },
             "token": { type: "string" },
             "note": { type: "string" },
             "timestamp": { autoGenerate: true, type: "Date", server: { type: "DateTime" } },
-        },
-        toServiceNameConverter: null,
+        }, true, true),
         copyFunc: (a) => { return { userId: a.userId, token: a.token, note: a.note, timestamp: a.timestamp }; },
     }
 };
@@ -88,7 +85,7 @@ var bItem2: MdB = {
     timestamp: null,
 };
 
-var dataModelsMap = <StringMap<CollectionModel<any>>><any>dataModels;
+var dataModelsMap = <StringMap<DtoCollectionModel<any>>><any>dataModels;
 
 
 

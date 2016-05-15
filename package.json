@@ -1,11 +1,11 @@
 {
   "name": "lokijs-collections",
-  "version": "0.10.0",
+  "version": "0.10.1",
   "description": "Strongly typed TypeScript collections for [LokiJS] (https://github.com/techfort/LokiJS), including key constraints (i.e. primary keys, non-null fields, max length strings), and collection change trackers.",
   "dependencies": {
     "lokijs": "~1.2.0",
     "q": "~1.4.1",
-    "ts-code-generator": "^0.4.0",
+    "ts-code-generator": "~0.14.1",
     "ts-mortar": "^0.5.0"
   },
   "devDependencies": {

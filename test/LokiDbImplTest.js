@@ -1,5 +1,6 @@
 "use strict";
 var Objects = require("../../ts-mortar/utils/Objects");
+var DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
 var LokiDbImpl = require("../db-collections/LokiDbImpl");
 var DataCollectionImpl = require("../db-collections/DataCollectionImpl");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -9,22 +10,20 @@ var now = new Date();
 var dataTypes = null;
 var dataModels = {
     "coll_a": {
-        properties: {
+        properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "id": { primaryKey: true, autoGenerate: true, type: "number", server: { type: "long" } },
             "name": { type: "string", server: { type: "string" } },
-            "styles": { type: "string[]", server: { type: "IList<string>" } },
-        },
-        toServiceNameConverter: null,
+            "styles": { type: "string[]", server: { type: "IList<String>" } },
+        }, true, true),
         copyFunc: function (a) { return { id: a.id, name: a.name, styles: Array.prototype.slice.call(a.style || []) }; },
     },
     "coll_b": {
-        properties: {
+        properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "userId": { type: "string" },
             "token": { type: "string" },
             "note": { type: "string" },
             "timestamp": { autoGenerate: true, type: "Date", server: { type: "DateTime" } },
-        },
-        toServiceNameConverter: null,
+        }, true, true),
         copyFunc: function (a) { return { userId: a.userId, token: a.token, note: a.note, timestamp: a.timestamp }; },
     }
 };

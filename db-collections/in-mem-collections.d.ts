@@ -1,6 +1,8 @@
 ﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
 /// <reference path="../../ts-mortar/promises/tspromises.d.ts" />
 /// <reference path="../../ts-mortar/events/events.d.ts" />
+/// <reference path="../../ts-code-generator/code-types/ast-types.d.ts" />
+/// <reference path="../../ts-code-generator/code-types/code-types.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/model-types.d.ts" />
 
 /* lokijs-collection interfaces - Data storage/retrieval interface, specifically for storing/retrieving strongly typed data models
@@ -348,15 +350,15 @@ interface DataCollectionModel<E> {
 
 
 
-interface CollectionModel<E> extends DtoModelTemplate, DataCollectionModelFuncs<E> {
+interface DtoCollectionModel<E> extends DtoModel, DataCollectionModelFuncs<E> {
 }
 
 
-interface CollectionSvcModel<E, S> extends CollectionModel<E>, DataCollectionModelSvcFuncs<E, S> {
+interface DtoCollectionSvcModel<E, S> extends DtoCollectionModel<E>, DataCollectionModelSvcFuncs<E, S> {
 }
 
 
-interface CollectionSvcModelNamed<E, S> extends CollectionSvcModel<E, S> {
+interface DtoCollectionSvcModelNamed<E, S> extends DtoCollectionSvcModel<E, S> {
     /** the name of the model */
     name: string;
 }
@@ -380,9 +382,9 @@ interface ModelDefinitions {
     /** model names in the order they should be read/generated */
     modelNames: string[];
     /** models by name (all the names can be found in 'modelNames') */
-    models: { [name: string]: DtoModelTemplateNamed };
+    models: { [name: string]: DtoModelNamed };
 
-    addModel<U, W>(modelName: string, model: DtoModelTemplate | CollectionModel<U> | CollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DataCollectionModelAllFuncs<U, W> };
+    addModel<U, W>(modelName: string, model: DtoModel | DtoCollectionModel<U> | DtoCollectionSvcModel<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DataCollectionModelAllFuncs<U, W> };
 
     getPrimaryKeyNames(modelName: string): string[];
 

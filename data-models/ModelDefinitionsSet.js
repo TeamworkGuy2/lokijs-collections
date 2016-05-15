@@ -1,7 +1,7 @@
 "use strict";
 var Objects = require("../../ts-mortar/utils/Objects");
 /** Contains a set of model definitions.
- * Model templates are designed around server-side object property names and values
+ * Dto Models are designed around server-side object property names and values
  * being formatted differently than local model property names and values.
  * Each model contains a list of properties with meta-attributes defining data-type,
  * default value, and source code template expressions for converting properties to and from service objects.
@@ -82,30 +82,30 @@ var ModelDefinitionsSet = (function () {
 }());
 var ModelDefinitionsSet;
 (function (ModelDefinitionsSet) {
-    function extendModelDef(parent, child, cloneDeep) {
+    function extendModelTemplate(parent, child, cloneDeep) {
         var res = Objects.map(parent, null, function (k, v) { return cloneDtoPropertyTemplate(v); });
         for (var childProp in child) {
             res[childProp] = cloneDtoPropertyTemplate(child[childProp], cloneDeep);
         }
         return res;
     }
-    ModelDefinitionsSet.extendModelDef = extendModelDef;
+    ModelDefinitionsSet.extendModelTemplate = extendModelTemplate;
     /** the last argument is the child class, each previous argument is the parent that the child will extend.
      * equivalent to {@code extendModelDef(inheritanceChain[0], extendModelDef(inheritanceChain[1], extendModelDef(...)))}
-     * @return {StringMap<ServiceProperty>} the original child class (last argument) extended by all other arguments
+     * @return {StringMap<DtoPropertyTemplate>} the original child class (last argument) extended by all other arguments
      */
-    function multiExtendModelDef() {
+    function multiExtendModelTemplate() {
         var inheritanceChain = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             inheritanceChain[_i - 0] = arguments[_i];
         }
         var childClass = inheritanceChain[inheritanceChain.length - 1];
         for (var i = inheritanceChain.length - 2; i > -1; i--) {
-            childClass = extendModelDef(inheritanceChain[i], childClass);
+            childClass = extendModelTemplate(inheritanceChain[i], childClass);
         }
         return childClass;
     }
-    ModelDefinitionsSet.multiExtendModelDef = multiExtendModelDef;
+    ModelDefinitionsSet.multiExtendModelTemplate = multiExtendModelTemplate;
     // creates maps of model names to primary key property and auto-generate property names
     function modelDefToCollectionModelDef(collectionName, dataModel) {
         var dataModels = {};
@@ -158,14 +158,12 @@ var ModelDefinitionsSet;
     function cloneDtoPropertyTemplate(prop, cloneDeep) {
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
         return {
-            arrayDimensionCount: prop.arrayDimensionCount,
             autoGenerate: prop.autoGenerate,
             defaultValue: prop.defaultValue != null ? cloneDeep(prop.defaultValue) : null,
             primaryKey: prop.primaryKey,
             readOnly: prop.readOnly,
             required: prop.required,
             server: prop.server == null ? null : {
-                arrayDimensionCount: prop.server.arrayDimensionCount,
                 autoGenerate: prop.server.autoGenerate,
                 defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : null,
                 name: prop.server.name,
