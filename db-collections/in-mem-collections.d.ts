@@ -372,14 +372,14 @@ interface DtoCollectionSvcModelNamed<E, S> extends DtoCollectionSvcModel<E, S> {
  */
 interface ModelDefinitions {
     /** Default data type attributes, these can be overridden by specifying custom attributes on individual model properties.
-     * For example, strings have a default value of 'null', you can change this to an empty string {@code ""} by adding a 'value: ""' attribute to a model property definition:
+     * For example, strings have a default value of 'null', you can change this to an empty string {@code ""} by adding a 'defaultValue: ""' attribute to a model property definition:
      * model: {
      *   properties: {
-     *     userName: { type: "string", value: "", toService: "$var$ || \"\"" }
+     *     userName: { type: "string", defaultValue: "", toService: "$var$ || \"\"" }
      *   }
      * }
      */
-    dataTypes: { [id: string]: { value: any; toService?: string; toLocal?: string } };
+    dataTypes: { [id: string]: ModelDefinitions.DataTypeDefault };
     /** model names in the order they should be read/generated */
     modelNames: string[];
     /** models by name (all the names can be found in 'modelNames') */
@@ -400,6 +400,16 @@ interface ModelDefinitions {
     getDataModelFuncs(modelName: string): DataCollectionModelAllFuncs<any, any>;
 }
 
+
+declare module ModelDefinitions {
+
+    export interface DataTypeDefault {
+        defaultValue?: any;
+        toService?: string;
+        toLocal?: string;
+    }
+
+}
 
 
 
