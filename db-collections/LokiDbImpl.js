@@ -39,6 +39,16 @@ var ResultsetMock = (function () {
 /** An implementation of InMemDb that wraps a LokiJS database
  */
 var LokiDbImpl = (function () {
+    /**
+     * @param dbName the name of the in-memory lokijs database
+     * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
+     * this only affects the underlying data persister created from teh 'dataPersisterFactory'
+     * @param storeSettings settings used for the data persister
+     * @param cloneType the type of clone operation to use when copying elements
+     * @param metaDataStorageCollectionName the name of the collection to store collection meta-data in
+     * @param modelDefinitions a set of model definitions defining all the models in this data base
+     * @param dataPersisterFactory a factory for creating a data persister
+     */
     function LokiDbImpl(dbName, settings, storeSettings, cloneType, metaDataStorageCollectionName, modelDefinitions, dataPersisterFactory) {
         this.dbName = dbName;
         this.syncSettings = settings;

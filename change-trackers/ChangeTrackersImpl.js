@@ -1,6 +1,6 @@
 /// <reference path="./collection-changes.d.ts" />
 "use strict";
-/**
+/** Change tracking for data collections.  Currently the events being tracked are: added items, modified items, and removed items.
  * @author TeamworkGuy2
  */
 var ChangeTrackersImpl;

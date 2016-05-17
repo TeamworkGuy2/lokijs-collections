@@ -1,6 +1,6 @@
 ﻿import Arrays = require("../../ts-mortar/utils/Arrays");
 
-/** Builder for SyncSettings, SyncUpSettings, and/or SyncDownSettings instances.
+/** Builder for SyncSettings, SyncUpSettings, and SyncDownSettings instances.
  * Both SyncUpSettings and SyncDownSettings require a base SyncSettings instance to build on top of.
  * SyncUpSettings and SyncDownSettings can be combined, but only one is required.
  * So using this class normally looks like:
@@ -11,6 +11,14 @@
  *     .addSyncDownSettings(...)
  * THEN
  *     .build()
+ *
+ * @param <E> the base local data type
+ * @param <F> the base local data type with optional parameters for creating query objects
+ * @param <P> sync up parameters
+ * @param <S> remove data type
+ * @param <U> sync up result
+ * @param <R> sync error
+ *
  * @author TeamworkGuy2
  * @since 2016-3-7
  */

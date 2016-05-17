@@ -1,6 +1,6 @@
 ﻿/// <reference path="./collection-changes.d.ts" />
 
-/**
+/** Change tracking for data collections.  Currently the events being tracked are: added items, modified items, and removed items.
  * @author TeamworkGuy2
  */
 module ChangeTrackersImpl {

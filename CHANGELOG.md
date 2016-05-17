@@ -2,9 +2,12 @@
 All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
+[Unreleased]
+* Added some documentation across change-trackers, db-collections, and sync
+
 
 --------
-### [0.11.0](N/A) - 2016-05-15
+### [0.11.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/f8669c724cfda4f778e2612c73323b4b2cad5ec8) - 2016-05-15
 #### Added
 * Added DtoCollection which extends DataCollection and changes the parameters/return types of some functions with the goal of making a collection interface for DTO server syncable collections
   * renamed DataCollectionImpl.fromWebServiceModel() -> fromDtoModel() (which returns the new DtoCollection type) and added fromDataModel() (which returns the existing DataCollection type)

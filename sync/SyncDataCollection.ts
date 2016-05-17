@@ -6,13 +6,16 @@ import Defer = require("../../ts-mortar/promises/Defer");
  *  - Sync a remote data collection to a local data collection (refered to as 'syncing down').
  * The local and remote collections can have different data models (automatic conversion occurs using SyncSettingsWithUp.convertToSvcObjectFunc and SyncSettingsWithDown.convertToLocalObjectFunc).
  *
- * 'Syncing up' send items with a 'isSynchedPropName' value of false to the remote collection.
+ * 'Syncing up' queries the local collection and send items with a 'isSynchedPropName' value of false to the remote collection.
  * 'Syncing down' retrieves items from the remote collection based on the 'params' parameter passed to the syncing down function and
  * then merges the remote data with the local data based on the SyncDownOp, primary keys, and 'lastModifiedPropName' timestamp values.
  *
- * There are a number of paradigms for merging data; the entire collection can be cleared and refilled,
- * items can be merged by comparing local and remote primary keys, or items can simple be added without any constraints.
- * For a full list of actions, see SyncDataCollection.SyncDownOp
+ * There are a number of paradigms for merging data:
+ * the entire collection can be cleared and refilled,
+ * items can be merged by comparing local and remote primary keys,
+ * or items can simple be added without any constraints.
+ *
+ * For a full list of actions, see the SyncDataCollection.SyncDownOp enum
  * @since 2016-1-29
  */
 class SyncDataCollection {
@@ -367,6 +370,11 @@ module SyncDataCollection {
 
 
 
+    /** A utility function for picking a 'SyncDownOp' based on a set of flags describing the desired syncing behavior
+     * @param clearData true if all existing local data should be deleted before syncing down new data, false to keep local data (with some cavets)
+     * @param removeDeletedData true to remove local data marked deleted (based 'isDeletedPropName' values of true) before syncing down new data, false to keep deleted data
+     * @param mergeWithExistingData true to merge data items using 'findFilterFunc' and 'DataCollection.addOrUpdateWhereNoModify()' to generate queries and merge matching items, false to insert new items
+     */
     export function createSyncDownOp(clearData: boolean, removeDeletedData: boolean, mergeWithExistingData: boolean): SyncDownOp {
         if (clearData) {
             return SyncDownOp.REMOVE_ALL_AND_ADD_NEW;

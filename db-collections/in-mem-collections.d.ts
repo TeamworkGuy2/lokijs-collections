@@ -268,7 +268,7 @@ interface DtoCollection<E, F, S> extends DataCollection<E, F> {
 
 
 
-/* DataPersister interface - for persisting data to a long term* storage medium, (*longer than the browser session)
+/* Interface for persisting data to a long term* storage medium, (*longer than the browser session)
  * Data persist read/write interface for InMemDb
  * @author TeamworkGuy2
  */
@@ -384,6 +384,10 @@ interface ModelDefinitions {
     /** models by name (all the names can be found in 'modelNames') */
     models: { [name: string]: DtoModelNamed };
 
+    /** Add a data model to this set of definitions, the data model is split into two pieces:
+     * a model (containing the properties)
+     * and a set of functions for working with that model (functions for copying, converting to/from service DTOs, etc.)
+     */
     addModel<U, W>(modelName: string, model: DtoModel, modelFuncs?: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DtoAllFuncs<U, W> };
 
     getPrimaryKeyNames(modelName: string): string[];
