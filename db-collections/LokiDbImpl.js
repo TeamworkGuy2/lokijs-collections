@@ -5,7 +5,7 @@ var Q = require("q");
 var Loki = require("lokijs");
 var Arrays = require("../../ts-mortar/utils/Arrays");
 var Objects = require("../../ts-mortar/utils/Objects");
-var ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
+var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
@@ -261,7 +261,7 @@ var LokiDbImpl = (function () {
         var results = this._findMultiProp(this.find(collection, dataModel), query);
         var compoundDstMetaData = null;
         if (dstMetaData) {
-            compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
+            compoundDstMetaData = new ChangeTrackers.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
         }
         var toUpdate = results.data();
@@ -330,7 +330,7 @@ var LokiDbImpl = (function () {
         }
         var compoundDstMetaData = null;
         if (dstMetaData) {
-            compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
+            compoundDstMetaData = new ChangeTrackers.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
         }
         this.addAll(collection, dataModel, toAdd, noModify, compoundDstMetaData);

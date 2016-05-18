@@ -3,7 +3,7 @@ var Objects = require("../../ts-mortar/utils/Objects");
 var DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
 var TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
 var LokiDbImpl = require("../db-collections/LokiDbImpl");
-var DataCollectionImpl = require("../db-collections/DataCollectionImpl");
+var DataCollection = require("../db-collections/DataCollection");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 var DummyDataPersister = require("./DummyDataPersister");
 var global;
@@ -65,8 +65,8 @@ QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
     var modelFuncsB = dbInst.getModelDefinitions().getDataModelFuncs("coll_b");
     global = {
         dbInst: dbInst,
-        collA: new DataCollectionImpl("coll_a", modelA, modelFuncsA, dbInst),
-        collB: new DataCollectionImpl("coll_b", modelB, modelFuncsB, dbInst)
+        collA: new DataCollection("coll_a", modelA, modelFuncsA, dbInst),
+        collB: new DataCollection("coll_b", modelB, modelFuncsB, dbInst)
     };
     sr.deepEqual(global.dbInst.getCollections().map(function (c) { return c.name; }), ["coll_a", "coll_b"]);
 });

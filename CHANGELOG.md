@@ -2,8 +2,13 @@
 All notable changes to this project will be documented in this file.
 This project does its best to adhere to [Semantic Versioning](http://semver.org/).
 
-[Unreleased]
-* Added some documentation across change-trackers, db-collections, and sync
+
+--------
+### [0.12.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/f8669c724cfda4f778e2612c73323b4b2cad5ec8) - 2016-05-18
+#### Changed
+* Added some documentation to change-trackers, db-collections, and sync
+* Renamed ChangeTrackersImpl -> ChangeTrackers
+* Renamed DataCollectionImpl -> DataCollection
 
 
 --------

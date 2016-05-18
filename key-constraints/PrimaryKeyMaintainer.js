@@ -1,6 +1,6 @@
 "use strict";
 var CollectionMetaData = require("./CollectionMetaData");
-var DataCollectionImpl = require("../db-collections/DataCollectionImpl");
+var DataCollection = require("../db-collections/DataCollection");
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
  * @author TeamworkGuy2
  */
@@ -102,7 +102,7 @@ var PrimaryKeyMaintainer = (function () {
     PrimaryKeyMaintainer.initMetaDataCollection = function (dataColl, collectionName, dataModel, modelFuncs, dbDataInst) {
         if (dataColl == null) {
             var collModel = dbDataInst.getModelDefinitions().addModel(collectionName, dataModel, modelFuncs);
-            return new DataCollectionImpl(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
+            return new DataCollection(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
         }
         return dataColl;
     };

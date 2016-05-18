@@ -3,8 +3,8 @@
 /** Change tracking for data collections.  Currently the events being tracked are: added items, modified items, and removed items.
  * @author TeamworkGuy2
  */
-var ChangeTrackersImpl;
-(function (ChangeTrackersImpl) {
+var ChangeTrackers;
+(function (ChangeTrackers) {
     /** A {@link CollectionChangeInfo} wrapper which simply adds to its existing 'added', 'modified', 'removed' values
      */
     var CompoundCollectionChange = (function () {
@@ -45,7 +45,7 @@ var ChangeTrackersImpl;
         };
         return CompoundCollectionChange;
     }());
-    ChangeTrackersImpl.CompoundCollectionChange = CompoundCollectionChange;
+    ChangeTrackers.CompoundCollectionChange = CompoundCollectionChange;
     /** Default {@link CollectionChangeInfo} implementation using a change history buffer with a maximum size
      */
     var ChangeTracker = (function () {
@@ -106,6 +106,6 @@ var ChangeTrackersImpl;
         };
         return ChangeTracker;
     }());
-    ChangeTrackersImpl.ChangeTracker = ChangeTracker;
-})(ChangeTrackersImpl || (ChangeTrackersImpl = {}));
-module.exports = ChangeTrackersImpl;
+    ChangeTrackers.ChangeTracker = ChangeTracker;
+})(ChangeTrackers || (ChangeTrackers = {}));
+module.exports = ChangeTrackers;

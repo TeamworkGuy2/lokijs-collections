@@ -3,7 +3,7 @@ import Objects = require("../../ts-mortar/utils/Objects");
 import DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
 import TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
 import LokiDbImpl = require("../db-collections/LokiDbImpl");
-import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
+import DataCollection = require("../db-collections/DataCollection");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
 
@@ -113,8 +113,8 @@ QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
 
     global = {
         dbInst: dbInst,
-        collA: new DataCollectionImpl<MdA, MdAOpt>("coll_a", modelA, modelFuncsA, dbInst),
-        collB: new DataCollectionImpl<MdB, MdBOpt>("coll_b", modelB, modelFuncsB, dbInst)
+        collA: new DataCollection<MdA, MdAOpt>("coll_a", modelA, modelFuncsA, dbInst),
+        collB: new DataCollection<MdB, MdBOpt>("coll_b", modelB, modelFuncsB, dbInst)
     };
 
     sr.deepEqual(global.dbInst.getCollections().map((c) => c.name), ["coll_a", "coll_b"]);

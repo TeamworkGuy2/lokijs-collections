@@ -1,5 +1,5 @@
 ﻿import CollectionMetaData = require("./CollectionMetaData");
-import DataCollectionImpl = require("../db-collections/DataCollectionImpl");
+import DataCollection = require("../db-collections/DataCollection");
 
 /* PrimaryKeyMaintainer - helper for {@link DataCollection}
  * @author TeamworkGuy2
@@ -118,7 +118,7 @@ class PrimaryKeyMaintainer {
             collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<any> | DtoAllFuncs<any, any>, dbDataInst: InMemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
         if (dataColl == null) {
             var collModel = dbDataInst.getModelDefinitions().addModel(collectionName, dataModel, modelFuncs);
-            return new DataCollectionImpl<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
+            return new DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
         }
         return dataColl;
     }

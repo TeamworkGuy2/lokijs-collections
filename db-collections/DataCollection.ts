@@ -1,10 +1,10 @@
 ﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
 /// <reference path="./in-mem-collections.d.ts" />
 import EventListenerListImpl = require("../../ts-mortar/events/EventListenerListImpl");
-import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
+import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 
-/** DataCollectionImpl class
+/** DataCollection class
  * Represents an in-memory, synchronous, data collection with unique keys.
  * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
  *
@@ -15,14 +15,14 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * @param <E> the type of data stored in this data collection
  * @param <O> the filter/query type, this is normally type {@code E} with all most or all properties optional
  */
-class DataCollectionImpl<E, O> implements DataCollection<E, O> {
+class DataCollection<E, O> implements DataCollection<E, O> {
     private collectionName: string;
     private dbInst: InMemDb;
     private collection: LokiCollection<E>;
     //private addCb: (added: E | E[]) => void;
     //private removeCb: (removed: E | E[]) => void;
     //private modifyCb: (modified: E | E[]) => void;
-    private changes: ChangeTrackersImpl.ChangeTracker;
+    private changes: ChangeTrackers.ChangeTracker;
     private eventHandler: EventListenerListImpl<Changes.CollectionChange, Changes.ChangeListener>;
     private dataModel: DataCollectionModel<E>;
     private dataModelFuncs: DtoFuncs<E>;
@@ -51,7 +51,7 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
      * NOTE: Must call this before calling {@link #getCollectionEventHandler()}.
      */
     public initializeEventHandler() {
-        this.changes = new ChangeTrackersImpl.ChangeTracker(16);
+        this.changes = new ChangeTrackers.ChangeTracker(16);
         this.eventHandler = new EventListenerListImpl();
     }
 
@@ -113,8 +113,8 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
     }
 
 
-    private createCollChange(secondaryResultInfo?: Changes.CollectionChangeTracker): ChangeTrackersImpl.CompoundCollectionChange {
-        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackersImpl.CompoundCollectionChange() : null;
+    private createCollChange(secondaryResultInfo?: Changes.CollectionChangeTracker): ChangeTrackers.CompoundCollectionChange {
+        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : null;
     }
 
 
@@ -382,17 +382,17 @@ class DataCollectionImpl<E, O> implements DataCollection<E, O> {
 
     public static fromDataModel<U, V>(collectionName: string, dataModel: DtoModel, dbInst: InMemDb, trackChanges: boolean = false): DataCollection<U, V> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef<U, V>(collectionName, dataModel, null);
-        var inst = new DataCollectionImpl<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
+        var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     }
 
 
     public static fromDtoModel<U, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
-        var inst = new DataCollectionImpl<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
+        var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return <DtoCollection<U, V, W>><any>inst;
     }
 
 }
 
-export = DataCollectionImpl;
+export = DataCollection;

@@ -3,6 +3,8 @@
  * @since 2016-3-6
  */
 
+/** A collection sync error, containing a collection name, an error, and flags indicating what type of sync call failed
+ */
 declare interface SyncError {
     collectionName: string;
     syncingUp?: boolean;
@@ -11,8 +13,7 @@ declare interface SyncError {
 }
 
 
-/** SyncSettings class
- * Settings for syncing server data to and from a local data collection
+/** Settings for syncing server data to and from a local data collection
  */
 declare interface SyncSettings<E, F, S, R> {
     localCollection: DataCollection<E, F>;

@@ -4,7 +4,7 @@ import Q = require("q");
 import Loki = require("lokijs");
 import Arrays = require("../../ts-mortar/utils/Arrays");
 import Objects = require("../../ts-mortar/utils/Objects");
-import ChangeTrackersImpl = require("../change-trackers/ChangeTrackersImpl");
+import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
@@ -360,7 +360,7 @@ class LokiDbImpl implements InMemDb {
 
         var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange = null;
         if (dstMetaData) {
-            compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
+            compoundDstMetaData = new ChangeTrackers.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
         }
 
@@ -440,7 +440,7 @@ class LokiDbImpl implements InMemDb {
 
         var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange = null;
         if (dstMetaData) {
-            compoundDstMetaData = new ChangeTrackersImpl.CompoundCollectionChange();
+            compoundDstMetaData = new ChangeTrackers.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
         }
 

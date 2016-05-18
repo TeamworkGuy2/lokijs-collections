@@ -27,6 +27,14 @@ interface StorageFormatSettings {
 }
 
 
+/** An in-memory database interface, containing:
+ * - data collections (i.e. tables)
+ * - model definitions (i.e. table schemas/meta-data)
+ * - a data persister, which manages saving/restoring the database from an outside persistent storage source
+ * - functions for all the basic CRUD operations, such as find(), add(), update(), updateWhere(), remove(), and removeWhere()
+ *
+ *
+ */
 interface InMemDb {
 
     getModelDefinitions(): ModelDefinitions;
@@ -116,7 +124,7 @@ interface ResultSetLike<E> {
 
 /** DataCollection class
  * Represents an in-mem, synchronous, data collection with unique keys.
- * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
+ * Provides a collection like API (with add, remove, update/set functions) to make it easy to work with data from an 'InMemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
@@ -254,7 +262,7 @@ interface DataCollection<E, O> {
 
 
 
-/**
+/** A DataCollection containing syncable DTOs
  * @author TeamworkGuy2
  * @param <E> the type of data stored in this collection
  * @param <F> the filter/query type, this is normally type {@code E} with all properties optional
@@ -292,16 +300,22 @@ declare module DataPersister {
     }
 
 
+    /** Adapter for persisting/restoring an in-memory database
+     */
     export interface Adapter {
 
-        // Save this in-memory database to some form of persistent storage
-        // Removes tables from store that don't exist in in-memory db
+        /** Save this in-memory database to some form of persistent storage
+         * Removes tables from store that don't exist in in-memory db
+         */
         persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<PersistResult>;
 
-        // Restore in-memory database from persistent store
-        // All in memory tables are dropped and re-added
+        /** Restore in-memory database from persistent store
+         * All in memory tables are dropped and re-added
+         */
         restore(options?: { decompress?: boolean; }): Q.Promise<RestoreResult>;
 
+        /** Delete all data related this database from persistent storage
+         */
         clearPersistenceDb(): Q.Promise<void>;
     }
 
@@ -309,13 +323,13 @@ declare module DataPersister {
     export interface AdapterFactory {
         /**
          * @param dbInst: the in-memory database that the persister pulls data from
-         * @param getDataCollections: returns a list of data collections that contain the data to persist/restore to
+         * @param getCollections: returns a list of data collections that contain the data to persist/restore to
          * @param saveItemTransformation: a conversion function to pass items from {@code #getDataCollections()}
          * through before persisting them
          * @param restoreItemTransformation: a conversion function to pass items through
          * after restoring them and before storing them in {@code #getDataCollections()}
          */
-        (dbInst: InMemDb, getDataCollections: () => LokiCollection<any>[],
+        (dbInst: InMemDb, getCollections: () => LokiCollection<any>[],
             getSaveItemTransformFunc?: (collName: string) => ((item: any) => any),
             getRestoreItemTransformFunc?: (collName: string) => ((item: any) => any)): DataPersister.Adapter;
     }
@@ -408,6 +422,8 @@ interface ModelDefinitions {
 
 declare module ModelDefinitions {
 
+    /** Default values for a data type
+     */
     export interface DataTypeDefault {
         defaultValue?: any;
         toService?: string;
@@ -436,6 +452,8 @@ interface ModelKeys {
      */
     trackGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc): void;
 
+    /** Given a query object, check its validity based on these constraints
+     */
     validateQuery(collectionName: string, query, obj): any;
 
 

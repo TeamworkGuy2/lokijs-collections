@@ -3,7 +3,7 @@
 /** Change tracking for data collections.  Currently the events being tracked are: added items, modified items, and removed items.
  * @author TeamworkGuy2
  */
-module ChangeTrackersImpl {
+module ChangeTrackers {
 
     /** A {@link CollectionChangeInfo} wrapper which simply adds to its existing 'added', 'modified', 'removed' values
      */
@@ -136,4 +136,4 @@ module ChangeTrackersImpl {
 
 }
 
-export = ChangeTrackersImpl;
+export = ChangeTrackers;
