@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.1](N/A) - 2016-05-24
+### [0.12.2](N/A) - 2016-05-25
+#### changed
+* Replaced two console.error() calls with throw new Error()
+
+#### Fixed
+* Added 'syncingDown' error property to syncDownCollection() and changed 'syncDownFunc' type so sync functions don't have to return a SyncError
+
+
+--------
+### [0.12.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/898017578049040d57c28e22ce3b48ed270a3a43) - 2016-05-24
 #### Changed
 * Updated to use new version of ts-mortar and new ts-promise-tasks library
 * Updated readme

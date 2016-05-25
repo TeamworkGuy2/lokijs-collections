@@ -44,12 +44,13 @@ class SyncDataCollection {
 
 
     /** Sync down a set of data collections
+     * @param <R> the sync down error type
      * @param params: parameters to pass to the sync function
      * @param syncSettingsAry: an array of SyncSettings object to sync
-     * @param [clearData=true]: true to clear the existing psData collection before syncing, false to leave it as-is
+     * @param syncDownOp the type of sync to perform
      * @return a map of {@code syncSettingsAry} collection names to the promises that will complete when they finish syncing
      */
-    public syncDownCollections<P>(params: P, syncSettingsAry: SyncSettingsWithDown<any, any, P, any, SyncError>[], syncDownOp: SyncDataCollection.SyncDownOp): StringMap<PsPromise<void, SyncError>> {
+    public syncDownCollections<P, R>(params: P, syncSettingsAry: SyncSettingsWithDown<any, any, P, any, R>[], syncDownOp: SyncDataCollection.SyncDownOp): StringMap<PsPromise<void, SyncError>> {
         var promises: StringMap<PsPromise<void, SyncError>> = {};
 
         // sync each of the tables based on the settings in the passed in array
@@ -69,16 +70,19 @@ class SyncDataCollection {
      * @param <E> the local collection data model. This type should contain deleted, synched, and last modified properties corresponding to the prop names passed to the constructor
      * @param <F> the local collection data model with optional properties. This type should contain deleted, synched, and last modified properties corresponding to the prop names passed to the constructor
      * @param <S> the remote data model. This type should contain deleted, synched, and last modified properties corresponding to the prop names passed to the constructor
+     * @param <R1> the sync down function error type
+     * @param <R2> the process results callback error type
      */
-    public syncDownCollection<E, F, P, S>(params: P, table: DataCollection<E, F>, syncDownFunc: (params: P) => PsPromise<S[], SyncError>,
-        processResultItemsCallback: (items: S[]) => void | Q.IPromise<any>): PsPromise<void, SyncError> {
+    public syncDownCollection<E, F, P, S, R1, R2>(params: P, table: DataCollection<E, F>, syncDownFunc: (params: P) => PsPromise<S[], R1>,
+            processResultsCallback: (items: S[]) => void | Q.IPromise<R2>): PsPromise<void, SyncError> {
         var self = this;
         var dfd = Defer.newDefer<void, SyncError>();
 
-        function syncFailure(msg: any) {
+        function syncFailure(err: R1 | R2) {
             dfd.reject({
                 collectionName: table.getName(),
-                error: msg
+                syncingDown: true,
+                error: err,
             });
         }
 
@@ -89,10 +93,10 @@ class SyncDataCollection {
         }
 
         syncDownFunc(params).done(function (items) {
-            var promise = processResultItemsCallback(items);
+            var promise = processResultsCallback(items);
 
             if (promise != null && promise["then"]) {
-                (<Q.IPromise<any>>promise).then(saveData, syncFailure);
+                (<Q.IPromise<R2>>promise).then(saveData, syncFailure);
             } else {
                 saveData();
             }
@@ -304,7 +308,7 @@ class SyncDataCollection {
                 resultItems.push(itemConverter(item));
             }
             else {
-                console.error("Error syncing " + collName);
+                throw new Error("Cannot syncing '" + collName + "' collection without primary keys");
             }
         }
         return resultItems;
@@ -324,7 +328,7 @@ class SyncDataCollection {
                 resultItems.push(itemConverter(item));
             }
             else {
-                console.error("Error syncing " + collName);
+                throw new Error("Cannot sync '" + collName + "' collection without primary keys");
             }
         }
         return resultItems;
