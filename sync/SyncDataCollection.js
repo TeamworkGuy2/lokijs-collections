@@ -1,6 +1,6 @@
 "use strict";
 var Arrays = require("../../ts-mortar/utils/Arrays");
-var Defer = require("../../ts-mortar/promises/Defer");
+var Defer = require("../../ts-promise-tasks/promises/Defer");
 /** Combines functionality for two operations in one class:
  *  - Sync a local data collection to a remote data collection (refered to as 'syncing up').
  *  - Sync a remote data collection to a local data collection (refered to as 'syncing down').
@@ -106,9 +106,9 @@ var SyncDataCollection = (function () {
             return syncSetting.syncUpFunc(params, data).then(function (res) {
                 return res;
             }, function (err) {
-                return {
+                throw {
                     collectionName: localColl.getName(),
-                    syncingToServer: true,
+                    syncingUp: true,
                     error: err
                 };
             });

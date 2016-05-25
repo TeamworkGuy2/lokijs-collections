@@ -15,7 +15,7 @@
  * @param <E> the base local data type
  * @param <F> the base local data type with optional parameters for creating query objects
  * @param <P> sync up parameters
- * @param <S> remove data type
+ * @param <S> remote data type
  * @param <U> sync up result
  * @param <R> sync error
  *

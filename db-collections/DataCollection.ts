@@ -1,6 +1,6 @@
 ﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
 /// <reference path="./in-mem-collections.d.ts" />
-import EventListenerListImpl = require("../../ts-mortar/events/EventListenerListImpl");
+import EventListenerList = require("../../ts-mortar/events/EventListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 
@@ -23,7 +23,7 @@ class DataCollection<E, O> implements DataCollection<E, O> {
     //private removeCb: (removed: E | E[]) => void;
     //private modifyCb: (modified: E | E[]) => void;
     private changes: ChangeTrackers.ChangeTracker;
-    private eventHandler: EventListenerListImpl<Changes.CollectionChange, Changes.ChangeListener>;
+    private eventHandler: EventListenerList<Changes.CollectionChange, Changes.ChangeListener>;
     private dataModel: DataCollectionModel<E>;
     private dataModelFuncs: DtoFuncs<E>;
 
@@ -52,7 +52,7 @@ class DataCollection<E, O> implements DataCollection<E, O> {
      */
     public initializeEventHandler() {
         this.changes = new ChangeTrackers.ChangeTracker(16);
-        this.eventHandler = new EventListenerListImpl();
+        this.eventHandler = new EventListenerList();
     }
 
 

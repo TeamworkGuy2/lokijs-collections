@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/f8669c724cfda4f778e2612c73323b4b2cad5ec8) - 2016-05-18
+### [0.12.1](N/A) - 2016-05-24
+#### Changed
+* Updated to use new version of ts-mortar and new ts-promise-tasks library
+* Updated readme
+
+#### Fixed
+* Fixed error in syncUpCollection() not rejecting promise correctly if sync function failed
+
+
+--------
+### [0.12.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/18742e8218df57d207a3c09b6ec37f23a2437144) - 2016-05-18
 #### Changed
 * Added some documentation to change-trackers, db-collections, and sync
 * Renamed ChangeTrackersImpl -> ChangeTrackers
