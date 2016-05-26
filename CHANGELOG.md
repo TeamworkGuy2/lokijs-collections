@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.2](N/A) - 2016-05-25
+### [0.12.3](N/A) - 2016-05-26
+#### Changed
+* Changed to work with latest version of ts-mortar and new ts-typed-promises library
+
+
+--------
+### [0.12.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/03c4bb6bb3c9f517d1d97fd0a21750735564bcca) - 2016-05-25
 #### changed
 * Replaced two console.error() calls with throw new Error()
 
