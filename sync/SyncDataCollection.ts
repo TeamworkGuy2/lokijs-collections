@@ -26,7 +26,7 @@ class SyncDataCollection {
     private updateLastSyncDownTimestamp: (table: DataCollection<any, any>) => void;
 
 
-    /**
+    /** Create an object which can sync a data collection to/from a remote data destination/source
      * @param getLastSyncDownTimestamp a function to get a collection's last sync down timestamp (unix style millisecond number)
      * @param updateLastSyncDownTimestamp a function to update a collection's last sync down timestamp
      * @param isDeletedPropName the name of the property on both local and remote data models which contains the item's 'deleted' boolean flag
@@ -88,19 +88,31 @@ class SyncDataCollection {
 
         function saveData() {
             // update the last sync time for this table to right now
-            self.updateLastSyncDownTimestamp(table);
+            try {
+                self.updateLastSyncDownTimestamp(table);
+            } catch (err) {
+                syncFailure(err);
+            }
             dfd.resolve(null);
         }
 
-        syncDownFunc(params).done(function (items) {
-            var promise = processResultsCallback(items);
+        try {
+            syncDownFunc(params).done(function (items) {
+                try {
+                    var promise = processResultsCallback(items);
 
-            if (promise != null && promise["then"]) {
-                (<Q.IPromise<R2>>promise).then(saveData, syncFailure);
-            } else {
-                saveData();
-            }
-        }, syncFailure);
+                    if (promise != null && promise["then"]) {
+                        (<Q.IPromise<R2>>promise).then(saveData, syncFailure);
+                    } else {
+                        saveData();
+                    }
+                } catch (err) {
+                    syncFailure(err);
+                }
+            }, syncFailure);
+        } catch (err) {
+            syncFailure(err);
+        }
 
         return dfd.promise;
     }
@@ -121,13 +133,13 @@ class SyncDataCollection {
         var localColl = syncSetting.localCollection;
 
         return this.syncAndUpdateCollection(localColl, copyItemFunc, primaryKey, primaryKeys, function convertAndSendItemsToServer(items) {
-            var toServiceConverter = syncSetting.convertToSvcObjectFunc;
+            var toSvcObj = syncSetting.convertToSvcObjectFunc;
             var data = null;
             if (primaryKey) {
-                data = SyncDataCollection.checkAndConvertSingleKeyItems(localColl.getName(), items, primaryKey, toServiceConverter);
+                data = SyncDataCollection.checkAndConvertSingleKeyItems(localColl.getName(), items, primaryKey, toSvcObj);
             }
             else {
-                data = SyncDataCollection.checkAndConvertMultiKeyItems(localColl.getName(), items, primaryKeys, toServiceConverter);
+                data = SyncDataCollection.checkAndConvertMultiKeyItems(localColl.getName(), items, primaryKeys, toSvcObj);
             }
 
             return syncSetting.syncUpFunc(params, data).then(function (res) {
@@ -178,7 +190,7 @@ class SyncDataCollection {
             else {
                 self.updateMultiPrimaryKeyItems(table, items, primaryKeys);
             }
-            dfd.resolve(null);
+            dfd.resolve(res);
         }, function (err) {
             dfd.reject(err);
         });
@@ -186,7 +198,7 @@ class SyncDataCollection {
     }
 
 
-    /** Search for items in a table using multiple primary keys and 'lastModifiedPropName' and use updateWhere(...) to update matching items
+    /** Search for items in a table using multiple primary keys and 'isSynchedPropName' and use updateWhere(...) to update matching items
      */
     private updateMultiPrimaryKeyItems(table: DataCollection<any, any>, items: any[], primaryKeys: string[]) {
         // set each item's synched flag to true once the items have been synched with the server
@@ -194,7 +206,6 @@ class SyncDataCollection {
         synchedProp[this.isSynchedPropName] = true;
 
         var whereFilter = {};
-        whereFilter[this.lastModifiedPropName] = { $lte: null };
         whereFilter[this.isSynchedPropName] = false;
 
         for (var k = 0, keyCount = primaryKeys.length; k < keyCount; k++) {
@@ -203,7 +214,6 @@ class SyncDataCollection {
 
         for (var i = 0; i < items.length; ++i) {
             var item = items[i];
-            whereFilter[this.lastModifiedPropName].$lte = item[this.lastModifiedPropName] + 50;
             for (var k = 0, keyCount = primaryKeys.length; k < keyCount; k++) {
                 whereFilter[primaryKeys[k]] = item[primaryKeys[k]];
             }
@@ -213,7 +223,7 @@ class SyncDataCollection {
     }
 
 
-    /** Search for items in a table using a single primary key and 'lastModifiedPropName' and use updateWhere(...) to update matching items
+    /** Search for items in a table using a single primary key and 'isSynchedPropName' and use updateWhere(...) to update matching items
      */
     private updateSinglePrimaryKeyItems(table: DataCollection<any, any>, items: any[], primaryKey: string) {
         // set each item's synched flag to true once the items have been synched with the server
@@ -221,13 +231,11 @@ class SyncDataCollection {
         synchedProp[this.isSynchedPropName] = true;
 
         var whereFilter = {};
-        whereFilter[this.lastModifiedPropName] = { $lte: null };
         whereFilter[this.isSynchedPropName] = false;
         whereFilter[primaryKey] = null;
 
         for (var i = 0; i < items.length; ++i) {
             var item = items[i];
-            whereFilter[this.lastModifiedPropName].$lte = item[this.lastModifiedPropName] + 50;
             whereFilter[primaryKey] = item[primaryKey];
 
             table.updateWhere(whereFilter, synchedProp);
@@ -235,11 +243,17 @@ class SyncDataCollection {
     }
 
 
-    /** remove items marked for deletion and add new items or update existing items depending on parameters
+    /** Create a function which removes items marked for deletion and add new items or update existing items depending on parameters.
+     * @param syncSettings the sync down settings required to create a sync down items function
+     * @param isDeletedPropName the name of the property which indicates if an item should be deleted, if value of this property is truthy the item is deleted when the syncing, nullable
+     * @param syncDownOp the type of merge/update/add operation to perform with the new items
      */
     private static createAddUpdateOrRemoveItemsFunc<E, F, P, S, R>(syncSettings: SyncSettingsWithDown<E, F, P, S, R>, isDeletedPropName: string, syncDownOp: SyncDataCollection.SyncDownOp) {
         return function addUpdateOrRemoveItemsFunc(items: S[]) {
             var table = syncSettings.localCollection;
+            var findFilterFunc = syncSettings.findFilterFunc;
+            var convertToLocalObjectFunc = syncSettings.convertToLocalObjectFunc;
+
             if (syncDownOp.removeAll) {
                 table.clearCollection();
             }
@@ -253,13 +267,13 @@ class SyncDataCollection {
                         var item = items[i];
                         if (isDeletedPropName != null && item[isDeletedPropName]) {
                             if (removeDeletedData) {
-                                var query = syncSettings.findFilterFunc(item);
+                                var query = findFilterFunc(item);
                                 table.removeWhere(query);
                             }
                         }
                         else {
-                            var convertedItem = syncSettings.convertToLocalObjectFunc(item);
-                            var query = syncSettings.findFilterFunc(item);
+                            var convertedItem = convertToLocalObjectFunc(item);
+                            var query = findFilterFunc(item);
                             table.addOrUpdateWhereNoModify(query, convertedItem);
                         }
                     }
@@ -272,12 +286,12 @@ class SyncDataCollection {
                         var item = items[i];
                         if (isDeletedPropName != null && item[isDeletedPropName]) {
                             if (removeDeletedData) {
-                                var query = syncSettings.findFilterFunc(item);
+                                var query = findFilterFunc(item);
                                 table.removeWhere(query);
                             }
                         }
                         else {
-                            var convertedItem = syncSettings.convertToLocalObjectFunc(item);
+                            var convertedItem = convertToLocalObjectFunc(item);
                             res.push(convertedItem);
                         }
                     }

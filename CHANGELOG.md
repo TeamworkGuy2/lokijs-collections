@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.4](https://github.com/TeamworkGuy2/lokijs-collections/commit/2013d7e8a34139d5585742766464ec980a1835d9) - 2016-05-27
+### [0.12.5](N/A) - 2016-05-27
+#### Changed
+* Better error handling in syncDownCollection()
+
+#### Removed
+* Removed last modified timestamp filtering when updating local items after syncing up since primary key filtering should already be sufficent
+
+
+--------
+### [0.12.4](https://github.com/TeamworkGuy2/lokijs-collections/commit/fe17c01f5a2d43ea2a2551b715484f87060f645c) - 2016-05-26
 #### Changed
 * work with latest version of ts-promises library
 * use mocha and chai for tests instead of qunit
