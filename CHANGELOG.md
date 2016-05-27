@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.3](N/A) - 2016-05-26
+### [0.12.4](https://github.com/TeamworkGuy2/lokijs-collections/commit/2013d7e8a34139d5585742766464ec980a1835d9) - 2016-05-27
+#### Changed
+* work with latest version of ts-promises library
+* use mocha and chai for tests instead of qunit
+
+
+--------
+### [0.12.3](https://github.com/TeamworkGuy2/lokijs-collections/commit/2013d7e8a34139d5585742766464ec980a1835d9) - 2016-05-26
 #### Changed
 * Changed to work with latest version of ts-mortar and new ts-typed-promises library
 

@@ -1,4 +1,6 @@
-﻿"use strict";
+﻿/// <reference path="../../definitions/lib/chai.d.ts" />
+/// <reference path="../../definitions/lib/mocha.d.ts" />
+import chai = require("chai");
 import Objects = require("../../ts-mortar/utils/Objects");
 import DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
 import TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
@@ -6,6 +8,8 @@ import LokiDbImpl = require("../db-collections/LokiDbImpl");
 import DataCollection = require("../db-collections/DataCollection");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
+
+var as = chai.assert;
 
 interface MdA {
     id: number;
@@ -91,60 +95,60 @@ var dataModelsMap = <StringMap<DtoModel & DtoFuncs<any>>><any>dataModels;
 
 
 
-QUnit.module("LokiDbImpl", {
-});
+suite("LokiDbImpl", function LokiDbImplTest() {
+
+    test("new LokiDbImpl()", function newLokiDbImplTest() {
+        var persister: DummyDataPersister;
+        var dbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if",
+            "collection_meta_data", ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes),
+            function createPersister(dbInst: InMemDb) {
+                persister = new DummyDataPersister(() => dbInst.getCollections(), LokiDbImpl.cloneForInIf, null);
+                return persister;
+            }
+        );
+        dbInst.initializeDb({});
+
+        var modelA = dbInst.getModelDefinitions().getDataModel("coll_a");
+        var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
+        var modelB = dbInst.getModelDefinitions().getDataModel("coll_b");
+        var modelFuncsB = dbInst.getModelDefinitions().getDataModelFuncs("coll_b");
+
+        global = {
+            dbInst: dbInst,
+            collA: new DataCollection<MdA, MdAOpt>("coll_a", modelA, modelFuncsA, dbInst),
+            collB: new DataCollection<MdB, MdBOpt>("coll_b", modelB, modelFuncsB, dbInst)
+        };
+
+        as.deepEqual(global.dbInst.getCollections().map((c) => c.name), ["coll_a", "coll_b"]);
+    });
 
 
-QUnit.test("new LokiDbImpl", function LokiDbImplTest(sr) {
-    var persister: DummyDataPersister;
-    var dbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if",
-        "collection_meta_data", ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes),
-        function createPersister(dbInst: InMemDb) {
-            persister = new DummyDataPersister(() => dbInst.getCollections(), LokiDbImpl.cloneForInIf, null);
-            return persister;
-        }
-    );
-    dbInst.initializeDb({});
+    test("add/remove", function addRemoveTest() {
+        var collA = global.collA;
+        var collB = global.collB;
+        var now = new Date();
 
-    var modelA = dbInst.getModelDefinitions().getDataModel("coll_a");
-    var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
-    var modelB = dbInst.getModelDefinitions().getDataModel("coll_b");
-    var modelFuncsB = dbInst.getModelDefinitions().getDataModelFuncs("coll_b");
+        var aItem1Add = collA.add(aItem1);
+        var aItem2Add = collA.add(aItem2);
 
-    global = {
-        dbInst: dbInst,
-        collA: new DataCollection<MdA, MdAOpt>("coll_a", modelA, modelFuncsA, dbInst),
-        collB: new DataCollection<MdB, MdBOpt>("coll_b", modelB, modelFuncsB, dbInst)
-    };
+        as.deepEqual(Objects.cloneDeep(aItem1), aItem1);
+        as.equal(collA.data().length, 2);
 
-    sr.deepEqual(global.dbInst.getCollections().map((c) => c.name), ["coll_a", "coll_b"]);
-});
+        collA.removeWhere({ id: aItem1Add.id });
+        as.equal(collA.data().length, 1);
+
+        collA.remove(aItem2Add);
+        as.equal(collA.data().length, 0);
 
 
-QUnit.test("add/remove", function addRemoveTest(sr) {
-    var collA = global.collA;
-    var collB = global.collB;
-    var now = new Date();
+        collB.addAll([bItem1, bItem2]);
+        var [bItem1Add, bItem2Add] = collB.data();
 
-    var aItem1Add = collA.add(aItem1);
-    var aItem2Add = collA.add(aItem2);
+        as.deepEqual(Objects.cloneDeep(bItem1), bItem1);
+        as.equal(collB.data().length, 2);
 
-    sr.deepEqual(Objects.cloneDeep(aItem1), aItem1);
-    sr.equal(collA.data().length, 2);
+        collB.clearCollection();
+        as.equal(collB.data().length, 0);
+    });
 
-    collA.removeWhere({ id: aItem1Add.id });
-    sr.equal(collA.data().length, 1);
-
-    collA.remove(aItem2Add);
-    sr.equal(collA.data().length, 0);
-
-
-    collB.addAll([bItem1, bItem2]);
-    var [bItem1Add, bItem2Add] = collB.data();
-
-    sr.deepEqual(Objects.cloneDeep(bItem1), bItem1);
-    sr.equal(collB.data().length, 2);
-
-    collB.clearCollection();
-    sr.equal(collB.data().length, 0);
 });
