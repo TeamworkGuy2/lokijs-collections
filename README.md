@@ -46,8 +46,3 @@ Collection meta-data and unique/primary key constraint handlers for 'DataCollect
 Includes:
 'PrimaryKeyMaintainer' for checking uniqueness of primary keys and/or generating numerical keys (i.e. 1, 2, 3, ...), 
 'NonNullKeyMaintainer' for checking that fields have values
-
-####sync/
-NOTE: this may move to it's own repository in the future.
-Use SyncSettingsBuilder to create settings objects containing information and functions needed to sync a data collection.
-Use SyncDataCollection to upload a local in-memory data collection to a remote destination ('sync up') or download and integrate data from a remote data collection ('sync down')

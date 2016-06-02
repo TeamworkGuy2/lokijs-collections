@@ -4,12 +4,18 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.12.5](N/A) - 2016-05-27
+### [0.13.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/067fe49f6093a8738178da4ba271884aa701d4c3) - 2016-05-27
+#### Removed
+* sync/ directory moved to new [lokijs-collections-sync](https://github.com/TeamworkGuy2/lokijs-collections-sync) library
+
+
+--------
+### [0.12.5](https://github.com/TeamworkGuy2/lokijs-collections/commit/067fe49f6093a8738178da4ba271884aa701d4c3) - 2016-05-27
 #### Changed
-* Better error handling in syncDownCollection()
+* More thorough error handling in SyncDataCollection.syncDownCollection()
 
 #### Removed
-* Removed last modified timestamp filtering when updating local items after syncing up since primary key filtering should already be sufficent
+* Removed last modified timestamp filtering when updating local items after syncing up since primary key filtering should already restrict the search results sufficently
 
 
 --------

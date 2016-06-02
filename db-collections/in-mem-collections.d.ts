@@ -6,6 +6,7 @@
 /// <reference path="../../ts-code-generator/code-types/code-types.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/model-types.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/utils.d.ts" />
+/// <reference path="../change-trackers/collection-changes.d.ts" />
 
 /* lokijs-collection interfaces - Data storage/retrieval interface, specifically for storing/retrieving strongly typed data models
  * @author TeamworkGuy2
