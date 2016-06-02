@@ -8,7 +8,7 @@ import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
-import PermissionedDataPersisterAdapter = require("./PermissionedDataPersisterAdapter");
+import PermissionedDataPersister = require("./PermissionedDataPersister");
 
 
 /** A {@link ResultSetLike} implementation for an empty collection
@@ -58,8 +58,8 @@ class LokiDbImpl implements InMemDb {
     private modelKeys: ModelKeys;
     private db: Loki;
     private dbName: string;
-    private dataPersisterFactory: DataPersister.AdapterFactory;
-    private dataPersisterInst: DataPersister.Adapter;
+    private dataPersisterFactory: DataPersister.Factory;
+    private dataPersister: DataPersister;
     private syncSettings: ReadWritePermission;
     private storeSettings: StorageFormatSettings;
     private cloneFunc: InMemDbCloneFunc;
@@ -76,7 +76,7 @@ class LokiDbImpl implements InMemDb {
      * @param dataPersisterFactory a factory for creating a data persister
      */
     constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete", metaDataStorageCollectionName: string,
-            modelDefinitions: ModelDefinitions, dataPersisterFactory: (dbInst: InMemDb) => DataPersister.Adapter) {
+            modelDefinitions: ModelDefinitions, dataPersisterFactory: (dbInst: InMemDb) => DataPersister) {
         this.dbName = dbName;
         this.syncSettings = settings;
         this.storeSettings = storeSettings;
@@ -89,20 +89,20 @@ class LokiDbImpl implements InMemDb {
         }
 
         this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
 
 
-    // ======== static methods ========
+    // ======== private static methods ========
 
     private static _createNewDb(dbName: string, options: LokiConfigureOptions) {
         return new Loki(dbName, options);
     }
 
-    private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: DataPersister.AdapterFactory): DataPersister.Adapter {
+    private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: DataPersister.Factory): DataPersister {
         dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
             var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
-            var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
+            var persistAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
             return persistAdapter;
         });
         return dbDataInst.getDataPersister();
@@ -150,20 +150,20 @@ class LokiDbImpl implements InMemDb {
     public resetDataStore(): Q.Promise<void> {
         var dfd = Q.defer<void>();
         this.db = null;
-        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
+        this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
         dfd.resolve(null);
         return dfd.promise;
     }
 
 
-    public setDataPersister(dataPersisterFactory: DataPersister.AdapterFactory): void {
+    public setDataPersister(dataPersisterFactory: DataPersister.Factory): void {
         this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersisterInst = dataPersisterFactory(this, () => this.getCollections(), (collName: string) => this.cloneFunc, (collName: string) => null);
+        this.dataPersister = dataPersisterFactory(this, () => this.getCollections(), (collName: string) => this.cloneFunc, (collName: string) => null);
     }
 
 
-    public getDataPersister(): DataPersister.Adapter {
-        return this.dataPersisterInst;
+    public getDataPersister(): DataPersister {
+        return this.dataPersister;
     }
 
 

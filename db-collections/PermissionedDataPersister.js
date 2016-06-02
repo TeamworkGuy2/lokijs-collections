@@ -14,7 +14,7 @@ var PermissionedDataPersisterAdapter = (function () {
         }
         else {
             var dfd = Q.defer();
-            dfd.reject("permission denied: data persister write permission denied due to settings");
+            dfd.reject("permission denied: data persister write permissions are denied");
             return dfd.promise;
         }
     };
@@ -24,17 +24,17 @@ var PermissionedDataPersisterAdapter = (function () {
         }
         else {
             var dfd = Q.defer();
-            dfd.reject("permission denied: data persister read permission denied due to settings");
+            dfd.reject("permission denied: data persister read permissions are denied");
             return dfd.promise;
         }
     };
-    PermissionedDataPersisterAdapter.prototype.clearPersistenceDb = function () {
+    PermissionedDataPersisterAdapter.prototype.clearPersistentDb = function () {
         if (this.syncSettings.writeAllow) {
-            return this.persister.clearPersistenceDb();
+            return this.persister.clearPersistentDb();
         }
         else {
             var dfd = Q.defer();
-            dfd.reject("permission denied: data persister write permission denied due to settings");
+            dfd.reject("permission denied: data persister write permissions are denied");
             return dfd.promise;
         }
     };

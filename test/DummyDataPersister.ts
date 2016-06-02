@@ -4,7 +4,7 @@
  * @author TeamworkGuy2
  * @since 2015-12-17
  */
-class DummyDataPersister implements DataPersister.Adapter {
+class DummyDataPersister implements DataPersister {
     private getDataSources: () => LokiCollection<any>[];
     private getItemSaveConverter: (collName: string) => ((item) => any);
     private getItemLoadConverter: (collName: string) => ((item) => any);
@@ -39,7 +39,7 @@ class DummyDataPersister implements DataPersister.Adapter {
     }
 
 
-    public clearPersistenceDb(): Q.Promise<void> {
+    public clearPersistentDb(): Q.Promise<void> {
         throw new Error("DummyDataPersister.clearPersistenceDb() not yet implemented");
     }
 

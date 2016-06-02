@@ -9,7 +9,7 @@ var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
-var PermissionedDataPersisterAdapter = require("./PermissionedDataPersisterAdapter");
+var PermissionedDataPersister = require("./PermissionedDataPersister");
 /** A {@link ResultSetLike} implementation for an empty collection
  * @author TeamworkGuy2
  */
@@ -61,16 +61,16 @@ var LokiDbImpl = (function () {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
         this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
-    // ======== static methods ========
+    // ======== private static methods ========
     LokiDbImpl._createNewDb = function (dbName, options) {
         return new Loki(dbName, options);
     };
     LokiDbImpl.createDefaultDataPersister = function (dbDataInst, dataPersisterFactory) {
         dbDataInst.setDataPersister(function (dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) {
             var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
-            var persistAdapter = new PermissionedDataPersisterAdapter(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
+            var persistAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
             return persistAdapter;
         });
         return dbDataInst.getDataPersister();
@@ -104,17 +104,17 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.resetDataStore = function () {
         var dfd = Q.defer();
         this.db = null;
-        this.dataPersisterInst = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
+        this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
         dfd.resolve(null);
         return dfd.promise;
     };
     LokiDbImpl.prototype.setDataPersister = function (dataPersisterFactory) {
         var _this = this;
         this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersisterInst = dataPersisterFactory(this, function () { return _this.getCollections(); }, function (collName) { return _this.cloneFunc; }, function (collName) { return null; });
+        this.dataPersister = dataPersisterFactory(this, function () { return _this.getCollections(); }, function (collName) { return _this.cloneFunc; }, function (collName) { return null; });
     };
     LokiDbImpl.prototype.getDataPersister = function () {
-        return this.dataPersisterInst;
+        return this.dataPersister;
     };
     LokiDbImpl.prototype._addHandlePrimaryAndGeneratedKeys = function (collection, dataModel, primaryConstraint, generateOption, docs, dstMetaData) {
         // TODO primaryConstraint and generateOption validation

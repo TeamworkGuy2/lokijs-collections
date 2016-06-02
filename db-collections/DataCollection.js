@@ -18,6 +18,9 @@ var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 var DataCollection = (function () {
     /** Create a new document collection backed by a provided 'InMemDb' instance.
      * @param {string} collectionName: the name of this collection
+     * @param dataModel: the data model used to determine primary key constraints, object validity, syncing behavior, etc.
+     * @param dataModelFuncs: functions used to manipulate the types of items stored in this collection,
+     * currently contains a copy function for creating deep copies of objects stored in this collection
      * @param dbInst: the 'InMemDb' containing this collection's actual data
      * @param {boolean} trackChanges: flag to initialize an event handler and change tracker for this collection or not.
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
@@ -56,7 +59,7 @@ var DataCollection = (function () {
      * @see #initializeEventHandler()
      * @see #destroyEventHandler()
      */
-    DataCollection.prototype.getCollectionEventHandler = function () {
+    DataCollection.prototype.getEventHandler = function () {
         return this.eventHandler;
     };
     /**

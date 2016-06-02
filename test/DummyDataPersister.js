@@ -26,7 +26,7 @@ var DummyDataPersister = (function () {
     DummyDataPersister.prototype.restore = function (options) {
         return null;
     };
-    DummyDataPersister.prototype.clearPersistenceDb = function () {
+    DummyDataPersister.prototype.clearPersistentDb = function () {
         throw new Error("DummyDataPersister.clearPersistenceDb() not yet implemented");
     };
     return DummyDataPersister;

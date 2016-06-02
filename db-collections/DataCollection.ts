@@ -15,10 +15,13 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * @param <E> the type of data stored in this data collection
  * @param <O> the filter/query type, this is normally type {@code E} with all most or all properties optional
  */
-class DataCollection<E, O> implements DataCollection<E, O> {
+class DataCollection<E, O> implements _DataCollection<E, O> {
+    /** The underlying lokijs collection
+     * TODO readonly once TypeScript supports it, please DO NOT change this reference
+     */
+    public collection: LokiCollection<E>;
     private collectionName: string;
     private dbInst: InMemDb;
-    private collection: LokiCollection<E>;
     //private addCb: (added: E | E[]) => void;
     //private removeCb: (removed: E | E[]) => void;
     //private modifyCb: (modified: E | E[]) => void;
@@ -30,6 +33,9 @@ class DataCollection<E, O> implements DataCollection<E, O> {
 
     /** Create a new document collection backed by a provided 'InMemDb' instance.
      * @param {string} collectionName: the name of this collection
+     * @param dataModel: the data model used to determine primary key constraints, object validity, syncing behavior, etc.
+     * @param dataModelFuncs: functions used to manipulate the types of items stored in this collection,
+     * currently contains a copy function for creating deep copies of objects stored in this collection
      * @param dbInst: the 'InMemDb' containing this collection's actual data
      * @param {boolean} trackChanges: flag to initialize an event handler and change tracker for this collection or not.
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
@@ -73,7 +79,7 @@ class DataCollection<E, O> implements DataCollection<E, O> {
      * @see #initializeEventHandler()
      * @see #destroyEventHandler()
      */
-    public getCollectionEventHandler() {
+    public getEventHandler() {
         return this.eventHandler;
     }
 

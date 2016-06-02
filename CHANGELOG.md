@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.13.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/067fe49f6093a8738178da4ba271884aa701d4c3) - 2016-05-27
+### [0.13.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/f5ece8dcbbf3153cdc94b1467050ea98d609825d) - 2016-05-27
+#### Changed
+* Renamed PermissionedDataPersistAdapter -> PermissionedDataPersister
+* Renamed DataPersister.AdapterFactory -> DataPersister.Factory
+* Renamed DataPersister.clearPersistenceDb() -> clearPersistentDb()
+* Moved DataPersister.Adapter interface up and merged it with DataPersister module
+* Made DataCollection.collection public to make it easy to access the underlying lokijs collection (please note this field is meant to be readonly)
+
 #### Removed
 * sync/ directory moved to new [lokijs-collections-sync](https://github.com/TeamworkGuy2/lokijs-collections-sync) library
 

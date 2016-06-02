@@ -46,7 +46,7 @@ interface InMemDb {
 
     initializeDb(options: LokiConfigureOptions): void;
 
-    setDataPersister(dataPersisterFactory: DataPersister.AdapterFactory): void;
+    setDataPersister(dataPersisterFactory: DataPersister.Factory): void;
 
 
     // ======== Add, Remove, Update Operations ========
@@ -144,7 +144,7 @@ interface DataCollection<E, O> {
 
     destroyEventHandler(): void;
 
-    getCollectionEventHandler(): Events.ListenerList<Changes.CollectionChange, Changes.ChangeListener>;
+    getEventHandler(): Events.ListenerList<Changes.CollectionChange, Changes.ChangeListener>;
 
     /**
      * @return {string} the name of this collection of data models
@@ -259,6 +259,8 @@ interface DataCollection<E, O> {
      */
     deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
 }
+// Work around for DataCollection.ts containing a class named 'DataCollection' and trying to implement this interface
+interface _DataCollection<E, O> extends DataCollection<E, O> { }
 
 
 
@@ -277,10 +279,28 @@ interface DtoCollection<E, F, S> extends DataCollection<E, F> {
 
 
 
-/* Interface for persisting data to a long term* storage medium, (*longer than the browser session)
+/* Adapter interface for persisting/restoring in in-memory database to/from long term* storage, (*longer than browser session or program lifetime)
  * Data persist read/write interface for InMemDb
  * @author TeamworkGuy2
  */
+interface DataPersister {
+
+    /** Save this in-memory database to some form of persistent storage
+     * Removes tables from store that don't exist in in-memory db
+     */
+    persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<DataPersister.PersistResult>;
+
+    /** Restore in-memory database from persistent store
+     * All in memory tables are dropped and re-added
+     */
+    restore(options?: { decompress?: boolean; }): Q.Promise<DataPersister.RestoreResult>;
+
+    /** Delete all data related this database from persistent storage
+     */
+    clearPersistentDb(): Q.Promise<void>;
+}
+
+
 declare module DataPersister {
 
     interface CollectionData {
@@ -301,27 +321,7 @@ declare module DataPersister {
     }
 
 
-    /** Adapter for persisting/restoring an in-memory database
-     */
-    export interface Adapter {
-
-        /** Save this in-memory database to some form of persistent storage
-         * Removes tables from store that don't exist in in-memory db
-         */
-        persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<PersistResult>;
-
-        /** Restore in-memory database from persistent store
-         * All in memory tables are dropped and re-added
-         */
-        restore(options?: { decompress?: boolean; }): Q.Promise<RestoreResult>;
-
-        /** Delete all data related this database from persistent storage
-         */
-        clearPersistenceDb(): Q.Promise<void>;
-    }
-
-
-    export interface AdapterFactory {
+    export interface Factory {
         /**
          * @param dbInst: the in-memory database that the persister pulls data from
          * @param getCollections: returns a list of data collections that contain the data to persist/restore to
@@ -332,7 +332,7 @@ declare module DataPersister {
          */
         (dbInst: InMemDb, getCollections: () => LokiCollection<any>[],
             getSaveItemTransformFunc?: (collName: string) => ((item: any) => any),
-            getRestoreItemTransformFunc?: (collName: string) => ((item: any) => any)): DataPersister.Adapter;
+            getRestoreItemTransformFunc?: (collName: string) => ((item: any) => any)): DataPersister;
     }
 
 }
