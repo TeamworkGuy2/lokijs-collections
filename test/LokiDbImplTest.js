@@ -1,6 +1,6 @@
 "use strict";
-/// <reference path="../../definitions/lib/chai.d.ts" />
-/// <reference path="../../definitions/lib/mocha.d.ts" />
+/// <reference path="../../definitions/chai/chai.d.ts" />
+/// <reference path="../../definitions/mocha/mocha.d.ts" />
 var chai = require("chai");
 var Objects = require("../../ts-mortar/utils/Objects");
 var DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");

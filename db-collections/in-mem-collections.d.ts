@@ -1,5 +1,5 @@
-﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
-/// <reference path="../../definitions/lib/Q.d.ts" />
+﻿/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
+/// <reference path="../../definitions/q/Q.d.ts" />
 /// <reference path="../../ts-mortar/events/events.d.ts" />
 /// <reference path="../../ts-promises/ts-promises.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/ast-types.d.ts" />

@@ -153,15 +153,15 @@ var ModelDefinitionsSet;
     ModelDefinitionsSet.modelDefsToCollectionModelDefs = modelDefsToCollectionModelDefs;
     function cloneDtoPropertyTemplate(prop, cloneDeep) {
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
-        return {
+        var res = {
             autoGenerate: prop.autoGenerate,
-            defaultValue: prop.defaultValue != null ? cloneDeep(prop.defaultValue) : prop.defaultValue,
+            //defaultValue: prop.defaultValue != null ? cloneDeep(prop.defaultValue) : prop.defaultValue,
             primaryKey: prop.primaryKey,
             readOnly: prop.readOnly,
             required: prop.required,
             server: prop.server == null ? null : {
                 autoGenerate: prop.server.autoGenerate,
-                defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : prop.server.defaultValue,
+                //defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : prop.server.defaultValue,
                 name: prop.server.name,
                 primaryKey: prop.server.primaryKey,
                 readOnly: prop.server.readOnly,
@@ -172,6 +172,13 @@ var ModelDefinitionsSet;
             toService: prop.toService,
             type: prop.type,
         };
+        if (Object.prototype.hasOwnProperty.call(prop, "defaultValue")) {
+            res.defaultValue = prop.defaultValue != null ? cloneDeep(prop.defaultValue) : prop.defaultValue;
+        }
+        if (res.server && Object.prototype.hasOwnProperty.call(prop.server, "defaultValue")) {
+            res.server.defaultValue = prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : prop.server.defaultValue;
+        }
+        return res;
     }
     ModelDefinitionsSet.cloneDtoPropertyTemplate = cloneDtoPropertyTemplate;
 })(ModelDefinitionsSet || (ModelDefinitionsSet = {}));

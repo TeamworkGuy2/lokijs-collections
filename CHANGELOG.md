@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.13.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/f5ece8dcbbf3153cdc94b1467050ea98d609825d) - 2016-05-27
+### [0.13.1](N/A) - 2016-08-24
+#### Fixed
+* Fixed some .d.ts paths to match DefinitelyTyped structure
+* Fixed issue with ModelDefinitionsSet.cloneDtoPropertyTemplate()
+
+
+--------
+### [0.13.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/5f70bf6ade8959303f80bf33a658a3f8d1bb9805) - 2016-05-27
 #### Changed
 * Renamed PermissionedDataPersistAdapter -> PermissionedDataPersister
 * Renamed DataPersister.AdapterFactory -> DataPersister.Factory

@@ -1,4 +1,4 @@
-﻿/// <reference path="../../definitions/lib/lokijs.d.ts" />
+﻿/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 /// <reference path="./in-mem-collections.d.ts" />
 import EventListenerList = require("../../ts-mortar/events/EventListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");

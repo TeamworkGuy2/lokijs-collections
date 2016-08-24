@@ -1,5 +1,5 @@
 "use strict";
-/// <reference path="../../definitions/lib/lokijs.d.ts" />
+/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 /// <reference path="./in-mem-collections.d.ts" />
 var EventListenerList = require("../../ts-mortar/events/EventListenerList");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");

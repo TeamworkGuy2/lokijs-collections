@@ -1,5 +1,5 @@
-﻿/// <reference path="../../definitions/lib/chai.d.ts" />
-/// <reference path="../../definitions/lib/mocha.d.ts" />
+﻿/// <reference path="../../definitions/chai/chai.d.ts" />
+/// <reference path="../../definitions/mocha/mocha.d.ts" />
 import chai = require("chai");
 import Objects = require("../../ts-mortar/utils/Objects");
 import DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
