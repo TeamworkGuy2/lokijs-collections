@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.13.1](N/A) - 2016-08-24
+### [0.14.0](N/A) - 2016-09-19
+#### Changed
+* Updated to version 0.11.0 of ts-mortar which moved ts-mortar/events/ to a separate library
+  * Added ts-event-handlers-lite@0.1.0 dependency for the EventListenerList previously provided by ts-mortar and used by DataCollection
+
+
+--------
+### [0.13.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/13ecd777d599665f2c6a4a34da1e24d82289d7d0) - 2016-08-24
 #### Fixed
 * Fixed some .d.ts paths to match DefinitelyTyped structure
 * Fixed issue with ModelDefinitionsSet.cloneDtoPropertyTemplate()

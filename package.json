@@ -6,7 +6,8 @@
     "lokijs": "~1.2.0",
     "q": "~1.4.1",
     "ts-code-generator": "~0.15.0",
-    "ts-mortar": "~0.7.2",
+    "ts-event-handlers-lite": "~0.1.0",
+    "ts-mortar": "~0.11.0",
     "ts-promises": "~0.1.0"
   },
   "devDependencies": {
