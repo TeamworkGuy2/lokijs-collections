@@ -54,10 +54,12 @@ class LokiDbImpl implements InMemDb {
     private primaryKeyMaintainer: PrimaryKeyMaintainer;
     private nonNullKeyMaintainer: NonNullKeyMaintainer;
     private metaDataStorageCollectionName: string;
+    private reloadMetaData: boolean;
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
     private db: Loki;
     private dbName: string;
+    private dbInitializer: (dbName: string) => Loki;
     private dataPersisterFactory: DataPersister.Factory;
     private dataPersister: DataPersister;
     private syncSettings: ReadWritePermission;
@@ -72,17 +74,21 @@ class LokiDbImpl implements InMemDb {
      * @param storeSettings settings used for the data persister
      * @param cloneType the type of clone operation to use when copying elements
      * @param metaDataStorageCollectionName the name of the collection to store collection meta-data in
+     * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
      * @param dataPersisterFactory a factory for creating a data persister
      */
-    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete", metaDataStorageCollectionName: string,
-            modelDefinitions: ModelDefinitions, dataPersisterFactory: (dbInst: InMemDb) => DataPersister) {
+    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
+            metaDataStorageCollectionName: string, reloadMetaData: boolean,
+            modelDefinitions: ModelDefinitions, databaseInitializer: (dbName: string) => Loki, dataPersisterFactory: (dbInst: InMemDb) => DataPersister) {
         this.dbName = dbName;
+        this.dbInitializer = databaseInitializer;
         this.syncSettings = settings;
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
+        this.reloadMetaData = reloadMetaData;
         this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf : (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor : (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
@@ -94,10 +100,6 @@ class LokiDbImpl implements InMemDb {
 
 
     // ======== private static methods ========
-
-    private static _createNewDb(dbName: string, options: LokiConfigureOptions) {
-        return new Loki(dbName, options);
-    }
 
     private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: DataPersister.Factory): DataPersister {
         dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
@@ -111,13 +113,9 @@ class LokiDbImpl implements InMemDb {
 
     // ======== private methods ========
 
-    private _setNewDb(dataStore: Loki) {
-        this.db = dataStore;
-    }
-
     private getPrimaryKeyMaintainer() {
         if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelDefinitions, this.modelKeys);
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
         }
         return this.primaryKeyMaintainer;
     }
@@ -142,8 +140,8 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public initializeDb(options: LokiConfigureOptions) {
-        this._setNewDb(LokiDbImpl._createNewDb(this.dbName, options));
+    public initializeDb() {
+        this.db = this.dbInitializer(this.dbName);
     }
 
 

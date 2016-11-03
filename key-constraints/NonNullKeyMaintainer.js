@@ -29,7 +29,6 @@ var NonNullKeyMaintainer = (function () {
             else {
                 var validAry = [];
                 var invalidAry = [];
-                var res = { valid: validAry, invalid: invalidAry };
                 for (var i = 0, size = docs.length; i < size; i++) {
                     var doc = docs[i];
                     var valid = true;
@@ -40,13 +39,16 @@ var NonNullKeyMaintainer = (function () {
                         }
                     }
                     if (valid) {
-                        res.valid.push(doc);
+                        validAry.push(doc);
                     }
                     else {
-                        res.invalid.push(doc);
+                        invalidAry.push(doc);
                     }
                 }
-                return res;
+                return {
+                    valid: validAry,
+                    invalid: invalidAry
+                };
             }
         }
     };

@@ -2,7 +2,6 @@
 /// <reference path="../../definitions/q/Q.d.ts" />
 /// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 var Q = require("q");
-var Loki = require("lokijs");
 var Arrays = require("../../ts-mortar/utils/Arrays");
 var Objects = require("../../ts-mortar/utils/Objects");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");
@@ -46,16 +45,19 @@ var LokiDbImpl = (function () {
      * @param storeSettings settings used for the data persister
      * @param cloneType the type of clone operation to use when copying elements
      * @param metaDataStorageCollectionName the name of the collection to store collection meta-data in
+     * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
      * @param dataPersisterFactory a factory for creating a data persister
      */
-    function LokiDbImpl(dbName, settings, storeSettings, cloneType, metaDataStorageCollectionName, modelDefinitions, dataPersisterFactory) {
+    function LokiDbImpl(dbName, settings, storeSettings, cloneType, metaDataStorageCollectionName, reloadMetaData, modelDefinitions, databaseInitializer, dataPersisterFactory) {
         this.dbName = dbName;
+        this.dbInitializer = databaseInitializer;
         this.syncSettings = settings;
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
+        this.reloadMetaData = reloadMetaData;
         this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf : (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor : (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
@@ -64,9 +66,6 @@ var LokiDbImpl = (function () {
         this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
     // ======== private static methods ========
-    LokiDbImpl._createNewDb = function (dbName, options) {
-        return new Loki(dbName, options);
-    };
     LokiDbImpl.createDefaultDataPersister = function (dbDataInst, dataPersisterFactory) {
         dbDataInst.setDataPersister(function (dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) {
             var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
@@ -76,12 +75,9 @@ var LokiDbImpl = (function () {
         return dbDataInst.getDataPersister();
     };
     // ======== private methods ========
-    LokiDbImpl.prototype._setNewDb = function (dataStore) {
-        this.db = dataStore;
-    };
     LokiDbImpl.prototype.getPrimaryKeyMaintainer = function () {
         if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this, this.modelDefinitions, this.modelKeys);
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
         }
         return this.primaryKeyMaintainer;
     };
@@ -98,8 +94,8 @@ var LokiDbImpl = (function () {
     LokiDbImpl.prototype.getModelKeys = function () {
         return this.modelKeys;
     };
-    LokiDbImpl.prototype.initializeDb = function (options) {
-        this._setNewDb(LokiDbImpl._createNewDb(this.dbName, options));
+    LokiDbImpl.prototype.initializeDb = function () {
+        this.db = this.dbInitializer(this.dbName);
     };
     LokiDbImpl.prototype.resetDataStore = function () {
         var dfd = Q.defer();
