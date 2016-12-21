@@ -71,10 +71,9 @@ var ModelDefinitionsSet = (function () {
         var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     };
-    ModelDefinitionsSet.EMPTY_ARRAY = Object.freeze([]);
     return ModelDefinitionsSet;
 }());
-var ModelDefinitionsSet;
+ModelDefinitionsSet.EMPTY_ARRAY = Object.freeze([]);
 (function (ModelDefinitionsSet) {
     function extendModelTemplate(parent, child, cloneDeep) {
         var res = Objects.map(parent, null, function (k, v) { return cloneDtoPropertyTemplate(v); });
@@ -91,7 +90,7 @@ var ModelDefinitionsSet;
     function multiExtendModelTemplate() {
         var inheritanceChain = [];
         for (var _i = 0; _i < arguments.length; _i++) {
-            inheritanceChain[_i - 0] = arguments[_i];
+            inheritanceChain[_i] = arguments[_i];
         }
         var childClass = inheritanceChain[inheritanceChain.length - 1];
         for (var i = inheritanceChain.length - 2; i > -1; i--) {

@@ -1,6 +1,7 @@
 "use strict";
 /// <reference path="../../definitions/chai/chai.d.ts" />
 /// <reference path="../../definitions/mocha/mocha.d.ts" />
+/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 var chai = require("chai");
 var Loki = require("lokijs");
 var Arrays = require("../../ts-mortar/utils/Arrays");
@@ -73,10 +74,27 @@ function rebuildDb() {
     var persister;
     var metaDataCollName = "collection_meta_data";
     var dbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes), function createDb(dbName) {
-        return new Loki(dbName, {});
+        var lokiDb = new Loki(dbName, {});
+        return {
+            addCollection: function (name, opts) { return lokiDb.addCollection(name, opts); },
+            getCollection: function (name) { return lokiDb.getCollection(name); },
+            getName: function () { return lokiDb.getName(); },
+            listCollections: function () { return lokiDb.collections; },
+            removeCollection: function (name) { return lokiDb.removeCollection(name); }
+        };
     }, function createPersister(dbInst) {
         persister = new DummyDataPersister(function () { return dbInst.getCollections(); }, LokiDbImpl.cloneForInIf, null);
         return persister;
+    }, function createCollectionSettingsFunc(collectionName) {
+        var settings = {
+            asyncListeners: false // lokijs async listeners cause performance issues (2015-1)
+        };
+        return settings;
+    }, function modelKeysFunc(obj, coll, dataModel) {
+        var keys = Object.keys(obj);
+        Arrays.fastRemove(keys, "$loki");
+        Arrays.fastRemove(keys, "meta");
+        return keys;
     });
     dbInst.initializeDb();
     var modelA = dbInst.getModelDefinitions().getDataModel("coll_a");

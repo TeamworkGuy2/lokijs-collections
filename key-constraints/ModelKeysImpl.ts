@@ -13,7 +13,7 @@ class ModelKeysImpl implements ModelKeys {
 
 
     /** add missing IDs that should be auto-generated
-     * @param {Array} autoGenKeys: in the format { name: "...", largestKey: 45678 }
+     * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
     public addGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc: any): void {
         for (var i = 0, size = autoGenKeys.length; i < size; i++) {
@@ -27,7 +27,7 @@ class ModelKeysImpl implements ModelKeys {
 
 
     /** track auto-generated IDs
-     * @param {Array} autoGenKeys: in the format { name: "...", largestKey: 45678 }
+     * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
     public trackGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc: any): void {
         for (var i = 0, size = autoGenKeys.length; i < size; i++) {

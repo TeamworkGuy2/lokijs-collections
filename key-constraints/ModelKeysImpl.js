@@ -8,7 +8,7 @@ var ModelKeysImpl = (function () {
         this.modelDefs = modelDefs;
     }
     /** add missing IDs that should be auto-generated
-     * @param {Array} autoGenKeys: in the format { name: "...", largestKey: 45678 }
+     * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
     ModelKeysImpl.prototype.addGeneratedIds = function (autoGenKeys, doc) {
         for (var i = 0, size = autoGenKeys.length; i < size; i++) {
@@ -20,7 +20,7 @@ var ModelKeysImpl = (function () {
         }
     };
     /** track auto-generated IDs
-     * @param {Array} autoGenKeys: in the format { name: "...", largestKey: 45678 }
+     * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
     ModelKeysImpl.prototype.trackGeneratedIds = function (autoGenKeys, doc) {
         for (var i = 0, size = autoGenKeys.length; i < size; i++) {
@@ -50,7 +50,6 @@ var ModelKeysImpl = (function () {
     };
     return ModelKeysImpl;
 }());
-var ModelKeysImpl;
 (function (ModelKeysImpl) {
     /** Constrains the value of a field
      */
@@ -58,10 +57,10 @@ var ModelKeysImpl;
         function Constraint(id) {
             this.id = id;
         }
-        Constraint.NON_NULL = new Constraint(1);
-        Constraint.UNIQUE = new Constraint(2);
         return Constraint;
     }());
+    Constraint.NON_NULL = new Constraint(1);
+    Constraint.UNIQUE = new Constraint(2);
     ModelKeysImpl.Constraint = Constraint;
     /** How to handle auto generated fields (i.e. primary keys)
      */
@@ -69,10 +68,10 @@ var ModelKeysImpl;
         function Generated(id) {
             this.id = id;
         }
-        Generated.AUTO_GENERATE = new Generated(1);
-        Generated.PRESERVE_EXISTING = new Generated(2);
         return Generated;
     }());
+    Generated.AUTO_GENERATE = new Generated(1);
+    Generated.PRESERVE_EXISTING = new Generated(2);
     ModelKeysImpl.Generated = Generated;
 })(ModelKeysImpl || (ModelKeysImpl = {}));
 module.exports = ModelKeysImpl;

@@ -1,5 +1,4 @@
-﻿/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
-/// <reference path="./in-mem-collections.d.ts" />
+﻿/// <reference path="./in-mem-collections.d.ts" />
 import EventListenerList = require("../../ts-event-handlers-lite/EventListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");

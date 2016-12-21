@@ -1,5 +1,4 @@
-﻿/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
-/// <reference path="../../definitions/q/Q.d.ts" />
+﻿/// <reference path="../../definitions/q/Q.d.ts" />
 /// <reference path="../../ts-event-handlers-lite/events.d.ts" />
 /// <reference path="../../ts-promises/ts-promises.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/ast-types.d.ts" />
@@ -12,8 +11,39 @@
  * @author TeamworkGuy2
  */
 
+interface InMemDbProvider<O> {
+    getName(): string;
+
+    addCollection<T>(name: string, options?: O): LokiCollection<T>;
+
+    getCollection<T>(collectionName: string): LokiCollection<T>;
+
+    listCollections(): LokiCollection<any>[];
+
+    removeCollection(collectionName: string): void;
+}
+
+
 interface LokiCollection<E> {
+    name: string;
+    data: E[];
     isDirty: boolean;
+
+    chain(): ResultSetLike<E>;
+
+    clear(): void;
+
+    find(): E[];
+    find(query: any): E[];
+
+    insert(doc: E): E;
+    insert(doc: E[]): E[];
+
+    mapReduce<T, U>(mapFunction: (value: E, index: number, array: E[]) => T, reduceFunction: (previousValue: U, currentValue: T, index: number, array: T[]) => U): U;
+
+    remove(doc: E | E[] | number | number[]): E;
+
+    update(doc: E): void;
 }
 
 
@@ -44,7 +74,7 @@ interface InMemDb {
 
     resetDataStore(): Q.IPromise<void>;
 
-    initializeDb(options: LokiConfigureOptions): void;
+    initializeDb(): void;
 
     setDataPersister(dataPersisterFactory: DataPersister.Factory): void;
 
@@ -90,7 +120,7 @@ interface InMemDb {
 
     removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    getCollection(collectionName: string, autoCreate?: boolean, settings?: LokiCollectionOptions): LokiCollection<any>;
+    getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
 
     clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
 

@@ -28,9 +28,10 @@ class DummyDataPersister implements DataPersister {
 
     // Persist in-memory database to disk
     // Removes tables from store that don't exist in in-memory db
-    persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<DataPersister.PersistResult> {
+    public persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<DataPersister.PersistResult> {
         return null;
     }
+
 
     // Restore in-memory database from persistent store
     // All in memory tables are dropped and re-added

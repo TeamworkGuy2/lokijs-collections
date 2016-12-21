@@ -1,5 +1,6 @@
 ﻿/// <reference path="../../definitions/chai/chai.d.ts" />
 /// <reference path="../../definitions/mocha/mocha.d.ts" />
+/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 import chai = require("chai");
 import Loki = require("lokijs");
 import Arrays = require("../../ts-mortar/utils/Arrays");
@@ -122,11 +123,30 @@ function rebuildDb() {
     var dbInst = new LokiDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if",
         metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(dataModelsMap, dataTypes),
         function createDb(dbName: string) {
-            return new Loki(dbName, {});
+            var lokiDb = new Loki(dbName, {});
+            return {
+                addCollection: (name, opts) => lokiDb.addCollection(name, opts),
+                getCollection: (name) => lokiDb.getCollection(name),
+                getName: () => lokiDb.getName(),
+                listCollections: () => lokiDb.collections,
+                removeCollection: (name) => lokiDb.removeCollection(name)
+            };
         },
         function createPersister(dbInst: InMemDb) {
             persister = new DummyDataPersister(() => dbInst.getCollections(), LokiDbImpl.cloneForInIf, null);
             return persister;
+        },
+        function createCollectionSettingsFunc(collectionName: string) {
+            var settings = {
+                asyncListeners: false // lokijs async listeners cause performance issues (2015-1)
+            };
+            return settings;
+        },
+        function modelKeysFunc(obj, coll, dataModel) {
+            var keys = Object.keys(obj);
+            Arrays.fastRemove(keys, "$loki");
+            Arrays.fastRemove(keys, "meta");
+            return keys;
         }
     );
     dbInst.initializeDb();

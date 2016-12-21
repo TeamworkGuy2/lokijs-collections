@@ -1,6 +1,4 @@
 "use strict";
-/// <reference path="../../definitions/q/Q.d.ts" />
-/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 var Q = require("q");
 var Arrays = require("../../ts-mortar/utils/Arrays");
 var Objects = require("../../ts-mortar/utils/Objects");
@@ -39,7 +37,7 @@ var ResultsetMock = (function () {
  */
 var LokiDbImpl = (function () {
     /**
-     * @param dbName the name of the in-memory lokijs database
+     * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
      * this only affects the underlying data persister created from teh 'dataPersisterFactory'
      * @param storeSettings settings used for the data persister
@@ -48,8 +46,9 @@ var LokiDbImpl = (function () {
      * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
      * @param dataPersisterFactory a factory for creating a data persister
+     * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
-    function LokiDbImpl(dbName, settings, storeSettings, cloneType, metaDataStorageCollectionName, reloadMetaData, modelDefinitions, databaseInitializer, dataPersisterFactory) {
+    function LokiDbImpl(dbName, settings, storeSettings, cloneType, metaDataStorageCollectionName, reloadMetaData, modelDefinitions, databaseInitializer, dataPersisterFactory, createCollectionSettingsFunc, modelKeysFunc) {
         this.dbName = dbName;
         this.dbInitializer = databaseInitializer;
         this.syncSettings = settings;
@@ -58,10 +57,15 @@ var LokiDbImpl = (function () {
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf : (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor : (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
+        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf :
+            (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf :
+                (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor :
+                    (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
+        this.getCreateCollectionSettings = createCollectionSettingsFunc;
+        this.getModelObjKeys = modelKeysFunc;
         this.dataPersisterFactory = dataPersisterFactory;
         this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
@@ -235,9 +239,7 @@ var LokiDbImpl = (function () {
             dstMetaData.addChangeItemsModified(resData.length);
         }
         // get obj props, except the lokijs specific ones
-        var updateKeys = Object.keys(obj);
-        Arrays.fastRemove(updateKeys, "$loki");
-        Arrays.fastRemove(updateKeys, "meta");
+        var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
         var updateKeysLen = updateKeys.length;
         for (var i = 0, size = resData.length; i < size; i++) {
             var doc = resData[i];
@@ -252,7 +254,6 @@ var LokiDbImpl = (function () {
     };
     LokiDbImpl.prototype.addOrUpdateWhere = function (collection, dataModel, dataModelFuncs, query, obj, noModify, dstMetaData) {
         var _this = this;
-        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
         query = this.modelKeys.validateQuery(collection.name, query, obj);
         var results = this._findMultiProp(this.find(collection, dataModel), query);
         var compoundDstMetaData = null;
@@ -263,6 +264,7 @@ var LokiDbImpl = (function () {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
+                var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
                 compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
             // get obj props, except the lokijs specific ones
@@ -275,7 +277,7 @@ var LokiDbImpl = (function () {
                 var doc = toUpdate[i];
                 // assign obj props -> doc
                 var idx = -1;
-                while (idx++ < updateKeysLen) {
+                while (++idx < updateKeysLen) {
                     var key = updateKeys[idx];
                     doc[key] = obj[key];
                 }
@@ -346,20 +348,18 @@ var LokiDbImpl = (function () {
     };
     // ======== Data Collection manipulation ========
     LokiDbImpl.prototype.getCollections = function () {
-        return this.db.collections;
+        return this.db.listCollections();
     };
-    LokiDbImpl.prototype.getCollection = function (collectionName, autoCreate, settings) {
-        if (settings === void 0) { settings = {}; }
-        autoCreate = true;
-        collectionName = collectionName;
+    LokiDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
+        if (autoCreate === void 0) { autoCreate = true; }
         var coll = this.db.getCollection(collectionName);
         if (!coll) {
             if (!autoCreate) {
                 return;
             }
             else {
-                settings = Objects.assign({ asyncListeners: false }, settings);
-                coll = this.db.addCollection(collectionName, settings); // async listeners cause performance issues (2015-1)
+                var settings = this.getCreateCollectionSettings(collectionName);
+                coll = this.db.addCollection(collectionName, settings);
                 coll.isDirty = true;
             }
         }

@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.15.0](N/A) - 2016-11-03
+### [0.16.0](N/A) - 2016-12-21
+#### Changed
+* Switched from Lokijs explicit import and type usage to new InMemDbProvider interface (moving away from Lokijs dependency toward generic in-mem DB API)
+* Removed LokiDbImpl.getCollection() 'settings' parameter, instead use LokiDbImpl 'createCollectionSettingsFunc' parameter
+* Removed unused LokiDbImpl.initializeDb() 'options' parameter
+* Added LokiDbImpl constructor parameters 'createCollectionSettingsFunc' and 'modelKeysFunc' to give more control over Lokijs specific implementation details
+* TypeScript 2.0 compatibility tweaks
+
+
+--------
+### [0.15.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/68ea086ce7f1ae03c9764eb50bfe3d719a9e366f) - 2016-11-03
 #### Added
 * LokiDbImpl() constructor 'reloadMetaData' flag and 'dbInitializer' function parameters
 * PrimaryKeyMaintainer() constructor 'reloadAll' flag parameter

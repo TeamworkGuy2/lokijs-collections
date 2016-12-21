@@ -1,7 +1,4 @@
-﻿/// <reference path="../../definitions/q/Q.d.ts" />
-/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
-import Q = require("q");
-import Loki = require("lokijs");
+﻿import Q = require("q");
 import Arrays = require("../../ts-mortar/utils/Arrays");
 import Objects = require("../../ts-mortar/utils/Objects");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
@@ -57,18 +54,20 @@ class LokiDbImpl implements InMemDb {
     private reloadMetaData: boolean;
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
-    private db: Loki;
+    private db: InMemDbProvider<any>;
     private dbName: string;
-    private dbInitializer: (dbName: string) => Loki;
+    private dbInitializer: (dbName: string) => InMemDbProvider<any>;
     private dataPersisterFactory: DataPersister.Factory;
     private dataPersister: DataPersister;
     private syncSettings: ReadWritePermission;
     private storeSettings: StorageFormatSettings;
+    private getCreateCollectionSettings: (collectionName: string) => any;
     private cloneFunc: InMemDbCloneFunc;
+    private getModelObjKeys: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => string[];
 
 
     /** 
-     * @param dbName the name of the in-memory lokijs database
+     * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
      * this only affects the underlying data persister created from teh 'dataPersisterFactory'
      * @param storeSettings settings used for the data persister
@@ -77,10 +76,13 @@ class LokiDbImpl implements InMemDb {
      * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
      * @param dataPersisterFactory a factory for creating a data persister
+     * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
     constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
             metaDataStorageCollectionName: string, reloadMetaData: boolean,
-            modelDefinitions: ModelDefinitions, databaseInitializer: (dbName: string) => Loki, dataPersisterFactory: (dbInst: InMemDb) => DataPersister) {
+            modelDefinitions: ModelDefinitions, databaseInitializer: (dbName: string) => InMemDbProvider<any>, dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
+            createCollectionSettingsFunc: <O>(collectionName: string) => O,
+            modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => string[]) {
         this.dbName = dbName;
         this.dbInitializer = databaseInitializer;
         this.syncSettings = settings;
@@ -89,10 +91,15 @@ class LokiDbImpl implements InMemDb {
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataStorageCollectionName = metaDataStorageCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf : (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf : (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor : (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
+        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf :
+            (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf :
+                (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor :
+                    (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
+        this.getCreateCollectionSettings = createCollectionSettingsFunc;
+        this.getModelObjKeys = modelKeysFunc;
 
         this.dataPersisterFactory = dataPersisterFactory;
         this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
@@ -329,9 +336,7 @@ class LokiDbImpl implements InMemDb {
         }
 
         // get obj props, except the lokijs specific ones
-        var updateKeys = Object.keys(obj);
-        Arrays.fastRemove(updateKeys, "$loki");
-        Arrays.fastRemove(updateKeys, "meta");
+        var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
         var updateKeysLen = updateKeys.length;
 
         for (var i = 0, size = resData.length; i < size; i++) {
@@ -349,9 +354,7 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
-
+    public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
         var results = this._findMultiProp(this.find(collection, dataModel), query);
@@ -365,6 +368,7 @@ class LokiDbImpl implements InMemDb {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
+                var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
                 compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
 
@@ -380,7 +384,7 @@ class LokiDbImpl implements InMemDb {
 
                 // assign obj props -> doc
                 var idx = -1;
-                while (idx++ < updateKeysLen) {
+                while (++idx < updateKeysLen) {
                     var key = updateKeys[idx];
                     doc[key] = obj[key];
                 }
@@ -467,21 +471,19 @@ class LokiDbImpl implements InMemDb {
     // ======== Data Collection manipulation ========
 
     public getCollections(): LokiCollection<any>[] {
-        return this.db.collections;
+        return this.db.listCollections();
     }
 
 
-    public getCollection(collectionName: string, autoCreate?: boolean, settings: LokiCollectionOptions = {}): LokiCollection<any> {
-        autoCreate = true;
-        collectionName = collectionName;
+    public getCollection(collectionName: string, autoCreate: boolean = true): LokiCollection<any> {
         var coll = this.db.getCollection(collectionName);
         if (!coll) {
             if (!autoCreate) {
                 return;
             }
             else {
-                settings = Objects.assign({ asyncListeners: false }, settings);
-                coll = this.db.addCollection(collectionName, settings); // async listeners cause performance issues (2015-1)
+                var settings = this.getCreateCollectionSettings(collectionName);
+                coll = this.db.addCollection(collectionName, settings);
                 coll.isDirty = true;
             }
         }
