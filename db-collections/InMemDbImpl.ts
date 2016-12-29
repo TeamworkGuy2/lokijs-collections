@@ -45,12 +45,12 @@ interface InMemDbCloneFunc {
 }
 
 
-/** An implementation of InMemDb that wraps a LokiJS database
+/** An InMemDb implementation that wraps a InMemDbProvider database
  */
-class LokiDbImpl implements InMemDb {
+class InMemDbImpl implements InMemDb {
     private primaryKeyMaintainer: PrimaryKeyMaintainer;
     private nonNullKeyMaintainer: NonNullKeyMaintainer;
-    private metaDataStorageCollectionName: string;
+    private metaDataCollectionName: string;
     private reloadMetaData: boolean;
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
@@ -66,20 +66,20 @@ class LokiDbImpl implements InMemDb {
     private getModelObjKeys: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => string[];
 
 
-    /** 
+    /**
      * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
      * this only affects the underlying data persister created from teh 'dataPersisterFactory'
      * @param storeSettings settings used for the data persister
      * @param cloneType the type of clone operation to use when copying elements
-     * @param metaDataStorageCollectionName the name of the collection to store collection meta-data in
+     * @param metaDataCollectionName the name of the collection to store collection meta-data in
      * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
      * @param dataPersisterFactory a factory for creating a data persister
      * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
     constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
-            metaDataStorageCollectionName: string, reloadMetaData: boolean,
+            metaDataCollectionName: string, reloadMetaData: boolean,
             modelDefinitions: ModelDefinitions, databaseInitializer: (dbName: string) => InMemDbProvider<any>, dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
             createCollectionSettingsFunc: <O>(collectionName: string) => O,
             modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => string[]) {
@@ -89,12 +89,12 @@ class LokiDbImpl implements InMemDb {
         this.storeSettings = storeSettings;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
-        this.metaDataStorageCollectionName = metaDataStorageCollectionName;
+        this.metaDataCollectionName = metaDataCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = cloneType === "for-in-if" ? LokiDbImpl.cloneForInIf :
-            (cloneType === "keys-for-if" ? LokiDbImpl.cloneKeysForIf :
-                (cloneType === "keys-excluding-for" ? LokiDbImpl.cloneKeysExcludingFor :
-                    (cloneType === "clone-delete" ? LokiDbImpl.cloneCloneDelete : null)));
+        this.cloneFunc = cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
+            (cloneType === "keys-for-if" ? InMemDbImpl.cloneKeysForIf :
+                (cloneType === "keys-excluding-for" ? InMemDbImpl.cloneKeysExcludingFor :
+                    (cloneType === "clone-delete" ? InMemDbImpl.cloneCloneDelete : null)));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
@@ -102,19 +102,7 @@ class LokiDbImpl implements InMemDb {
         this.getModelObjKeys = modelKeysFunc;
 
         this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
-    }
-
-
-    // ======== private static methods ========
-
-    private static createDefaultDataPersister(dbDataInst: LokiDbImpl, dataPersisterFactory: DataPersister.Factory): DataPersister {
-        dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
-            var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
-            var persistAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
-            return persistAdapter;
-        });
-        return dbDataInst.getDataPersister();
+        this.dataPersister = InMemDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
     }
 
 
@@ -122,7 +110,7 @@ class LokiDbImpl implements InMemDb {
 
     private getPrimaryKeyMaintainer() {
         if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataStorageCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
         }
         return this.primaryKeyMaintainer;
     }
@@ -155,7 +143,7 @@ class LokiDbImpl implements InMemDb {
     public resetDataStore(): Q.Promise<void> {
         var dfd = Q.defer<void>();
         this.db = null;
-        this.dataPersister = LokiDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
+        this.dataPersister = InMemDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
         dfd.resolve(null);
         return dfd.promise;
     }
@@ -368,14 +356,12 @@ class LokiDbImpl implements InMemDb {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
-                var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
+                var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => InMemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
                 compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
 
-            // get obj props, except the lokijs specific ones
-            var updateKeys = Object.keys(obj);
-            Arrays.fastRemove(updateKeys, "$loki");
-            Arrays.fastRemove(updateKeys, "meta");
+            // get obj props, except the implementation specific ones
+            var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
             var updateKeysLen = updateKeys.length;
 
             //update
@@ -418,7 +404,7 @@ class LokiDbImpl implements InMemDb {
 
 
     public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => LokiDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
+        var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => InMemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
         var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];
@@ -603,113 +589,17 @@ class LokiDbImpl implements InMemDb {
     }
 
 
-    public benchmarkClone<T>(objs: T[], loops: number, cloneDeep?: boolean | ((obj: any) => any), averagedLoops = 10): { items: number; loops: number; clone_delete: number; for_in_if: number; keys_for_if: number; keys_excluding_for: number; _res: any; } {
-        return LokiDbImpl.benchmarkClone(objs, loops, cloneDeep, averagedLoops);
-    }
+    // ======== private static methods ========
 
-
-    static benchmarkClone<T>(objs: T[], loops: number, cloneDeep?: boolean | ((obj: any) => any), averagedLoops = 10): { items: number; loops: number; clone_delete: number; for_in_if: number; keys_for_if: number; keys_excluding_for: number; _res: any; } {
-        var _res = [];
-        var warmupLoops = Math.max(Math.round(loops / 2), 2);
-        var items = objs.length;
-        // warmup
-        for (var i = 0; i < warmupLoops; i++) {
-            var resI = 0;
-            for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneForInIf(objs[ii], cloneDeep) !== null ? 1 : 0;
-            }
-            for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneKeysForIf(objs[ii], cloneDeep) !== null ? 1 : 0;
-            }
-            for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneKeysExcludingFor(objs[ii], cloneDeep) !== null ? 1 : 0;
-            }
-            for (var ii = 0; ii < items; ii++) {
-                resI += LokiDbImpl.cloneCloneDelete(objs[ii], cloneDeep) !== null ? 1 : 0;
-            }
-            _res.push(resI);
-        }
-
-        var resI = 0;
-
-        // test with timers
-        function for_in_if_func() {
-            var start = window.performance.now();
-            for (var i = 0; i < loops; i++) {
-                for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneForInIf(objs[ii], cloneDeep) !== null ? 1 : 0;
-                }
-            }
-            return window.performance.now() - start;
-        }
-
-        function keys_for_if_func() {
-            var start = window.performance.now();
-            for (var i = 0; i < loops; i++) {
-                for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneKeysForIf(objs[ii], cloneDeep) !== null ? 1 : 0;
-                }
-            }
-            return window.performance.now() - start;
-        }
-
-        function keys_excluding_for_func() {
-            var start = window.performance.now();
-            for (var i = 0; i < loops; i++) {
-                for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneKeysExcludingFor(objs[ii], cloneDeep) !== null ? 1 : 0;
-                }
-            }
-            return window.performance.now() - start;
-        }
-
-        function clone_delete_func() {
-            var start = window.performance.now();
-            for (var i = 0; i < loops; i++) {
-                for (var ii = 0; ii < items; ii++) {
-                    resI += LokiDbImpl.cloneCloneDelete(objs[ii], cloneDeep) !== null ? 1 : 0;
-                }
-            }
-            return window.performance.now() - start;
-        }
-
-        var tasksAndTimes = [
-            { totalTime: 0, func: clone_delete_func },
-            { totalTime: 0, func: for_in_if_func },
-            { totalTime: 0, func: keys_excluding_for_func },
-            { totalTime: 0, func: keys_for_if_func },
-        ];
-
-        for (var k = 0; k < averagedLoops; k++) {
-            tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
-            tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
-            tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
-            tasksAndTimes[3].totalTime += tasksAndTimes[3].func();
-
-            tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
-            tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
-            tasksAndTimes[3].totalTime += tasksAndTimes[3].func();
-            tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
-
-            tasksAndTimes[3].totalTime += tasksAndTimes[3].func();
-            tasksAndTimes[0].totalTime += tasksAndTimes[0].func();
-            tasksAndTimes[2].totalTime += tasksAndTimes[2].func();
-            tasksAndTimes[1].totalTime += tasksAndTimes[1].func();
-        }
-
-        _res.push(resI);
-
-        return {
-            items,
-            loops,
-            _res,
-            clone_delete: tasksAndTimes[0].totalTime / (averagedLoops * 3),
-            for_in_if: tasksAndTimes[1].totalTime / (averagedLoops * 3),
-            keys_excluding_for: tasksAndTimes[2].totalTime / (averagedLoops * 3),
-            keys_for_if: tasksAndTimes[3].totalTime / (averagedLoops * 3),
-        }
+    private static createDefaultDataPersister(dbDataInst: InMemDbImpl, dataPersisterFactory: DataPersister.Factory): DataPersister {
+        dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
+            var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
+            var persistAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
+            return persistAdapter;
+        });
+        return dbDataInst.getDataPersister();
     }
 
 }
 
-export = LokiDbImpl;
+export = InMemDbImpl;

@@ -15,10 +15,8 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * @param <O> the filter/query type, this is normally type {@code E} with all most or all properties optional
  */
 class DataCollection<E, O> implements _DataCollection<E, O> {
-    /** The underlying lokijs collection
-     * TODO readonly once TypeScript supports it, please DO NOT change this reference
-     */
-    public collection: LokiCollection<E>;
+    /** The underlying lokijs collection */
+    public readonly collection: LokiCollection<E>;
     private collectionName: string;
     private dbInst: InMemDb;
     //private addCb: (added: E | E[]) => void;

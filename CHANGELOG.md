@@ -4,7 +4,18 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.16.0](N/A) - 2016-12-21
+### [0.17.0](N/A) - 2016-12-29
+#### Changed
+* Renamed LokiDbImpl -> InMemDbImpl
+* Renamed LokiDbImplTest -> InMemDbImplTest
+* Some test case refactoring, new CloneBenchmarkTest and TestModels files
+
+#### Removed
+* InMemDbImpl.benchmarkClone() method moved to new CloneBenchmarkTest file
+
+
+--------
+### [0.16.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/12e2c99012407c85d07a42dabf1b4244c604b87e) - 2016-12-21
 #### Changed
 * Switched from Lokijs explicit import and type usage to new InMemDbProvider interface (moving away from Lokijs dependency toward generic in-mem DB API)
 * Removed LokiDbImpl.getCollection() 'settings' parameter, instead use LokiDbImpl 'createCollectionSettingsFunc' parameter
