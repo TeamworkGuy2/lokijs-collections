@@ -202,6 +202,7 @@ module ModelDefinitionsSet {
                 primaryKey: prop.server.primaryKey,
                 readOnly: prop.server.readOnly,
                 required: prop.server.required,
+                toLocal: prop.server.toLocal,
                 type: prop.server.type,
             },
             toLocal: prop.toLocal,
