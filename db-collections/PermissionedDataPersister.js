@@ -1,4 +1,5 @@
 "use strict";
+var Q = require("q");
 /** {@link DataPersister.Adapter} wrapper that checks permissions before reading/writing data
  * @author TeamworkGuy2
  */

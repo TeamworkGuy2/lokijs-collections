@@ -1,0 +1,13 @@
+﻿{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "jsx": "preserve",
+    "module": "commonjs",
+    "noEmitOnError": true,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    "removeComments": false,
+    "sourceMap": false,
+    "target": "es5"
+  }
+}

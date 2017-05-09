@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.18.1](N/A) - 2017-04-19
+### [0.18.2](N/A) - 2017-05-09
+#### Changed
+* Updated some documentation
+* Updated to TypeScript 2.3, added tsconfig.json, use @types/ definitions
+
+
+--------
+### [0.18.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/4bc77584275cdedba2be1844e9d96e4a2bc23ba7) - 2017-04-19
 #### Changed
 * ModelDefinitionsSet.cloneDtoPropertyTemplate() now includes 'server.toLocal'
 

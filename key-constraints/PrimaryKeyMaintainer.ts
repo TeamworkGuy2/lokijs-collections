@@ -1,7 +1,7 @@
 ﻿import CollectionMetaData = require("./CollectionMetaData");
 import DataCollection = require("../db-collections/DataCollection");
 
-/* PrimaryKeyMaintainer - helper for {@link DataCollection}
+/* PrimaryKeyMaintainer - helper for DataCollection
  * @author TeamworkGuy2
  */
 class PrimaryKeyMaintainer {
@@ -63,9 +63,9 @@ class PrimaryKeyMaintainer {
 
 
     /** Manage (add/track) unique IDs for objects added to data collections
-     * @param {string} collectionName: the collection name (lower underscore case)
-     * @param {any[]} docs: the list of objects being added to the 'collectionName' collection
-     * @param {boolean} addGeneratedKeys: true to generate unique IDs for properties that use
+     * @param collectionName: the collection name (lower underscore case)
+     * @param docs: the list of objects being added to the 'collectionName' collection
+     * @param addGeneratedKeys: true to generate unique IDs for properties that use
      * auto-generated keys, false to just track newly added items to ensure unique IDs are maintained
      */
     public manageKeys<T>(collectionName: string, docs: T[], addGeneratedKeys: boolean): void {
@@ -203,7 +203,7 @@ class PrimaryKeyMaintainer {
     }
 
 
-    /** creates an {@link DataCollection} if {@code dataColl} is null, otherwise returns {@code dataColl} unmodified */
+    /** creates an DataCollection if 'dataColl' is null, otherwise returns 'dataColl' unmodified */
     private static initMetaDataCollection(dataColl: DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel>,
             collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<any> | DtoAllFuncs<any, any>, dbDataInst: InMemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
         if (dataColl == null) {

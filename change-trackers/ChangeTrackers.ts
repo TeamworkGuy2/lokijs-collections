@@ -5,7 +5,7 @@
  */
 module ChangeTrackers {
 
-    /** A {@link CollectionChangeInfo} wrapper which simply adds to its existing 'added', 'modified', 'removed' values
+    /** A CollectionChangeInfo wrapper which simply adds to its existing 'added', 'modified', 'removed' values
      */
     export class CompoundCollectionChange implements Changes.CollectionChangeTracker, Changes.CollectionChange {
         private changeInfo: Changes.CollectionChange;
@@ -53,7 +53,7 @@ module ChangeTrackers {
 
 
 
-    /** Default {@link CollectionChangeInfo} implementation using a change history buffer with a maximum size
+    /** Default CollectionChangeInfo implementation using a change history buffer with a maximum size
      */
     export class ChangeTracker implements Changes.CollectionChangeTracker {
         private changeInfo: Changes.CollectionChange[] = [];

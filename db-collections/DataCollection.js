@@ -11,8 +11,8 @@ var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
  *
  * @author TeamworkGuy2
- * @param <E> the type of data stored in this data collection
- * @param <O> the filter/query type, this is normally type {@code E} with all most or all properties optional
+ * @template E the type of data stored in this data collection
+ * @template O the filter/query type, this is normally type {@code E} with all most or all properties optional
  */
 var DataCollection = (function () {
     /** Create a new document collection backed by a provided 'InMemDb' instance.

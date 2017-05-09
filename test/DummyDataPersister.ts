@@ -1,6 +1,5 @@
-﻿"use strict";
-
-/**
+﻿
+/** A DataPersister implementation for testing purposes
  * @author TeamworkGuy2
  * @since 2015-12-17
  */
@@ -14,10 +13,10 @@ class DummyDataPersister implements DataPersister {
 
     /**
      * @param getDataSources: returns a list of data collections that contain the data to persist/restore to
-     * @param saveItemTransformation: a conversion function to pass items from {@code #getDataSources()}
+     * @param saveItemTransformation: a conversion function to pass items from getDataSources()
      * through before persisting them
      * @param restoreItemTransformation: a conversion function to pass items through
-     * after restoring them and before storing them in {@code #getDataSources()}
+     * after restoring them and before storing them in getDataSources()
      */
     constructor(getDataSources: () => LokiCollection<any>[], getSaveItemTransformFunc?: (collName: string) => ((item) => any), getRestoreItemTransformFunc?: (collName: string) => ((item) => any)) {
         this.getDataSources = getDataSources;

@@ -6,10 +6,10 @@
 var DummyDataPersister = (function () {
     /**
      * @param getDataSources: returns a list of data collections that contain the data to persist/restore to
-     * @param saveItemTransformation: a conversion function to pass items from {@code #getDataSources()}
+     * @param saveItemTransformation: a conversion function to pass items from getDataSources()
      * through before persisting them
      * @param restoreItemTransformation: a conversion function to pass items through
-     * after restoring them and before storing them in {@code #getDataSources()}
+     * after restoring them and before storing them in getDataSources()
      */
     function DummyDataPersister(getDataSources, getSaveItemTransformFunc, getRestoreItemTransformFunc) {
         this.getDataSources = getDataSources;

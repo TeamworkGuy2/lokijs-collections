@@ -1,4 +1,4 @@
-﻿/// <reference path="../../definitions/q/Q.d.ts" />
+﻿/// <reference types="q" />
 /// <reference path="../../ts-event-handlers-lite/events.d.ts" />
 /// <reference path="../../ts-promises/ts-promises.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/ast-types.d.ts" />
@@ -60,11 +60,10 @@ interface StorageFormatSettings {
 
 /** An in-memory database interface, containing:
  * - data collections (i.e. tables)
+ * - data collection management, including clearing or deleting a data collection
  * - model definitions (i.e. table schemas/meta-data)
  * - a data persister, which manages saving/restoring the database from an outside persistent storage source
  * - functions for all the basic CRUD operations, such as find(), add(), update(), updateWhere(), remove(), and removeWhere()
- *
- *
  */
 interface InMemDb {
 
@@ -80,7 +79,7 @@ interface InMemDb {
 
 
     // ======== Add, Remove, Update Operations ========
-    /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
+    /** Query a collection, similar to find(), except that exactly one result is expected
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
@@ -161,8 +160,8 @@ interface ResultSetLike<E> {
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
  *
  * @author TeamworkGuy2
- * @param <E> the type of data stored in this collection
- * @param <O> the filter/query type, this is normally type 'E' with all properties optional
+ * @template E the type of data stored in this collection
+ * @template O the filter/query type, this is normally type 'E' with all properties optional
  */
 interface DataCollection<E, O> {
 
@@ -222,7 +221,7 @@ interface DataCollection<E, O> {
     find(query?: O): ResultSetLike<E>;
 
     /** Starts a chained filter operation and returns a search result set which can be further refined
-     * @param func: a javascript {@link Array#filter} style function that accepts an object
+     * @param func: a javascript Array.filter() style function that accepts an object
      * and returns a flag indicating whether the object is a match or not
      */
     where(func: (doc: E) => boolean): ResultSetLike<E>;
@@ -231,7 +230,7 @@ interface DataCollection<E, O> {
      */
     remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
-    /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
+    /** Query a collection, similar to find(), except that exactly one result is expected
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
@@ -243,7 +242,7 @@ interface DataCollection<E, O> {
      */
     updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
-    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in {@link #updateWhere()},
+    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection AND no collection actions
      * are applied to the added document, such as generating primary keys.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -251,7 +250,7 @@ interface DataCollection<E, O> {
      */
     addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
-    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in {@link #updateWhere()},
+    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
@@ -264,7 +263,7 @@ interface DataCollection<E, O> {
 
     /** Queries this collection based on the primary key of each of the input documents,
      * if one or more matches are found for a given document, then those matching documents are updated
-     * with the properties from 'obj' as defined in {@link #updateWhere()},
+     * with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found for a given doucment, then the document is added to this collection
      * AND no collection actions are applied to the added document, such as generating primary keys.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -274,7 +273,7 @@ interface DataCollection<E, O> {
 
     /** Queries this collection based on the primary key of each of the input document,
      * if one or more matches are found for a given document, then those matching documents are updated
-     * with the properties from 'obj' as defined in {@link #updateWhere()},
+     * with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the documents are added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
@@ -297,9 +296,9 @@ interface _DataCollection<E, O> extends DataCollection<E, O> { }
 
 /** A DataCollection containing syncable DTOs
  * @author TeamworkGuy2
- * @param <E> the type of data stored in this collection
- * @param <F> the filter/query type, this is normally type {@code E} with all properties optional
- * @param <S> the server data type stored in this collection
+ * @template E the type of data stored in this collection
+ * @template F the filter/query type, this is normally type 'E' with all properties optional
+ * @template S the server data type stored in this collection
  */
 interface DtoCollection<E, F, S> extends DataCollection<E, F> {
 
@@ -355,10 +354,9 @@ declare module DataPersister {
         /**
          * @param dbInst: the in-memory database that the persister pulls data from
          * @param getCollections: returns a list of data collections that contain the data to persist/restore to
-         * @param saveItemTransformation: a conversion function to pass items from {@code #getDataCollections()}
-         * through before persisting them
+         * @param saveItemTransformation: a conversion function to pass items from getDataCollections() through before persisting them
          * @param restoreItemTransformation: a conversion function to pass items through
-         * after restoring them and before storing them in {@code #getDataCollections()}
+         * after restoring them and before storing them in getDataCollections()
          */
         (dbInst: InMemDb, getCollections: () => LokiCollection<any>[],
             getSaveItemTransformFunc?: (collName: string) => ((item: any) => any),
@@ -416,7 +414,7 @@ interface DataCollectionModel<E> {
  */
 interface ModelDefinitions {
     /** Default data type attributes, these can be overridden by specifying custom attributes on individual model properties.
-     * For example, strings have a default value of 'null', you can change this to an empty string {@code ""} by adding a 'defaultValue: ""' attribute to a model property definition:
+     * For example, strings have a default value of 'null', you can change this to an empty string "" by adding a 'defaultValue: ""' attribute to a model property definition:
      * model: {
      *   properties: {
      *     userName: { type: "string", defaultValue: "", toService: "$var$ || \"\"" }
@@ -465,7 +463,7 @@ declare module ModelDefinitions {
 
 
 
-/** ModelKeys - helper for {@link ModelDefinitions}
+/** ModelKeys - helper for ModelDefinitions
  * For managing the primary and auto-generated keys from data models
  * @author TeamworkGuy2
  */

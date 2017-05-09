@@ -1,5 +1,5 @@
-﻿/// <reference path="../../definitions/chai/chai.d.ts" />
-/// <reference path="../../definitions/mocha/mocha.d.ts" />
+﻿/// <reference types="chai" />
+/// <reference types="mocha" />
 /// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 import chai = require("chai");
 import Loki = require("lokijs");

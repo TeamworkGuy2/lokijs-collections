@@ -8,7 +8,7 @@ import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer")
 import PermissionedDataPersister = require("./PermissionedDataPersister");
 
 
-/** A {@link ResultSetLike} implementation for an empty collection
+/** A ResultSetLike implementation for an empty collection
  * @author TeamworkGuy2
  */
 class ResultsetMock<E> implements ResultSetLike<E> {
@@ -205,7 +205,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    /** Query with multiple criteria
+    /** Query a result set against multiple criteria (AND logic)
      */
     private _findMultiProp<S>(resSet: ResultSetLike<S>, query: any, queryProps?: string[]): ResultSetLike<S> {
         var results = resSet;
@@ -303,8 +303,8 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
-     * @return {Object} a single object matching the query specified
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     public findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query) {

@@ -1,5 +1,6 @@
-﻿
-/** {@link DataPersister.Adapter} wrapper that checks permissions before reading/writing data
+﻿import Q = require("q");
+
+/** DataPersister wrapper that checks permissions before reading/writing data
  * @author TeamworkGuy2
  */
 class PermissionedDataPersisterAdapter implements DataPersister {
