@@ -3,11 +3,12 @@
   "compilerOptions": {
     "jsx": "preserve",
     "module": "commonjs",
-    "noEmitOnError": true,
+    "noEmitOnError": false,
     "noImplicitAny": false,
-    "noImplicitThis": false,
+    "noImplicitThis": true,
     "removeComments": false,
     "sourceMap": false,
+    "strictNullChecks": false,
     "target": "es5"
   }
 }

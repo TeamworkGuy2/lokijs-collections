@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.18.2](N/A) - 2017-05-09
+### [0.19.0](N/A) - 2017-05-19
+#### Changed
+* `DataCollection<E, O>` changed to `DataCollection<E, P>` - `O` represented an optional props version of `E`, `P` now represents the required primary key props of the `E` model and `Partial<E>` is used internally in place of `O`
+  * Improved type of 'query' parameters used by data(), find(), updateWhere(), and similar methods
+* Added missing types and tightened type requirements on various InMemDb and DataCollection methods
+* Added additional DataPersister methods to allow for more control of the underlying persistent data source
+
+
+--------
+### [0.18.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/f7d694069d7f183625b84a5a4a363834cbf51018) - 2017-05-09
 #### Changed
 * Updated some documentation
 * Updated to TypeScript 2.3, added tsconfig.json, use @types/ definitions

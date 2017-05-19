@@ -7,7 +7,7 @@ var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
 var PermissionedDataPersister = require("./PermissionedDataPersister");
-/** A {@link ResultSetLike} implementation for an empty collection
+/** A ResultSetLike implementation for an empty collection
  * @author TeamworkGuy2
  */
 var ResultsetMock = (function () {
@@ -141,7 +141,7 @@ var InMemDbImpl = (function () {
         }
         return max === 1 ? res[0] : res;
     };
-    /** Query with multiple criteria
+    /** Query a result set against multiple criteria (AND logic)
      */
     InMemDbImpl.prototype._findMultiProp = function (resSet, query, queryProps) {
         var results = resSet;
@@ -215,8 +215,8 @@ var InMemDbImpl = (function () {
         this.dataRemoved(collection, doc, null, dstMetaData);
         collection.remove(doc);
     };
-    /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
-     * @return {Object} a single object matching the query specified
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     InMemDbImpl.prototype.findOne = function (collection, dataModel, query) {

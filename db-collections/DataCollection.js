@@ -12,16 +12,16 @@ var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  *
  * @author TeamworkGuy2
  * @template E the type of data stored in this data collection
- * @template O the filter/query type, this is normally type {@code E} with all most or all properties optional
+ * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
  */
 var DataCollection = (function () {
     /** Create a new document collection backed by a provided 'InMemDb' instance.
-     * @param {string} collectionName: the name of this collection
+     * @param collectionName: the name of this collection
      * @param dataModel: the data model used to determine primary key constraints, object validity, syncing behavior, etc.
      * @param dataModelFuncs: functions used to manipulate the types of items stored in this collection,
      * currently contains a copy function for creating deep copies of objects stored in this collection
      * @param dbInst: the 'InMemDb' containing this collection's actual data
-     * @param {boolean} trackChanges: flag to initialize an event handler and change tracker for this collection or not.
+     * @param trackChanges: flag to initialize an event handler and change tracker for this collection or not.
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
@@ -37,14 +37,14 @@ var DataCollection = (function () {
         }
     }
     /** Setup the event handler for this collection.
-     * NOTE: Must call this before calling {@link #getCollectionEventHandler()}.
+     * NOTE: Must call this before calling getCollectionEventHandler().
      */
     DataCollection.prototype.initializeEventHandler = function () {
         this.changes = new ChangeTrackers.ChangeTracker(16);
         this.eventHandler = new EventListenerList();
     };
     /** Deregister event listeners and destroy the event handler for this collection.
-     * NOTE: After calling this method {@link #getCollectionEventHandler()} will return null
+     * NOTE: After calling this method getCollectionEventHandler() will return null
      */
     DataCollection.prototype.destroyEventHandler = function () {
         if (this.changes) {
@@ -74,7 +74,7 @@ var DataCollection = (function () {
         return this.dataModelFuncs;
     };
     /**
-     * @return {string} the name of this collection of data models
+     * @return the name of this collection of data models
      */
     DataCollection.prototype.getName = function () {
         return this.collectionName;
@@ -157,12 +157,12 @@ var DataCollection = (function () {
         return res;
     };
     /** Performs a single search operation and returns an array of results
-     * @param {Object} query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @return {E[]} of objects
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @return array of objects matching the query
      */
     DataCollection.prototype.data = function (query) {
         var queryProps = query ? Object.keys(query) : null;
-        if (queryProps && queryProps.length === 1) {
+        if (queryProps != null && queryProps.length === 1) {
             return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
         }
         return this.dbInst.find(this.collection, this.dataModel, query, queryProps).data();
@@ -173,19 +173,19 @@ var DataCollection = (function () {
     DataCollection.prototype.find = function (query) {
         return this.dbInst.find(this.collection, this.dataModel, query);
     };
-    /** Starts a chained filter operation and returns a search result set which can be further refined
-     * @param func: a javascript {@link Array#filter} style function that accepts an object
-     * and returns a flag indicating whether the object is a match or not
-     */
-    DataCollection.prototype.where = function (func) {
-        return this.dbInst.find(this.collection, this.dataModel).where(func);
-    };
-    /** Query a collection, similar to {@link #find()}, except that exactly one result is expected
-     * @return {Object} a single object matching the query specified
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
     DataCollection.prototype.findOne = function (query) {
         return this.dbInst.findOne(this.collection, this.dataModel, query);
+    };
+    /** Starts a chained filter operation and returns a search result set which can be further refined
+     * @param func: a javascript Array.filter() style function that accepts an object
+     * and returns a flag indicating whether the object is a match or not
+     */
+    DataCollection.prototype.where = function (func) {
+        return this.dbInst.find(this.collection, this.dataModel).where(func);
     };
     /** Update documents matching a query with properties from a provided update object
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -200,7 +200,7 @@ var DataCollection = (function () {
         this.collChange(change, dstResultInfo);
         return res;
     };
-    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in {@link #updateWhere()},
+    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection AND no collection actions
      * are applied to the added document, such as generating primary keys.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -215,7 +215,7 @@ var DataCollection = (function () {
         this.collChange(change, dstResultInfo);
         return res;
     };
-    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in {@link #updateWhere()},
+    /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
@@ -231,7 +231,7 @@ var DataCollection = (function () {
     };
     /** Queries this collection based on the primary key of each of the input documents,
      * if one or more matches are found for a given document, then those matching documents are updated
-     * with the properties from 'obj' as defined in {@link #updateWhere()},
+     * with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found for a given doucment, then the document is added to this collection
      * AND no collection actions are applied to the added document, such as generating primary keys.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -242,7 +242,7 @@ var DataCollection = (function () {
     };
     /** Queries this collection based on the primary key of each of the input document,
      * if one or more matches are found for a given document, then those matching documents are updated
-     * with the properties from 'obj' as defined in {@link #updateWhere()},
+     * with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the documents are added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query

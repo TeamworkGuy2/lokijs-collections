@@ -14,7 +14,7 @@ import PermissionedDataPersister = require("./PermissionedDataPersister");
 class ResultsetMock<E> implements ResultSetLike<E> {
 
     data() {
-        return [];
+        return <any[]>[];
     }
 
     find() {
@@ -63,7 +63,7 @@ class InMemDbImpl implements InMemDb {
     private storeSettings: StorageFormatSettings;
     private getCreateCollectionSettings: (collectionName: string) => any;
     private cloneFunc: InMemDbCloneFunc;
-    private getModelObjKeys: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => string[];
+    private getModelObjKeys: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[];
 
 
     /**
@@ -82,7 +82,7 @@ class InMemDbImpl implements InMemDb {
             metaDataCollectionName: string, reloadMetaData: boolean,
             modelDefinitions: ModelDefinitions, databaseInitializer: (dbName: string) => InMemDbProvider<any>, dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
             createCollectionSettingsFunc: <O>(collectionName: string) => O,
-            modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => string[]) {
+            modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]) {
         this.dbName = dbName;
         this.dbInitializer = databaseInitializer;
         this.syncSettings = settings;
@@ -187,12 +187,12 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    private _findOneOrNull<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query) {
+    private _findOneOrNull<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any) {
         return this._findNResults(collection, dataModel, 0, 1, query);
     }
 
 
-    private _findNResults<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, min: number, max: number, query): any | any[] {
+    private _findNResults<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, min: number, max: number, query: any): any | any[] {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
@@ -211,7 +211,7 @@ class InMemDbImpl implements InMemDb {
         var results = resSet;
         if (!queryProps) {
             for (var prop in query) {
-                var localQuery = {};
+                var localQuery: StringMap<any> = {};
                 localQuery[prop] = query[prop];
                 results = results.find(localQuery);
             }
@@ -219,7 +219,7 @@ class InMemDbImpl implements InMemDb {
         else {
             for (var i = 0, size = queryProps.length; i < size; i++) {
                 var propI = queryProps[i];
-                var localQuery = {};
+                var localQuery: StringMap<any> = {};
                 localQuery[propI] = query[propI];
                 results = results.find(localQuery);
             }
@@ -245,17 +245,6 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
-        if (dstMetaData) {
-            dstMetaData.addChangeItemsModified(doc);
-        }
-
-        collection.isDirty = true;
-        this.dataModified(collection, doc, null, dstMetaData);
-        return collection.update(doc);
-    }
-
-
     public find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T> {
         // Check for empty collection
         // TODO remove, users should never request non-existent collections..?
@@ -268,6 +257,15 @@ class InMemDbImpl implements InMemDb {
 
         var results = this._findMultiProp(collection.chain(), query, queryProps);
         return results;
+    }
+
+
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    public findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any) {
+        return this._findNResults(collection, dataModel, 1, 1, query);
     }
 
 
@@ -289,7 +287,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (!collection) {
             return;
         }
@@ -303,16 +301,18 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    public findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query) {
-        return this._findNResults(collection, dataModel, 1, 1, query);
+    public update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        if (dstMetaData) {
+            dstMetaData.addChangeItemsModified(doc);
+        }
+
+        collection.isDirty = true;
+        this.dataModified(collection, doc, null, dstMetaData);
+        return collection.update(<T>doc);
     }
 
 
-    public updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query, obj, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
 
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
@@ -381,7 +381,7 @@ class InMemDbImpl implements InMemDb {
         else {
             // assign query props -> obj
             // This ensures that search keys information is present before inserting
-            var queryKeys = Object.keys(query);
+            var queryKeys = <(keyof T)[]>Object.keys(query);
             var idx = -1;
             var len = queryKeys.length;
             while (idx++ < len) {
@@ -394,7 +394,7 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void {
         var docs = this.find(collection, dataModel, query).data();
         for (var i = docs.length - 1; i > -1; i--) {
             var doc = docs[i];
@@ -403,20 +403,20 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => InMemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
         var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];
-        for (var ii = 0, sizeI = existingData.length; ii < sizeI; ii++) {
-            var prop = existingData[ii][keyName];
+        for (var i = 0, size = existingData.length; i < size; i++) {
+            var prop = existingData[i][keyName];
             existingDataKeys.push(prop);
         }
 
         var toAdd: T[] = [];
         var toUpdate: T[] = [];
-        for (var i = 0, size = updatesArray.length; i < size; i++) {
-            var update = updatesArray[i];
+        for (var j = 0, sz = updatesArray.length; j < sz; j++) {
+            var update = updatesArray[j];
             var idx = existingDataKeys.indexOf(update[keyName]);
             if (idx === -1) {
                 toAdd.push(cloneFunc(update));
@@ -440,7 +440,7 @@ class InMemDbImpl implements InMemDb {
 
         for (var i = 0, size = toUpdate.length; i < size; i++) {
             var item = toUpdate[i];
-            var query = {};
+            var query: any = {};
             query[keyName] = item[keyName];
             this.updateWhere(collection, dataModel, query, item);
         }
@@ -448,8 +448,8 @@ class InMemDbImpl implements InMemDb {
 
 
     // Array-like
-    public mapReduce<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: any[]) => any,
-            reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any) {
+    public mapReduce<T, U, R>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: T[]) => U,
+            reduce: (previousValue: R, currentValue: U, currentIndex: number, array: U[]) => R): R {
         return collection.mapReduce(map, reduce);
     }
 
@@ -508,17 +508,17 @@ class InMemDbImpl implements InMemDb {
 
 
     // ======== event loggers ========
-    private dataAdded(coll: LokiCollection<any>, newDoc, query, dstMetaData: Changes.CollectionChangeTracker) {
+    private dataAdded(coll: LokiCollection<any>, newDocs: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker) {
         // events not yet implemented
     }
 
 
-    private dataModified(coll: LokiCollection<any>, changeDoc, query, dstMetaData: Changes.CollectionChangeTracker) {
+    private dataModified(coll: LokiCollection<any>, changeDoc: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker) {
         // events not yet implemented
     }
 
 
-    private dataRemoved(coll: LokiCollection<any>, removedDoc, query, dstMetaData: Changes.CollectionChangeTracker) {
+    private dataRemoved(coll: LokiCollection<any>, removedDoc: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker) {
         // events not yet implemented
     }
 
@@ -532,7 +532,7 @@ class InMemDbImpl implements InMemDb {
     static cloneForInIf(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
 
-        var copy = {};
+        var copy: any = {};
         for (var key in obj) {
             if (key !== "$loki" && key !== "meta") {
                 copy[key] = cloneFunc(obj[key]);
@@ -545,7 +545,7 @@ class InMemDbImpl implements InMemDb {
     static cloneKeysForIf(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
 
-        var copy = {};
+        var copy: any = {};
         var keys = Object.keys(obj);
         for (var i = 0, size = keys.length; i < size; i++) {
             var key = keys[i];
@@ -560,7 +560,7 @@ class InMemDbImpl implements InMemDb {
     static cloneKeysExcludingFor(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
 
-        var copy = {};
+        var copy: any = {};
         var keys = Object.keys(obj);
         Arrays.fastRemove(keys, "$loki");
         Arrays.fastRemove(keys, "meta");

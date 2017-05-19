@@ -1,5 +1,5 @@
 "use strict";
-/**
+/** A DataPersister implementation for testing purposes
  * @author TeamworkGuy2
  * @since 2015-12-17
  */
@@ -16,16 +16,36 @@ var DummyDataPersister = (function () {
         this.getItemSaveConverter = getSaveItemTransformFunc;
         this.getItemLoadConverter = getRestoreItemTransformFunc;
     }
-    // Persist in-memory database to disk
-    // Removes tables from store that don't exist in in-memory db
-    DummyDataPersister.prototype.persist = function (options) {
+    /** Get a list of collections in this data persister */
+    DummyDataPersister.prototype.getCollectionNames = function () {
         return null;
     };
-    // Restore in-memory database from persistent store
-    // All in memory tables are dropped and re-added
-    DummyDataPersister.prototype.restore = function (options) {
+    /** Save this in-memory database to some form of persistent storage
+     * Removes tables from store that don't exist in in-memory db
+     */
+    DummyDataPersister.prototype.persist = function (defaultOptions, getCollectionSpecificOptions) {
         return null;
     };
+    /** Restore in-memory database from persistent store
+     * All in memory tables are dropped and re-added
+     */
+    DummyDataPersister.prototype.restore = function (defaultOptions, getCollectionSpecificOptions) {
+        return null;
+    };
+    /** Get all data from a specific collection */
+    DummyDataPersister.prototype.getCollectionRecords = function (collectionName, options) {
+        return null;
+    };
+    /** Add data to a specific collection */
+    DummyDataPersister.prototype.addCollectionRecords = function (collectionName, options, records, removeExisting) {
+        return null;
+    };
+    /** Remove all data from a specific collection */
+    DummyDataPersister.prototype.clearCollections = function (collectionNames) {
+        return null;
+    };
+    /** Delete all data related this database from persistent storage
+     */
     DummyDataPersister.prototype.clearPersistentDb = function () {
         throw new Error("DummyDataPersister.clearPersistenceDb() not yet implemented");
     };

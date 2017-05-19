@@ -39,7 +39,7 @@ interface LokiCollection<E> {
     insert(doc: E): E;
     insert(doc: E[]): E[];
 
-    mapReduce<T, U>(mapFunction: (value: E, index: number, array: E[]) => T, reduceFunction: (previousValue: U, currentValue: T, index: number, array: T[]) => U): U;
+    mapReduce<T, U>(mapFunc: (value: E, index: number, array: E[]) => T, reduceFunc: (previousValue: U, currentValue: T, index: number, array: T[]) => U): U;
 
     remove(doc: E | E[] | number | number[]): E;
 
@@ -83,33 +83,33 @@ interface InMemDb {
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any);
+    findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any): T;
 
     find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T>;
 
     findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): T[];
 
-    add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: any, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
+    add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T;
 
-    addAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker);
+    addAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[];
 
     // the number of items added and the number modified
-    addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: Partial<T>, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: string, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: Partial<T>[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void;
 
-    update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: any, dstMetaData?: Changes.CollectionChangeTracker);
+    update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: Partial<T> | Partial<T>[], dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // the number of items modified
-    updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: any, dstMetaData?: Changes.CollectionChangeTracker): void;
+    updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     // Array-like
-    mapReduce<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: T[]) => any,
-        reduce: (previousValue, currentValue, currentIndex: number, array: any[]) => any);
+    mapReduce<T, U, R>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: T[]) => U,
+        reduce: (previousValue: R, currentValue: U, currentIndex: number, array: U[]) => R): R;
 
 
     // ======== Collection manipulation ========
@@ -121,7 +121,7 @@ interface InMemDb {
 
     getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
 
-    clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker);
+    clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
     removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
@@ -137,17 +137,23 @@ interface ResultSetLike<E> {
 
     data(): E[];
 
-    find(query?, firstOnly?): ResultSetLike<E>;
+    find(query?: any, firstOnly?: boolean): ResultSetLike<E>;
 
     offset(index: number): ResultSetLike<E>;
 
     limit(qty: number): ResultSetLike<E>;
 
-    simplesort(propname, isdesc?: boolean): ResultSetLike<E>;
+    simplesort(propname: string, isdesc?: boolean): ResultSetLike<E>;
 
     where(func: (doc: E) => boolean): ResultSetLike<E>;
 
 }
+
+
+
+
+/** A lokijs MongoDB style query based on a data model */
+type Query<E> = Partial<E> | { [K in keyof E]?: { [Y in keyof LokiOps]: any } };
 
 
 
@@ -161,9 +167,9 @@ interface ResultSetLike<E> {
  *
  * @author TeamworkGuy2
  * @template E the type of data stored in this collection
- * @template O the filter/query type, this is normally type 'E' with all properties optional
+ * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
  */
-interface DataCollection<E, O> {
+interface DataCollection<E, P> {
 
     initializeEventHandler(): void;
 
@@ -192,12 +198,12 @@ interface DataCollection<E, O> {
 
     /** Add multiple documents to this collection
      */
-    addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): E[];
 
     /** Add multiple documents to this collection AND do not run any collection actions on the documents,
      * such as generating primary keys
      */
-    addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): E[];
 
     /** Mark an existing document in this collection modified.
      * The document specified must already exist in the collection
@@ -213,12 +219,18 @@ interface DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return of objects
      */
-    data(query?: O): E[];
+    data(query?: Query<E>): E[];
 
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
-    find(query?: O): ResultSetLike<E>;
+    find(query?: Query<E>): ResultSetLike<E>;
+
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    findOne(query: Query<E>): E;
 
     /** Starts a chained filter operation and returns a search result set which can be further refined
      * @param func: a javascript Array.filter() style function that accepts an object
@@ -230,17 +242,11 @@ interface DataCollection<E, O> {
      */
     remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    findOne(query: O): E;
-
     /** Update documents matching a query with properties from a provided update object
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    updateWhere(query: Query<E>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection AND no collection actions
@@ -248,18 +254,18 @@ interface DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & P, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhere(query: Query<E>, obj: Partial<E> & P, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Remove documents from this collection that match a given query
      */
-    removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    removeWhere(query: Query<E>, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection based on the primary key of each of the input documents,
      * if one or more matches are found for a given document, then those matching documents are updated
@@ -269,7 +275,7 @@ interface DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAllNoModify(updatesArray: (Partial<E> & P)[], dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection based on the primary key of each of the input document,
      * if one or more matches are found for a given document, then those matching documents are updated
@@ -278,7 +284,7 @@ interface DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAll(updatesArray: (Partial<E> & P)[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Remove all documents from this collection
      */
@@ -289,7 +295,7 @@ interface DataCollection<E, O> {
     deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
 }
 // Work around for DataCollection.ts containing a class named 'DataCollection' and trying to implement this interface
-interface _DataCollection<E, O> extends DataCollection<E, O> { }
+interface _DataCollection<E, P> extends DataCollection<E, P> { }
 
 
 
@@ -297,10 +303,10 @@ interface _DataCollection<E, O> extends DataCollection<E, O> { }
 /** A DataCollection containing syncable DTOs
  * @author TeamworkGuy2
  * @template E the type of data stored in this collection
- * @template F the filter/query type, this is normally type 'E' with all properties optional
+ * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
  * @template S the server data type stored in this collection
  */
-interface DtoCollection<E, F, S> extends DataCollection<E, F> {
+interface DtoCollection<E, P, S> extends DataCollection<E, P> {
 
     getDataModelFuncs(): DtoAllFuncs<E, S>;
 }
@@ -314,15 +320,27 @@ interface DtoCollection<E, F, S> extends DataCollection<E, F> {
  */
 interface DataPersister {
 
+    /** Get a list of collections in this data persister */
+    getCollectionNames(): Q.Promise<string[]>;
+
     /** Save this in-memory database to some form of persistent storage
      * Removes tables from store that don't exist in in-memory db
      */
-    persist(options?: { maxObjectsPerChunk?: number; compress?: boolean; }): Q.Promise<DataPersister.PersistResult>;
+    persist(defaultOptions?: DataPersister.WriteOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.WriteOptions)): Q.Promise<DataPersister.PersistResult>;
 
     /** Restore in-memory database from persistent store
      * All in memory tables are dropped and re-added
      */
-    restore(options?: { decompress?: boolean; }): Q.Promise<DataPersister.RestoreResult>;
+    restore(defaultOptions?: DataPersister.ReadOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.ReadOptions)): Q.Promise<DataPersister.RestoreResult>;
+
+    /** Get all data from a specific collection */
+    getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): Q.Promise<any[]>;
+
+    /** Add data to a specific collection */
+    addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<{ size: number; dataSizeBytes: number; }>;
+
+    /** Remove all data from a specific collection */
+    clearCollections(collectionNames: string[]): Q.Promise<void>;
 
     /** Delete all data related this database from persistent storage
      */
@@ -347,6 +365,17 @@ declare module DataPersister {
 
 
     export interface RestoreResult extends CollectionData {
+    }
+
+
+    export interface ReadOptions {
+        decompress?: boolean;
+    }
+
+
+    export interface WriteOptions {
+        maxObjectsPerChunk?: number;
+        compress?: boolean;
     }
 
 
@@ -474,16 +503,16 @@ interface ModelKeys {
     /** add missing IDs that should be auto-generated
      * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
-    addGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc): void;
+    addGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc: any): void;
 
     /** track auto-generated IDs
      * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
      */
-    trackGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc): void;
+    trackGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc: any): void;
 
     /** Given a query object, check its validity based on these constraints
      */
-    validateQuery(collectionName: string, query, obj): any;
+    validateQuery(collectionName: string, query: any, obj: any): any;
 
 
     /** Constrains the value of a field

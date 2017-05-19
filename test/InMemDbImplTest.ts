@@ -13,7 +13,12 @@ import M = require("./TestModels");
 
 var asr = chai.assert;
 
-var global: { dbInst: InMemDbImpl; collA: DataCollection<M.MdA, M.MdAOpt>; collB: DataCollection<M.MdB, M.MdBOpt>; getMetaDataCollection: () => LokiCollection<any> };
+var global: {
+    dbInst: InMemDbImpl;
+    collA: DataCollection<M.MdA, M.PkA>;
+    collB: DataCollection<M.MdB, M.PkB>;
+    getMetaDataCollection: () => LokiCollection<any>
+};
 
 var now = new Date();
 
@@ -61,14 +66,13 @@ function rebuildDb() {
 
     global = {
         dbInst: dbInst,
-        collA: new DataCollection<M.MdA, M.MdAOpt>("coll_a", modelA, modelFuncsA, dbInst),
-        collB: new DataCollection<M.MdB, M.MdBOpt>("coll_b", modelB, modelFuncsB, dbInst),
+        collA: new DataCollection<M.MdA, M.PkA>("coll_a", modelA, modelFuncsA, dbInst),
+        collB: new DataCollection<M.MdB, M.PkB>("coll_b", modelB, modelFuncsB, dbInst),
         getMetaDataCollection: () => dbInst.getCollection(metaDataCollName, false)
     };
 
     return global;
 }
-
 
 
 suite("InMemDbImpl", function LokiDbImplTest() {

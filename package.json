@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.18.2",
+  "version": "0.19.0",
   "description": "TypeScript enhanced collections for [LokiJS] (https://github.com/techfort/LokiJS) with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
   "dependencies": {
@@ -17,7 +17,7 @@
     "@types/q": "~1.0.0",
     "lokijs": "git://github.com/techfort/LokiJS.git#daeceff0ac3e25e977e9298a2e6da5996683aa59 -g",
     "chai": "~3.5.0",
-    "mocha": "~2.5.0"
+    "mocha": "~3.4.1"
   },
   "scripts": {
     "test": "mocha -u tdd"

@@ -12,9 +12,9 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  *
  * @author TeamworkGuy2
  * @template E the type of data stored in this data collection
- * @template O the filter/query type, this is normally type 'E' with all most or all properties optional
+ * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
  */
-class DataCollection<E, O> implements _DataCollection<E, O> {
+class DataCollection<E, P> implements _DataCollection<E, P> {
     /** The underlying lokijs collection */
     public readonly collection: LokiCollection<E>;
     private collectionName: string;
@@ -163,7 +163,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
 
     /** Add multiple documents to this collection
      */
-    public addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): E[] {
         return this._addAll(docs, false, dstResultInfo);
     }
 
@@ -171,7 +171,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
     /** Add multiple documents to this collection AND do not run any collection actions on the documents,
      * such as generating primary keys
      */
-    public addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): E[] {
         return this._addAll(docs, true, dstResultInfo);
     }
 
@@ -210,9 +210,9 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return array of objects matching the query
      */
-    public data(query?: O): E[] {
+    public data(query?: Query<E>): E[] {
         var queryProps = query ? Object.keys(query) : null;
-        if (queryProps && queryProps.length === 1) {
+        if (queryProps != null && queryProps.length === 1) {
             return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
         }
         return this.dbInst.find(this.collection, this.dataModel, query, queryProps).data();
@@ -222,8 +222,17 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
-    public find(query?: O): ResultSetLike<E> {
+    public find(query?: Query<E>): ResultSetLike<E> {
         return this.dbInst.find(this.collection, this.dataModel, query);
+    }
+
+
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    public findOne(query: Query<E>): E {
+        return this.dbInst.findOne(this.collection, this.dataModel, query);
     }
 
 
@@ -236,20 +245,11 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
     }
 
 
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    public findOne(query: O): E {
-        return this.dbInst.findOne(this.collection, this.dataModel, query);
-    }
-
-
     /** Update documents matching a query with properties from a provided update object
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public updateWhere(query: O, obj: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public updateWhere(query: Query<E>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -267,7 +267,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhereNoModify(query: O, obj: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & P, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -284,7 +284,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhere(query: O, obj: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere(query: Query<E>, obj: Partial<E> & P, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -304,7 +304,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateAllNoModify(updatesArray: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAllNoModify(updatesArray: (Partial<E> & P)[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this.addOrUpdateAll(updatesArray, true, dstResultInfo);
     }
 
@@ -316,7 +316,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateAll(updatesArray: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll(updatesArray: (Partial<E> & P)[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (updatesArray == null || updatesArray.length === 0) { return; }
         var keyNames = this.dataModel.primaryKeys;
 
@@ -349,7 +349,7 @@ class DataCollection<E, O> implements _DataCollection<E, O> {
 
     /** Remove documents from this collection that match a given query
      */
-    public removeWhere(query: O, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public removeWhere(query: Query<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
         var res = this.dbInst.removeWhere(this.collection, this.dataModel, query, change);

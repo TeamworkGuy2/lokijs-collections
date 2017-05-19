@@ -9,10 +9,8 @@ module TestModels {
         styles: string[];
     }
 
-    export interface MdAOpt {
-        id?: number;
-        name?: string;
-        styles?: string[];
+    export interface PkA {
+        id: number;
     }
 
     export interface MdB {
@@ -22,11 +20,8 @@ module TestModels {
         timestamp: Date;
     }
 
-    export interface MdBOpt {
-        userId?: string;
-        token?: string;
-        note?: string;
-        timestamp?: Date;
+    export interface PkB {
+        userId: string;
     }
 
 

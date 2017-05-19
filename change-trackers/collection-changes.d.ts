@@ -8,16 +8,16 @@ declare module Changes {
     export interface CollectionChangeTracker {
 
         /** Inform this change tracker that the following items have been added */
-        addChangeItemsAdded(items: any | any[]);
+        addChangeItemsAdded(items: any | any[]): void;
 
         /** Inform this change tracker that the following items have been modified */
-        addChangeItemsModified(items: any | any[]);
+        addChangeItemsModified(items: any | any[]): void;
 
         /** Inform this change tracker that the following items have been removed */
-        addChangeItemsRemoved(items: any | any[]);
+        addChangeItemsRemoved(items: any | any[]): void;
 
         /** Inform this change tracker that the following change event has occured */
-        addChange(change: CollectionChange);
+        addChange(change: CollectionChange): void;
     }
 
 
