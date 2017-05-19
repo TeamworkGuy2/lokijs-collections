@@ -1,4 +1,5 @@
 ﻿/// <reference types="q" />
+/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 /// <reference path="../../ts-event-handlers-lite/events.d.ts" />
 /// <reference path="../../ts-promises/ts-promises.d.ts" />
 /// <reference path="../../ts-code-generator/code-types/ast-types.d.ts" />
@@ -153,7 +154,7 @@ interface ResultSetLike<E> {
 
 
 /** A lokijs MongoDB style query based on a data model */
-type Query<E> = Partial<E> | { [K in keyof E]?: { [Y in keyof LokiOps]: any } };
+type Query<E> = Partial<E> | { [K in keyof E]?: { [Y in keyof LokiOps]?: any } };
 
 
 
@@ -167,9 +168,9 @@ type Query<E> = Partial<E> | { [K in keyof E]?: { [Y in keyof LokiOps]: any } };
  *
  * @author TeamworkGuy2
  * @template E the type of data stored in this collection
- * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
+ * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
  */
-interface DataCollection<E, P> {
+interface DataCollection<E extends K, K> {
 
     initializeEventHandler(): void;
 
@@ -254,14 +255,14 @@ interface DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & P, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhere(query: Query<E>, obj: Partial<E> & P, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhere(query: Query<E>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Remove documents from this collection that match a given query
      */
@@ -275,7 +276,7 @@ interface DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAllNoModify(updatesArray: (Partial<E> & P)[], dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAllNoModify(updatesArray: (Partial<E> & K)[], dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection based on the primary key of each of the input document,
      * if one or more matches are found for a given document, then those matching documents are updated
@@ -284,7 +285,7 @@ interface DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateAll(updatesArray: (Partial<E> & P)[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateAll(updatesArray: (Partial<E> & K)[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Remove all documents from this collection
      */
@@ -295,7 +296,7 @@ interface DataCollection<E, P> {
     deleteCollection(dstResultInfo?: Changes.CollectionChangeTracker): void;
 }
 // Work around for DataCollection.ts containing a class named 'DataCollection' and trying to implement this interface
-interface _DataCollection<E, P> extends DataCollection<E, P> { }
+interface _DataCollection<E extends K, K> extends DataCollection<E, K> { }
 
 
 
@@ -303,10 +304,10 @@ interface _DataCollection<E, P> extends DataCollection<E, P> { }
 /** A DataCollection containing syncable DTOs
  * @author TeamworkGuy2
  * @template E the type of data stored in this collection
- * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
+ * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
  * @template S the server data type stored in this collection
  */
-interface DtoCollection<E, P, S> extends DataCollection<E, P> {
+interface DtoCollection<E extends K, K, S> extends DataCollection<E, K> {
 
     getDataModelFuncs(): DtoAllFuncs<E, S>;
 }

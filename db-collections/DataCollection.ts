@@ -12,9 +12,9 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  *
  * @author TeamworkGuy2
  * @template E the type of data stored in this data collection
- * @template P the primary keys/required fields, this is normally type 'E' with all but one or two properties optional
+ * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
  */
-class DataCollection<E, P> implements _DataCollection<E, P> {
+class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     /** The underlying lokijs collection */
     public readonly collection: LokiCollection<E>;
     private collectionName: string;
@@ -267,7 +267,7 @@ class DataCollection<E, P> implements _DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & P, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -284,7 +284,7 @@ class DataCollection<E, P> implements _DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhere(query: Query<E>, obj: Partial<E> & P, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere(query: Query<E>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -304,7 +304,7 @@ class DataCollection<E, P> implements _DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateAllNoModify(updatesArray: (Partial<E> & P)[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAllNoModify(updatesArray: (Partial<E> & K)[], dstResultInfo?: Changes.CollectionChangeTracker): void {
         return this.addOrUpdateAll(updatesArray, true, dstResultInfo);
     }
 
@@ -316,7 +316,7 @@ class DataCollection<E, P> implements _DataCollection<E, P> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateAll(updatesArray: (Partial<E> & P)[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll(updatesArray: (Partial<E> & K)[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (updatesArray == null || updatesArray.length === 0) { return; }
         var keyNames = this.dataModel.primaryKeys;
 
@@ -383,14 +383,14 @@ class DataCollection<E, P> implements _DataCollection<E, P> {
     }
 
 
-    public static fromDataModel<U, V>(collectionName: string, dataModel: DtoModel, dbInst: InMemDb, trackChanges: boolean = false): DataCollection<U, V> {
+    public static fromDataModel<U extends V, V>(collectionName: string, dataModel: DtoModel, dbInst: InMemDb, trackChanges: boolean = false): DataCollection<U, V> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef<U, V>(collectionName, dataModel, null);
         var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     }
 
 
-    public static fromDtoModel<U, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
+    public static fromDtoModel<U extends V, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
         var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return <DtoCollection<U, V, W>><any>inst;

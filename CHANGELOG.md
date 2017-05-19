@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.19.0](N/A) - 2017-05-19
+### [0.19.1](N/A) - 2017-05-19
+#### Changed
+* Improved DataCollection `E` and `P` types and fixed `Query<E>` type bug
+
+
+--------
+### [0.19.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/e001b138586aeb496daf6f725493fa0d1e822112) - 2017-05-19
 #### Changed
 * `DataCollection<E, O>` changed to `DataCollection<E, P>` - `O` represented an optional props version of `E`, `P` now represents the required primary key props of the `E` model and `Partial<E>` is used internally in place of `O`
   * Improved type of 'query' parameters used by data(), find(), updateWhere(), and similar methods

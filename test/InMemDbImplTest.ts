@@ -114,6 +114,32 @@ suite("InMemDbImpl", function LokiDbImplTest() {
     });
 
 
+    test("updateWhere", function updateWhereTest() {
+        M.rebuildItems();
+        var db = rebuildDb();
+
+        var collA = db.collA;
+
+        collA.add(M.itemA1);
+        collA.add(M.itemA2);
+        collA.add(M.itemA3);
+        var oldName = M.itemA3.name;
+        var newName = oldName + " Brown";
+        collA.updateWhere({ id: M.itemA3.id }, { name: newName });
+        var itemA3New = collA.find({ id: M.itemA3.id }).limit(1).data()[0];
+
+        asr.equal(itemA3New.name, newName);
+
+        var newStyle = ["text-align: center"];
+        collA.updateWhere({ name: { $regex: { test: function (str) { console.log("testing: " + str); return /(Billy|Charlie).*/.test(str); } } } }, { styles: newStyle });
+
+        var itms = collA.data({ name: { $regex: { test: function (str) { console.log("testing: " + str); return /(Billy|Charlie).*/.test(str); } } } });
+        asr.equal(itms.length, 2);
+        asr.deepEqual(itms[0].styles, newStyle);
+        asr.deepEqual(itms[1].styles, newStyle);
+    });
+
+
     test("primary key meta-data", function primaryKeyMetaDataTest() {
         M.rebuildItems();
         var db = rebuildDb();
