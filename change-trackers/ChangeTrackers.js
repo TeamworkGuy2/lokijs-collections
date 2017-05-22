@@ -1,11 +1,11 @@
-/// <reference path="./collection-changes.d.ts" />
 "use strict";
+/// <reference path="./collection-changes.d.ts" />
 /** Change tracking for data collections.  Currently the events being tracked are: added items, modified items, and removed items.
  * @author TeamworkGuy2
  */
 var ChangeTrackers;
 (function (ChangeTrackers) {
-    /** A {@link CollectionChangeInfo} wrapper which simply adds to its existing 'added', 'modified', 'removed' values
+    /** A CollectionChangeInfo wrapper which simply adds to its existing 'added', 'modified', 'removed' values
      */
     var CompoundCollectionChange = (function () {
         function CompoundCollectionChange(changeInfo) {
@@ -46,7 +46,7 @@ var ChangeTrackers;
         return CompoundCollectionChange;
     }());
     ChangeTrackers.CompoundCollectionChange = CompoundCollectionChange;
-    /** Default {@link CollectionChangeInfo} implementation using a change history buffer with a maximum size
+    /** Default CollectionChangeInfo implementation using a change history buffer with a maximum size
      */
     var ChangeTracker = (function () {
         function ChangeTracker(maxChangesTracked) {

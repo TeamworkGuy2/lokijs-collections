@@ -169,14 +169,6 @@ var InMemDbImpl = (function () {
     InMemDbImpl.prototype.addAll = function (collection, dataModel, docs, noModify, dstMetaData) {
         return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL, noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE, docs, dstMetaData);
     };
-    InMemDbImpl.prototype.update = function (collection, dataModel, doc, dstMetaData) {
-        if (dstMetaData) {
-            dstMetaData.addChangeItemsModified(doc);
-        }
-        collection.isDirty = true;
-        this.dataModified(collection, doc, null, dstMetaData);
-        return collection.update(doc);
-    };
     InMemDbImpl.prototype.find = function (collection, dataModel, query, queryProps) {
         // Check for empty collection
         // TODO remove, users should never request non-existent collections..?
@@ -188,6 +180,13 @@ var InMemDbImpl = (function () {
         }
         var results = this._findMultiProp(collection.chain(), query, queryProps);
         return results;
+    };
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    InMemDbImpl.prototype.findOne = function (collection, dataModel, query) {
+        return this._findNResults(collection, dataModel, 1, 1, query);
     };
     InMemDbImpl.prototype.findSinglePropQuery = function (collection, dataModel, query, queryProps) {
         if (!collection) {
@@ -215,12 +214,13 @@ var InMemDbImpl = (function () {
         this.dataRemoved(collection, doc, null, dstMetaData);
         collection.remove(doc);
     };
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    InMemDbImpl.prototype.findOne = function (collection, dataModel, query) {
-        return this._findNResults(collection, dataModel, 1, 1, query);
+    InMemDbImpl.prototype.update = function (collection, dataModel, doc, dstMetaData) {
+        if (dstMetaData) {
+            dstMetaData.addChangeItemsModified(doc);
+        }
+        collection.isDirty = true;
+        this.dataModified(collection, doc, null, dstMetaData);
+        return collection.update(doc);
     };
     InMemDbImpl.prototype.updateWhere = function (collection, dataModel, query, obj, dstMetaData) {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
@@ -299,14 +299,14 @@ var InMemDbImpl = (function () {
         var existingData = this.find(collection, dataModel).data();
         // pluck keys from existing data
         var existingDataKeys = [];
-        for (var ii = 0, sizeI = existingData.length; ii < sizeI; ii++) {
-            var prop = existingData[ii][keyName];
+        for (var i = 0, size = existingData.length; i < size; i++) {
+            var prop = existingData[i][keyName];
             existingDataKeys.push(prop);
         }
         var toAdd = [];
         var toUpdate = [];
-        for (var i = 0, size = updatesArray.length; i < size; i++) {
-            var update = updatesArray[i];
+        for (var j = 0, sz = updatesArray.length; j < sz; j++) {
+            var update = updatesArray[j];
             var idx = existingDataKeys.indexOf(update[keyName]);
             if (idx === -1) {
                 toAdd.push(cloneFunc(update));
@@ -377,7 +377,7 @@ var InMemDbImpl = (function () {
         }
     };
     // ======== event loggers ========
-    InMemDbImpl.prototype.dataAdded = function (coll, newDoc, query, dstMetaData) {
+    InMemDbImpl.prototype.dataAdded = function (coll, newDocs, query, dstMetaData) {
         // events not yet implemented
     };
     InMemDbImpl.prototype.dataModified = function (coll, changeDoc, query, dstMetaData) {

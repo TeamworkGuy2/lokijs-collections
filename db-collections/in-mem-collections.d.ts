@@ -154,7 +154,7 @@ interface ResultSetLike<E> {
 
 
 /** A lokijs MongoDB style query based on a data model */
-type Query<E> = Partial<E> | { [K in keyof E]?: { [Y in keyof LokiOps]?: any } };
+type LokiQueryLike<E, K> = Partial<E> | Partial<K> | { [K in keyof E]?: { [Y in keyof LokiOps]?: any } };
 
 
 
@@ -220,18 +220,18 @@ interface DataCollection<E extends K, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return of objects
      */
-    data(query?: Query<E>): E[];
+    data(query?: LokiQueryLike<E, K>): E[];
 
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
-    find(query?: Query<E>): ResultSetLike<E>;
+    find(query?: LokiQueryLike<E, K>): ResultSetLike<E>;
 
     /** Query a collection, similar to find(), except that exactly one result is expected
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    findOne(query: Query<E>): E;
+    findOne(query: LokiQueryLike<E, K>): E;
 
     /** Starts a chained filter operation and returns a search result set which can be further refined
      * @param func: a javascript Array.filter() style function that accepts an object
@@ -247,7 +247,7 @@ interface DataCollection<E extends K, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    updateWhere(query: Query<E>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    updateWhere(query: LokiQueryLike<E, K>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection AND no collection actions
@@ -255,18 +255,18 @@ interface DataCollection<E extends K, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhereNoModify(query: LokiQueryLike<E, K>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection.
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    addOrUpdateWhere(query: Query<E>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    addOrUpdateWhere(query: LokiQueryLike<E, K>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Remove documents from this collection that match a given query
      */
-    removeWhere(query: Query<E>, dstResultInfo?: Changes.CollectionChangeTracker): void;
+    removeWhere(query: LokiQueryLike<E, K>, dstResultInfo?: Changes.CollectionChangeTracker): void;
 
     /** Queries this collection based on the primary key of each of the input documents,
      * if one or more matches are found for a given document, then those matching documents are updated

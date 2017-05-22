@@ -210,7 +210,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return array of objects matching the query
      */
-    public data(query?: Query<E>): E[] {
+    public data(query?: LokiQueryLike<E, K>): E[] {
         var queryProps = query ? Object.keys(query) : null;
         if (queryProps != null && queryProps.length === 1) {
             return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
@@ -222,7 +222,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      */
-    public find(query?: Query<E>): ResultSetLike<E> {
+    public find(query?: LokiQueryLike<E, K>): ResultSetLike<E> {
         return this.dbInst.find(this.collection, this.dataModel, query);
     }
 
@@ -231,7 +231,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @return a single object matching the query specified
      * @throws Error if the query results in more than one or no results
      */
-    public findOne(query: Query<E>): E {
+    public findOne(query: LokiQueryLike<E, K>): E {
         return this.dbInst.findOne(this.collection, this.dataModel, query);
     }
 
@@ -249,7 +249,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public updateWhere(query: Query<E>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public updateWhere(query: LokiQueryLike<E, K>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -267,7 +267,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhereNoModify(query: Query<E>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhereNoModify(query: LokiQueryLike<E, K>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -284,7 +284,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhere(query: Query<E>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere(query: LokiQueryLike<E, K>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -349,7 +349,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
     /** Remove documents from this collection that match a given query
      */
-    public removeWhere(query: Query<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public removeWhere(query: LokiQueryLike<E, K>, dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
         var res = this.dbInst.removeWhere(this.collection, this.dataModel, query, change);

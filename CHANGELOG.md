@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.19.1](N/A) - 2017-05-19
+### [0.19.2](N/A) - 2017-05-22
+#### Changed
+* Fixed an issue with Query<E> not matching valid queries
+* Renamed/changed Query<E> definition to LokiQueryLike<E, K>
+
+
+--------
+### [0.19.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/b1e14f44afa302ae641f34b076224495d891ffc3) - 2017-05-19
 #### Changed
 * Improved DataCollection `E` and `P` types and fixed `Query<E>` type bug
 

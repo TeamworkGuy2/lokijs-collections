@@ -1,5 +1,5 @@
 "use strict";
-/** ModelKeys - helper for primary keys from a {@link ModelDefinitions}
+/** ModelKeys - helper for primary keys from a ModelDefinitions
  * For managing the primary and auto-generated keys from a data model
  * @author TeamworkGuy2
  */
