@@ -107,13 +107,15 @@ var DataCollection = (function () {
     };
     /** Lookup an object by primary key
      * @param value the primary key value to lookup
+     * @param throwIfNotFound an optional flag which controls whether an error is throw if no result is found (default: true)
      * @returns matching object
      */
-    DataCollection.prototype.lookup = function (value) {
+    DataCollection.prototype.lookup = function (value, throwIfNotFound) {
+        if (throwIfNotFound === void 0) { throwIfNotFound = true; }
         var primaryKey = this.dataModel.primaryKeys[0];
         var query = {};
         query[primaryKey] = value;
-        return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey]);
+        return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey], throwIfNotFound);
     };
     /** Get the first result, except that exactly one result is expected (equivalent to first(query, true, true))
      * @returns a single object matching the query specified

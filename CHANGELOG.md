@@ -4,7 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.20.2](N/A) - 2017-05-26
+### [0.20.3](N/A) - 2017-05-26
+#### Changed
+* Upgraded to TypeScript@2.3.3
+* Improved LokiQueryLike type
+* Added empty result check to `DataCollection.lookup()`; align behavior with single(). Also added `throwIfNotFound` flag to allow it to also work like `first()`
+
+
+--------
+### [0.20.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/ecb7b11147bbf6a3edb0900e729dd1bd2d1fad07) - 2017-05-26
 #### Changed
 * Improved `first()` and `single()` implementation
 * Some additional documentation

@@ -135,13 +135,14 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
     /** Lookup an object by primary key
      * @param value the primary key value to lookup
+     * @param throwIfNotFound an optional flag which controls whether an error is throw if no result is found (default: true)
      * @returns matching object
      */
-    public lookup<P extends keyof K>(value: K[P]): E {
+    public lookup<P extends keyof K>(value: K[P], throwIfNotFound = true): E {
         var primaryKey = this.dataModel.primaryKeys[0];
         var query: any = {};
         query[primaryKey] = value;
-        return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey]);
+        return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey], throwIfNotFound);
     }
 
 

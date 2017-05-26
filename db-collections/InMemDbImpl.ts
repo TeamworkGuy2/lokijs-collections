@@ -394,15 +394,22 @@ class InMemDbImpl implements InMemDb {
 
         // search by primary key
         if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
-            return collection.by(queryProps[0], query[queryProps[0]]);
-        }
+            var itm = collection.by(queryProps[0], query[queryProps[0]]);
 
-        var res = this._findMultiProp(collection, query, queryProps, max === 1).data();
-
-        if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {
-            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+            if (throwIfLess && itm == null) {
+                throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found 0 results");
+            }
+            return itm;
         }
-        return max === 1 ? res[0] : res;
+        // search by regular multi-property query
+        else {
+            var res = this._findMultiProp(collection, query, queryProps, max === 1).data();
+
+            if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {
+                throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+            }
+            return max === 1 ? res[0] : res;
+        }
     }
 
 

@@ -56,6 +56,11 @@ function rebuildDb() {
         getMetaDataCollection: function () { return dbInst.getCollection(metaDataCollName, false); }
     };
 }
+function createSorter(prop) {
+    return function sorter(a, b) {
+        return a[prop] > b[prop] ? 1 : (a[prop] == b[prop] ? 0 : -1);
+    };
+}
 suite("InMemDbImpl", function LokiDbImplTest() {
     test("new InMemDbImpl()", function newLokiDbImplTest() {
         M.rebuildItems();
@@ -106,7 +111,7 @@ suite("InMemDbImpl", function LokiDbImplTest() {
         asr.deepEqual(itms[0].styles, newStyle);
         asr.deepEqual(itms[1].styles, newStyle);
     });
-    test("data/find/first/lookup", function dataFindFirstLookupTest() {
+    test("data/find/first/lookup/single", function dataFindFirstLookupSingleTest() {
         M.rebuildItems();
         var db = rebuildDb();
         var collB = db.collB;
@@ -117,11 +122,20 @@ suite("InMemDbImpl", function LokiDbImplTest() {
         var res2 = collB.find({ lastModified: M.itemB1.lastModified }).data();
         asr.equal(res2.length, 2);
         var res3 = collB.data({ lastModified: M.itemB1.lastModified, note: M.itemB1.note })[0];
-        asr.deepEqual(res3, M.itemB1);
+        asr.equal(res3, M.itemB1);
         var res4 = collB.first({ lastModified: M.itemB2.lastModified, note: M.itemB2.note });
-        asr.deepEqual(res4, M.itemB2);
+        asr.equal(res4, M.itemB2);
         var res5 = collB.lookup(M.itemB3.userId);
-        asr.deepEqual(res5, M.itemB3);
+        asr.equal(res5, M.itemB3);
+        asr.throws(function () { return collB.single({ userId: "null" }); });
+        asr.throws(function () { return collB.lookup("null"); });
+        asr.isTrue(collB.lookup("null", false) == null);
+        var res6 = collB.single({ userId: M.itemB3.userId });
+        asr.equal(res6, M.itemB3);
+        asr.throws(function () { return collB.single({ userId: { $in: [M.itemB1.userId, M.itemB2.userId] } }); });
+        var sortUserId = createSorter("userId");
+        var res7 = collB.data({ userId: { $in: [M.itemB1.userId, M.itemB2.userId] } });
+        asr.deepEqual(res7.sort(sortUserId), [M.itemB1, M.itemB2].sort(sortUserId));
     });
     test("primary key meta-data", function primaryKeyMetaDataTest() {
         M.rebuildItems();

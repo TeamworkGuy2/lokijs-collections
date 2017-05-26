@@ -86,7 +86,7 @@ interface InMemDb extends CollectionManager {
 
     /** Query a collection, find items based on query parameters
      * @param query a Lokijs/MongoDB style query
-     * @param [queryProps] optional list of properties from the query to use.  An optimization and/or way to apply only part of a query
+     * @param queryProps optional list of properties from the query to use.  An optimization and/or way to apply only part of a query
      * @returns a result set of items which match the query
      */
     find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): ResultSetLike<T>;
@@ -180,7 +180,7 @@ interface ResultSetLike<E> {
 
 
 /** A lokijs MongoDB style query based on a data model */
-type LokiQueryLike<E, K> = Partial<E> | ({ [P in keyof E]?: { [Y in keyof LokiOps]?: any } });
+type LokiQueryLike<E, K> = (Partial<E> & Partial<K>) | Partial<Record<keyof E, { [Y in keyof LokiOps]?: any }>>;
 
 
 
@@ -239,9 +239,10 @@ interface DataCollection<E extends K, K> {
 
     /** Lookup an object by primary key
      * @param value the primary key value to lookup
+     * @param throwIfNotFound an optional flag which controls whether an error is throw if no result is found (default: true)
      * @returns matching object
      */
-    lookup<P extends keyof K>(value: K[P]): E;
+    lookup<P extends keyof K>(value: K[P], throwIfNotFound?: boolean): E;
 
     /** Get the first result, except that exactly one result is expected (equivalent to first(query, true, true))
      * @returns a single object matching the query specified

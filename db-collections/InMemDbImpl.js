@@ -280,13 +280,19 @@ var InMemDbImpl = (function () {
         }
         // search by primary key
         if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
-            return collection.by(queryProps[0], query[queryProps[0]]);
+            var itm = collection.by(queryProps[0], query[queryProps[0]]);
+            if (throwIfLess && itm == null) {
+                throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found 0 results");
+            }
+            return itm;
         }
-        var res = this._findMultiProp(collection, query, queryProps, max === 1).data();
-        if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {
-            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+        else {
+            var res = this._findMultiProp(collection, query, queryProps, max === 1).data();
+            if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {
+                throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+            }
+            return max === 1 ? res[0] : res;
         }
-        return max === 1 ? res[0] : res;
     };
     InMemDbImpl.prototype._findMultiProp = function (coll, query, queryProps, firstOnly) {
         var results = coll.chain();
