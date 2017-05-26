@@ -219,7 +219,7 @@ interface DataCollection<E extends K, K> {
      */
     find(query?: LokiQueryLike<E, K>): ResultSetLike<E>;
 
-    /** Get the first result matching a query, similar to find(), except that exactly one result is expected
+    /** Get the first result matching a query, similar to find(), except that only one result is returned
      * @return a single object matching the query specified
      * @throws Error if the 'throwIfNone' or 'throwIfMultiple' flags are set and the query returns no results or more than one result
      */
@@ -230,6 +230,12 @@ interface DataCollection<E extends K, K> {
      * @returns matching object
      */
     lookup<P extends keyof K>(value: K[P]): E;
+
+    /** Get the first result, except that exactly one result is expected (equivalent to first(query, true, true))
+     * @returns a single object matching the query specified
+     * @throws Error if the query returns no results or more than one result
+     */
+    single(query: LokiQueryLike<E, K>): E;
 
     /** Starts a chained filter operation and returns a search result set which can be further refined
      * @param func: a javascript Array.filter() style function that accepts an object

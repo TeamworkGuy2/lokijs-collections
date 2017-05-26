@@ -84,20 +84,21 @@ var DataCollection = (function () {
     // ======== CRUD Operations ========
     /** Performs a single search operation and returns an array of results
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @return array of objects matching the query
+     * @return an array of objects
      */
     DataCollection.prototype.data = function (query) {
         return this.dbInst.data(this.collection, this.dataModel, query);
     };
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @returns a result set which can be further queried
      */
     DataCollection.prototype.find = function (query) {
         return this.dbInst.find(this.collection, this.dataModel, query);
     };
-    /** Query a collection, similar to find(), except that exactly one result is expected
+    /** Get the first result matching a query, similar to find(), except that only one result is returned
      * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
+     * @throws Error if the 'throwIfNone' or 'throwIfMultiple' flags are set and the query returns no results or more than one result
      */
     DataCollection.prototype.first = function (query, throwIfNone, throwIfMultiple) {
         if (throwIfNone === void 0) { throwIfNone = false; }
@@ -113,6 +114,13 @@ var DataCollection = (function () {
         var query = {};
         query[primaryKey] = value;
         return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey]);
+    };
+    /** Get the first result, except that exactly one result is expected (equivalent to first(query, true, true))
+     * @returns a single object matching the query specified
+     * @throws Error if the query returns no results or more than one result
+     */
+    DataCollection.prototype.single = function (query) {
+        return this.dbInst.first(this.collection, this.dataModel, query, null, true, true);
     };
     /** Starts a chained filter operation and returns a search result set which can be further refined
      * @param func: a javascript Array.filter() style function that accepts an object

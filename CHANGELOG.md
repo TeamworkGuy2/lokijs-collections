@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.20.0](N/A) - 2017-05-26
+### [0.20.1](N/A) - 2017-05-26
+#### Added
+* Added `DataCollection.single()` to provide single object lookup functionality
+
+
+--------
+### [0.20.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/991d8695d988e39f33d697c6660e4e4448b82adf) - 2017-05-26
 #### Added
 * Added `DataCollection.lookup()` to provide primary key lookup functionality
 

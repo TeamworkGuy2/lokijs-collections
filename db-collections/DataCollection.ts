@@ -108,7 +108,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
     /** Performs a single search operation and returns an array of results
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @return array of objects matching the query
+     * @return an array of objects
      */
     public data(query?: LokiQueryLike<E, K>): E[] {
         return this.dbInst.data(this.collection, this.dataModel, query);
@@ -117,15 +117,16 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
     /** Starts a chained search operation and returns a search result set which can be further refined
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @returns a result set which can be further queried
      */
     public find(query?: LokiQueryLike<E, K>): ResultSetLike<E> {
         return this.dbInst.find(this.collection, this.dataModel, query);
     }
 
 
-    /** Query a collection, similar to find(), except that exactly one result is expected
+    /** Get the first result matching a query, similar to find(), except that only one result is returned
      * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
+     * @throws Error if the 'throwIfNone' or 'throwIfMultiple' flags are set and the query returns no results or more than one result
      */
     public first(query: LokiQueryLike<E, K>, throwIfNone = false, throwIfMultiple = false): E {
         return this.dbInst.first(this.collection, this.dataModel, query, null, throwIfNone, throwIfMultiple);
@@ -141,6 +142,15 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
         var query: any = {};
         query[primaryKey] = value;
         return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey]);
+    }
+
+
+    /** Get the first result, except that exactly one result is expected (equivalent to first(query, true, true))
+     * @returns a single object matching the query specified
+     * @throws Error if the query returns no results or more than one result
+     */
+    public single(query: LokiQueryLike<E, K>): E {
+        return this.dbInst.first(this.collection, this.dataModel, query, null, true, true);
     }
 
 

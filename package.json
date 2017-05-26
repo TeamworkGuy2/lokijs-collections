@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "TypeScript enhanced collections for [LokiJS] (https://github.com/techfort/LokiJS) with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
   "dependencies": {
