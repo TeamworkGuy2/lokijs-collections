@@ -8,38 +8,6 @@ import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer")
 import PermissionedDataPersister = require("./PermissionedDataPersister");
 
 
-/** A ResultSetLike implementation for an empty collection
- * @author TeamworkGuy2
- */
-class ResultsetMock<E> implements ResultSetLike<E> {
-
-    data() {
-        return <any[]>[];
-    }
-
-    find() {
-        return this;
-    }
-
-    offset() {
-        return this;
-    }
-
-    limit() {
-        return this;
-    }
-
-    simplesort() {
-        return this;
-    }
-
-    where() {
-        return this;
-    }
-
-}
-
-
 interface InMemDbCloneFunc {
     (obj: any, cloneDeep?: boolean | ((obj: any) => any)): any;
 }
@@ -61,7 +29,7 @@ class InMemDbImpl implements InMemDb {
     private dataPersister: DataPersister;
     private syncSettings: ReadWritePermission;
     private storeSettings: StorageFormatSettings;
-    private getCreateCollectionSettings: (collectionName: string) => any;
+    private getCreateCollectionSettings: (collectionName: string) => any; // ({ unique?: string[]; exact?: string[] } & LokiCollectionOptions & { [name: string]: any; })
     private cloneFunc: InMemDbCloneFunc;
     private getModelObjKeys: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[];
 
@@ -69,20 +37,29 @@ class InMemDbImpl implements InMemDb {
     /**
      * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
-     * this only affects the underlying data persister created from teh 'dataPersisterFactory'
+     * this only affects the underlying data persister created from the 'dataPersisterFactory'
      * @param storeSettings settings used for the data persister
      * @param cloneType the type of clone operation to use when copying elements
      * @param metaDataCollectionName the name of the collection to store collection meta-data in
      * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
+     * @param databaseInitializer a function which creates the underlying InMemDbProvider used by this InMemDb
      * @param dataPersisterFactory a factory for creating a data persister
+     * @param createCollectionSettingsFunc a function which returns collection initialization settings for a given collection name
      * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
-    constructor(dbName: string, settings: ReadWritePermission, storeSettings: StorageFormatSettings, cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
-            metaDataCollectionName: string, reloadMetaData: boolean,
-            modelDefinitions: ModelDefinitions, databaseInitializer: (dbName: string) => InMemDbProvider<any>, dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
-            createCollectionSettingsFunc: <O>(collectionName: string) => O,
-            modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]) {
+    constructor(dbName: string,
+        settings: ReadWritePermission,
+        storeSettings: StorageFormatSettings,
+        cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
+        metaDataCollectionName: string,
+        reloadMetaData: boolean,
+        modelDefinitions: ModelDefinitions,
+        databaseInitializer: (dbName: string) => InMemDbProvider<any>,
+        dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
+        createCollectionSettingsFunc: <O>(collectionName: string) => O,
+        modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]
+    ) {
         this.dbName = dbName;
         this.dbInitializer = databaseInitializer;
         this.syncSettings = settings;
@@ -160,76 +137,26 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    _addHandlePrimaryAndGeneratedKeys<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, primaryConstraint: ModelKeysImpl.Constraint,
-            generateOption: ModelKeysImpl.Generated, docs: T[], dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        // TODO primaryConstraint and generateOption validation
-        if (!docs || docs.length === 0) {
-            return;
-        }
-
-        // Generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
-        this.getPrimaryKeyMaintainer().manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
-        // Ensure a legacy uniqueId field is present
-        if (primaryConstraint === ModelKeysImpl.Constraint.NON_NULL) {
-            this.getNonNullKeyMaintainer().manageKeys(collection.name, docs, true);
-        }
-        else if (primaryConstraint === ModelKeysImpl.Constraint.UNIQUE) {
-            throw new Error("ModelKeysImpl.Constraint.UNIQUE is not yet supported");
-        }
-
-        if (dstMetaData) {
-            dstMetaData.addChangeItemsAdded(docs);
-        }
-
-        collection.isDirty = true;
-        this.dataAdded(collection, docs, null, dstMetaData);
-        return collection.insert(docs);
-    }
-
-
-    private _findOneOrNull<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any) {
-        return this._findNResults(collection, dataModel, 0, 1, query);
-    }
-
-
-    private _findNResults<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, min: number, max: number, query: any): any | any[] {
-        if (min > max) {
-            throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
-        }
-
-        var res = this.find(collection, dataModel, query).data();
-        if (res.length < min || res.length > max) {
-            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
-        }
-        return max === 1 ? res[0] : res;
-    }
-
-
-    /** Query a result set against multiple criteria (AND logic)
-     */
-    private _findMultiProp<S>(resSet: ResultSetLike<S>, query: any, queryProps?: string[]): ResultSetLike<S> {
-        var results = resSet;
-        if (!queryProps) {
-            for (var prop in query) {
-                var localQuery: StringMap<any> = {};
-                localQuery[prop] = query[prop];
-                results = results.find(localQuery);
-            }
-        }
-        else {
-            for (var i = 0, size = queryProps.length; i < size; i++) {
-                var propI = queryProps[i];
-                var localQuery: StringMap<any> = {};
-                localQuery[propI] = query[propI];
-                results = results.find(localQuery);
-            }
-        }
-
-        return results;
-    }
-
-
     // ======== Database CRUD Operations ========
+
+    public data<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): T[] {
+        return <T[]>this._findNResults(collection, dataModel, 0, Infinity, query, queryProps, false, false);
+    }
+
+
+    public find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): ResultSetLike<T> {
+        if (query == null || collection.data.length === 0) {
+            return collection.chain();
+        }
+
+        return this._findMultiProp(collection, query, queryProps);
+    }
+
+
+    public first<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[], throwIfNone?: boolean, throwIfMultiple?: boolean): T {
+        return <T>this._findNResults(collection, dataModel, 1, 1, query, queryProps, throwIfNone, throwIfMultiple);
+    }
+
 
     public add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
         return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
@@ -245,107 +172,10 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): ResultSetLike<T> {
-        // Check for empty collection
-        // TODO remove, users should never request non-existent collections..?
-        if (!collection) {
-            return new ResultsetMock();
-        }
-        else if (collection.data.length === 0) {
-            return collection.chain();
-        }
-
-        var results = this._findMultiProp(collection.chain(), query, queryProps);
-        return results;
-    }
-
-
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    public findOne<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any) {
-        return this._findNResults(collection, dataModel, 1, 1, query);
-    }
-
-
-    public findSinglePropQuery<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query?: any, queryProps?: string[]): T[] {
-        if (!collection) {
-            throw new Error("null collection with query: " + query);
-        }
-        else if (collection.data.length === 0) {
-            return [];
-        }
-
-        //Get all results
-        var queryProps = queryProps ? queryProps : (query ? Object.keys(query) : null);
-        if (queryProps && queryProps.length > 1) {
-            throw new Error("query '" + query + "' has more than 1 prop, findSinglePropQueryData() only accepts 1 prop");
-        }
-        var results = collection.find(query);
-        return results;
-    }
-
-
-    public remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void {
-        if (!collection) {
-            return;
-        }
-        if (dstMetaData) {
-            dstMetaData.addChangeItemsRemoved(doc);
-        }
-
-        collection.isDirty = true;
-        this.dataRemoved(collection, doc, null, dstMetaData);
-        collection.remove(doc);
-    }
-
-
-    public update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        if (dstMetaData) {
-            dstMetaData.addChangeItemsModified(doc);
-        }
-
-        collection.isDirty = true;
-        this.dataModified(collection, doc, null, dstMetaData);
-        return collection.update(<T>doc);
-    }
-
-
-    public updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
-
-        query = this.modelKeys.validateQuery(collection.name, query, obj);
-
-        var results = this._findMultiProp(collection.chain(), query);
-        var resData = results.data();
-
-        if (dstMetaData && resData.length > 0) {
-            dstMetaData.addChangeItemsModified(resData.length);
-        }
-
-        // get obj props, except the lokijs specific ones
-        var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
-        var updateKeysLen = updateKeys.length;
-
-        for (var i = 0, size = resData.length; i < size; i++) {
-            var doc = resData[i];
-
-            // assign obj props -> doc
-            var idx = -1;
-            while (idx++ < updateKeysLen) {
-                var key = updateKeys[idx];
-                doc[key] = obj[key];
-            }
-
-            this.update(collection, dataModel, doc);
-        }
-    }
-
-
     public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
-        var results = this._findMultiProp(this.find(collection, dataModel), query);
+        var results = this.find(collection, dataModel, query);
 
         var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange = null;
         if (dstMetaData) {
@@ -394,18 +224,9 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var docs = this.find(collection, dataModel, query).data();
-        for (var i = docs.length - 1; i > -1; i--) {
-            var doc = docs[i];
-            this.remove(collection, dataModel, doc, dstMetaData);
-        }
-    }
-
-
     public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => InMemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
-        var existingData = this.find(collection, dataModel).data();
+        var existingData = this.find(collection, dataModel, null).data();
         // pluck keys from existing data
         var existingDataKeys = [];
         for (var i = 0, size = existingData.length; i < size; i++) {
@@ -447,10 +268,157 @@ class InMemDbImpl implements InMemDb {
     }
 
 
+    public update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        if (dstMetaData) {
+            dstMetaData.addChangeItemsModified(doc);
+        }
+
+        collection.isDirty = true;
+        this.dataModified(collection, doc, null, dstMetaData);
+        return collection.update(<T>doc);
+    }
+
+
+    public updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        query = this.modelKeys.validateQuery(collection.name, query, obj);
+
+        var resData = this._findMultiProp(collection, query).data();
+
+        if (dstMetaData && resData.length > 0) {
+            dstMetaData.addChangeItemsModified(resData.length);
+        }
+
+        // get obj props, except the lokijs specific ones
+        var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
+        var updateKeysLen = updateKeys.length;
+
+        for (var i = 0, size = resData.length; i < size; i++) {
+            var doc = resData[i];
+
+            // assign obj props -> doc
+            var idx = -1;
+            while (idx++ < updateKeysLen) {
+                var key = updateKeys[idx];
+                doc[key] = obj[key];
+            }
+
+            this.update(collection, dataModel, doc);
+        }
+    }
+
+
+    public remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void {
+        if (dstMetaData) {
+            dstMetaData.addChangeItemsRemoved(doc);
+        }
+
+        collection.isDirty = true;
+        this.dataRemoved(collection, doc, null, dstMetaData);
+        collection.remove(doc);
+    }
+
+
+    public removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var docs = this.find(collection, dataModel, query).data();
+        for (var i = docs.length - 1; i > -1; i--) {
+            var doc = docs[i];
+            this.remove(collection, dataModel, doc, dstMetaData);
+        }
+    }
+
+
     // Array-like
     public mapReduce<T, U, R>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: T[]) => U,
             reduce: (previousValue: R, currentValue: U, currentIndex: number, array: U[]) => R): R {
         return collection.mapReduce(map, reduce);
+    }
+
+
+    // ======== query and insert implementations ========
+
+    _addHandlePrimaryAndGeneratedKeys<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, primaryConstraint: ModelKeysImpl.Constraint,
+        generateOption: ModelKeysImpl.Generated, docs: T[], dstMetaData?: Changes.CollectionChangeTracker): T[] {
+        // TODO primaryConstraint and generateOption validation
+        if (!docs || docs.length === 0) {
+            return;
+        }
+
+        // Generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
+        this.getPrimaryKeyMaintainer().manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
+        // Ensure a legacy uniqueId field is present
+        if (primaryConstraint === ModelKeysImpl.Constraint.NON_NULL) {
+            this.getNonNullKeyMaintainer().manageKeys(collection.name, docs, true);
+        }
+        else if (primaryConstraint === ModelKeysImpl.Constraint.UNIQUE) {
+            throw new Error("ModelKeysImpl.Constraint.UNIQUE is not yet supported");
+        }
+
+        if (dstMetaData) {
+            dstMetaData.addChangeItemsAdded(docs);
+        }
+
+        collection.isDirty = true;
+        this.dataAdded(collection, docs, null, dstMetaData);
+        return collection.insert(docs);
+    }
+
+
+    /** Execute a query (including optimizations and additional flags for various use cases)
+     * @param collection the collection to query
+     * @param dataModel the collection's data model
+     * @param min the minimum number of results expected
+     * @param max the maximum number of results expected
+     * @param query the query to run
+     * @param queryProps optional sub-set of query properties from the query
+     * @param queryPropLimit a limit on the number of query props to use
+     * @param throwIfLess whether to throw an error if less than 'min' results are found by the query
+     * @param throwIfMore whether to throw an error if more than 'max' results are found by the query
+     */
+    private _findNResults<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, min: number, max: number, query: any, queryProps: string[], throwIfLess: boolean, throwIfMore: boolean): T | T[] {
+        if (min > max) {
+            throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
+        }
+
+        if (collection.data.length === 0) {
+            return max === 1 ? null : [];
+        }
+
+        // Single item lookups are probably based on a strong key, perhaps a primary key, so get the query properties to see if it's a single primary key query
+        if (max === 1 && queryProps == null) {
+            queryProps = query != null ? Object.keys(query) : null;
+        }
+
+        if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
+            return collection.by(queryProps[0], query[queryProps[0]]);
+        }
+
+        var res = this.find(collection, dataModel, query, queryProps).data();
+
+        if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {
+            throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
+        }
+        return max === 1 ? res[0] : res;
+    }
+
+
+    private _findMultiProp<S>(coll: LokiCollection<S>, query: any, queryProps?: string[]): ResultSetLike<S> {
+        var results = coll.chain();
+        if (!queryProps) {
+            for (var prop in query) {
+                var localQuery: StringMap<any> = {};
+                localQuery[prop] = query[prop];
+                results = results.find(localQuery);
+            }
+        }
+        else {
+            for (var i = 0, size = queryProps.length; i < size; i++) {
+                var propI = queryProps[i];
+                var localQuery: StringMap<any> = {};
+                localQuery[propI] = query[propI];
+                results = results.find(localQuery);
+            }
+        }
+        return results;
     }
 
 
@@ -478,9 +446,9 @@ class InMemDbImpl implements InMemDb {
 
 
     public clearCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var coll: LokiCollection<any> = typeof collection === "string" ? this.getCollection(collection) : collection;
+        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
 
-        if (coll) {
+        if (coll != null) {
             if (dstMetaData) {
                 dstMetaData.addChangeItemsRemoved(coll.data.length);
             }
@@ -492,16 +460,12 @@ class InMemDbImpl implements InMemDb {
 
 
     public removeCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
+        var coll = typeof collection === "string" ? this.db.getCollection(collection) : this.db.getCollection(collection.name);
 
-        if (dstMetaData) {
-            var collRes = this.db.getCollection<any>(coll.name);
-            if (collRes) {
-                dstMetaData.addChangeItemsRemoved(collRes.data.length);
+        if (coll != null) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
             }
-        }
-
-        if (coll) {
             this.db.removeCollection(coll.name);
         }
     }
@@ -594,8 +558,8 @@ class InMemDbImpl implements InMemDb {
     private static createDefaultDataPersister(dbDataInst: InMemDbImpl, dataPersisterFactory: DataPersister.Factory): DataPersister {
         dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
             var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
-            var persistAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
-            return persistAdapter;
+            var permissionedAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
+            return permissionedAdapter;
         });
         return dbDataInst.getDataPersister();
     }

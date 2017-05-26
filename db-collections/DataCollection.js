@@ -36,30 +36,11 @@ var DataCollection = (function () {
             this.initializeEventHandler();
         }
     }
-    /** Setup the event handler for this collection.
-     * NOTE: Must call this before calling getCollectionEventHandler().
-     */
-    DataCollection.prototype.initializeEventHandler = function () {
-        this.changes = new ChangeTrackers.ChangeTracker(16);
-        this.eventHandler = new EventListenerList();
-    };
-    /** Deregister event listeners and destroy the event handler for this collection.
-     * NOTE: After calling this method getCollectionEventHandler() will return null
-     */
-    DataCollection.prototype.destroyEventHandler = function () {
-        if (this.changes) {
-            this.changes = null;
-            this.eventHandler.reset();
-            this.eventHandler = null;
-        }
-    };
     /**
-     * @return the event handler for this collection.  Fires events when items in this collection are added, removed, or modified
-     * @see #initializeEventHandler()
-     * @see #destroyEventHandler()
+     * @return the name of this collection of data models
      */
-    DataCollection.prototype.getEventHandler = function () {
-        return this.eventHandler;
+    DataCollection.prototype.getName = function () {
+        return this.collectionName;
     };
     /**
      * @return the data model associated with the elements stored in this collection
@@ -73,43 +54,73 @@ var DataCollection = (function () {
     DataCollection.prototype.getDataModelFuncs = function () {
         return this.dataModelFuncs;
     };
-    /**
-     * @return the name of this collection of data models
+    /** Setup the event handler for this collection.
+     * NOTE: Must call this before calling getCollectionEventHandler().
      */
-    DataCollection.prototype.getName = function () {
-        return this.collectionName;
+    DataCollection.prototype.initializeEventHandler = function () {
+        this.changes = new ChangeTrackers.ChangeTracker(16);
+        this.eventHandler = new EventListenerList();
     };
-    DataCollection.prototype.collChange = function (change, secondaryResultInfo) {
-        if (this.changes != null) {
-            this.changes.addChange(change);
-            this.eventHandler.fireEvent(change);
+    /** Deregister event listeners and destroy the event handler for this collection.
+     * NOTE: After calling this method getCollectionEventHandler() will return null
+     */
+    DataCollection.prototype.destroyEventHandler = function () {
+        if (this.changes) {
+            this.changes = null;
         }
-        if (secondaryResultInfo != null) {
-            secondaryResultInfo.addChange(change);
+        if (this.eventHandler) {
+            this.eventHandler.reset();
+            this.eventHandler = null;
         }
     };
-    DataCollection.prototype.createCollChange = function (secondaryResultInfo) {
-        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : null;
-    };
-    DataCollection.prototype._add = function (docs, noModify, dstResultInfo) {
-        if (docs == null) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
-        this.collChange(change, dstResultInfo);
-        return res;
-    };
-    DataCollection.prototype._addAll = function (docs, noModify, dstResultInfo) {
-        if (docs == null || docs.length === 0) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
-        this.collChange(change, dstResultInfo);
-        return res;
+    /**
+     * @return the event handler for this collection.  Fires events when items in this collection are added, removed, or modified
+     * @see #initializeEventHandler()
+     * @see #destroyEventHandler()
+     */
+    DataCollection.prototype.getEventHandler = function () {
+        return this.eventHandler;
     };
     // ======== CRUD Operations ========
+    /** Performs a single search operation and returns an array of results
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @return array of objects matching the query
+     */
+    DataCollection.prototype.data = function (query) {
+        return this.dbInst.data(this.collection, this.dataModel, query);
+    };
+    /** Starts a chained search operation and returns a search result set which can be further refined
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     */
+    DataCollection.prototype.find = function (query) {
+        return this.dbInst.find(this.collection, this.dataModel, query);
+    };
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    DataCollection.prototype.first = function (query, throwIfNone, throwIfMultiple) {
+        if (throwIfNone === void 0) { throwIfNone = false; }
+        if (throwIfMultiple === void 0) { throwIfMultiple = false; }
+        return this.dbInst.first(this.collection, this.dataModel, query, null, throwIfNone, throwIfMultiple);
+    };
+    /** Lookup an object by primary key
+     * @param value the primary key value to lookup
+     * @returns matching object
+     */
+    DataCollection.prototype.lookup = function (value) {
+        var primaryKey = this.dataModel.primaryKeys[0];
+        var query = {};
+        query[primaryKey] = value;
+        return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey]);
+    };
+    /** Starts a chained filter operation and returns a search result set which can be further refined
+     * @param func: a javascript Array.filter() style function that accepts an object
+     * and returns a flag indicating whether the object is a match or not
+     */
+    DataCollection.prototype.where = function (func) {
+        return this.dbInst.find(this.collection, this.dataModel, null).where(func);
+    };
     /** Add a document to this collection
      */
     DataCollection.prototype.add = function (docs, dstResultInfo) {
@@ -131,74 +142,6 @@ var DataCollection = (function () {
      */
     DataCollection.prototype.addAllNoModify = function (docs, dstResultInfo) {
         return this._addAll(docs, true, dstResultInfo);
-    };
-    /** Mark an existing document in this collection modified.
-     * The document specified must already exist in the collection
-     */
-    DataCollection.prototype.update = function (doc, dstResultInfo) {
-        if (doc == null) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
-        this.collChange(change, dstResultInfo);
-        return res;
-    };
-    /** Mark multiple existing documents in this collection modified.
-     * The documents specified must all already exist in the collection
-     */
-    DataCollection.prototype.updateAll = function (docs, dstResultInfo) {
-        if (docs == null || docs.length === 0) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
-        this.collChange(change, dstResultInfo);
-        return res;
-    };
-    /** Performs a single search operation and returns an array of results
-     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @return array of objects matching the query
-     */
-    DataCollection.prototype.data = function (query) {
-        var queryProps = query ? Object.keys(query) : null;
-        if (queryProps != null && queryProps.length === 1) {
-            return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
-        }
-        return this.dbInst.find(this.collection, this.dataModel, query, queryProps).data();
-    };
-    /** Starts a chained search operation and returns a search result set which can be further refined
-     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     */
-    DataCollection.prototype.find = function (query) {
-        return this.dbInst.find(this.collection, this.dataModel, query);
-    };
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    DataCollection.prototype.findOne = function (query) {
-        return this.dbInst.findOne(this.collection, this.dataModel, query);
-    };
-    /** Starts a chained filter operation and returns a search result set which can be further refined
-     * @param func: a javascript Array.filter() style function that accepts an object
-     * and returns a flag indicating whether the object is a match or not
-     */
-    DataCollection.prototype.where = function (func) {
-        return this.dbInst.find(this.collection, this.dataModel).where(func);
-    };
-    /** Update documents matching a query with properties from a provided update object
-     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @param obj: the properties to overwrite onto each document matching the provided query
-     */
-    DataCollection.prototype.updateWhere = function (query, obj, dstResultInfo) {
-        if (obj == null) {
-            return;
-        }
-        var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
-        this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Queries this collection, if one or more matches are found, those documents are updated with the properties from 'obj' as defined in updateWhere(),
      * if not matches are found, then the object/document is added to this collection AND no collection actions
@@ -260,6 +203,43 @@ var DataCollection = (function () {
         this.collChange(change, dstResultInfo);
         return res;
     };
+    /** Mark an existing document in this collection modified.
+     * The document specified must already exist in the collection
+     */
+    DataCollection.prototype.update = function (doc, dstResultInfo) {
+        if (doc == null) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    /** Mark multiple existing documents in this collection modified.
+     * The documents specified must all already exist in the collection
+     */
+    DataCollection.prototype.updateAll = function (docs, dstResultInfo) {
+        if (docs == null || docs.length === 0) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    /** Update documents matching a query with properties from a provided update object
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    DataCollection.prototype.updateWhere = function (query, obj, dstResultInfo) {
+        if (obj == null) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
     /** Remove a document from this collection.
      */
     DataCollection.prototype.remove = function (doc, dstResultInfo) {
@@ -292,6 +272,37 @@ var DataCollection = (function () {
     DataCollection.prototype.deleteCollection = function (dstResultInfo) {
         var change = this.createCollChange(dstResultInfo);
         var res = this.dbInst.removeCollection(this.collection, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    // ==== helper/implementation methods ====
+    DataCollection.prototype.collChange = function (change, secondaryResultInfo) {
+        if (this.changes != null) {
+            this.changes.addChange(change);
+            this.eventHandler.fireEvent(change);
+        }
+        if (secondaryResultInfo != null) {
+            secondaryResultInfo.addChange(change);
+        }
+    };
+    DataCollection.prototype.createCollChange = function (secondaryResultInfo) {
+        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : null;
+    };
+    DataCollection.prototype._add = function (docs, noModify, dstResultInfo) {
+        if (docs == null) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
+        this.collChange(change, dstResultInfo);
+        return res;
+    };
+    DataCollection.prototype._addAll = function (docs, noModify, dstResultInfo) {
+        if (docs == null || docs.length === 0) {
+            return;
+        }
+        var change = this.createCollChange(dstResultInfo);
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
         this.collChange(change, dstResultInfo);
         return res;
     };

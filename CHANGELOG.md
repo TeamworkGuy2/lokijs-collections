@@ -4,7 +4,21 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.19.2](N/A) - 2017-05-22
+### [0.20.0](N/A) - 2017-05-26
+#### Added
+* Added `DataCollection.lookup()` to provide primary key lookup functionality
+
+#### Changed
+* Renamed DataCollection and InMemDb `findOne()` -> `first()`
+* Improved `LokiQueryLike` interface
+* Added more method documentation
+
+#### Removed
+* Removed/renamed `InMemDb.findSinglePropQuery()` -> `InMemDb.data()`
+
+
+--------
+### [0.19.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/f1a08526a36306d4a7f249cf49606b82dea81944) - 2017-05-22
 #### Changed
 * Fixed an issue with Query<E> not matching valid queries
 * Renamed/changed Query<E> definition to LokiQueryLike<E, K>

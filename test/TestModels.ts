@@ -17,6 +17,7 @@ module TestModels {
         userId: string;
         token: string;
         note: string;
+        lastModified: string;
         timestamp: Date;
     }
 
@@ -37,9 +38,10 @@ module TestModels {
         },
         "coll_b": <DtoModel & DtoFuncs<any>>{
             properties: DtoPropertyConverter.parseAndConvertTemplateMap({
-                "userId": { type: "string" },
+                "userId": { type: "string", primaryKey: true },
                 "token": { type: "string" },
                 "note": { type: "string" },
+                "lastModified": { type: "string" },
                 "timestamp": { autoGenerate: true, type: "Date", server: { type: "DateTime" } },
             }, function typeConverter(t) { return TypeConverter.TypeScript.parseTypeTemplate(t, true); },
                 function serverTypeConverter(t) { return (typeof t === "string" ? TypeConverter.parseTypeTemplate(t) : t); }),
@@ -60,8 +62,12 @@ module TestModels {
 
     export var itemB2: MdB;
 
+    export var itemB3: MdB;
+
 
     export function rebuildItems() {
+        var now = new Date();
+
         itemA1 = {
             id: null,
             name: "Alfred",
@@ -84,6 +90,7 @@ module TestModels {
             userId: "A0281",
             note: "the fabled warrior",
             token: "C8A33B1-3B8EA7D7F89",
+            lastModified: now.toISOString(),
             timestamp: null,
         };
 
@@ -91,8 +98,21 @@ module TestModels {
             userId: "B0751",
             note: "the quiet monk",
             token: "89A324D-3B883283C22",
+            lastModified: now.toISOString(),
             timestamp: null,
         };
+
+        var yesterday = new Date();
+        yesterday.setDate(now.getDate() - 1);
+
+        itemB3 = {
+            userId: "C2204",
+            note: "the quiet monk",
+            token: "LL28VMN-28A946T3B28",
+            lastModified: yesterday.toISOString(),
+            timestamp: null,
+        };
+
     }
 
 }

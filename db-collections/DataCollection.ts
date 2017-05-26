@@ -19,9 +19,6 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     public readonly collection: LokiCollection<E>;
     private collectionName: string;
     private dbInst: InMemDb;
-    //private addCb: (added: E | E[]) => void;
-    //private removeCb: (removed: E | E[]) => void;
-    //private modifyCb: (modified: E | E[]) => void;
     private changes: ChangeTrackers.ChangeTracker;
     private eventHandler: EventListenerList<Changes.CollectionChange, Changes.ChangeListener>;
     private dataModel: DataCollectionModel<E>;
@@ -50,34 +47,11 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     }
 
 
-    /** Setup the event handler for this collection.
-     * NOTE: Must call this before calling getCollectionEventHandler().
-     */
-    public initializeEventHandler() {
-        this.changes = new ChangeTrackers.ChangeTracker(16);
-        this.eventHandler = new EventListenerList();
-    }
-
-
-    /** Deregister event listeners and destroy the event handler for this collection.
-     * NOTE: After calling this method getCollectionEventHandler() will return null
-     */
-    public destroyEventHandler() {
-        if (this.changes) {
-            this.changes = null;
-            this.eventHandler.reset();
-            this.eventHandler = null;
-        }
-    }
-
-
     /**
-     * @return the event handler for this collection.  Fires events when items in this collection are added, removed, or modified
-     * @see #initializeEventHandler()
-     * @see #destroyEventHandler()
+     * @return the name of this collection of data models
      */
-    public getEventHandler() {
-        return this.eventHandler;
+    public getName(): string {
+        return this.collectionName;
     }
 
 
@@ -97,55 +71,88 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     }
 
 
-    /**
-     * @return the name of this collection of data models
+    /** Setup the event handler for this collection.
+     * NOTE: Must call this before calling getCollectionEventHandler().
      */
-    public getName(): string {
-        return this.collectionName;
+    public initializeEventHandler() {
+        this.changes = new ChangeTrackers.ChangeTracker(16);
+        this.eventHandler = new EventListenerList();
     }
 
 
-    private collChange(change: Changes.CollectionChange, secondaryResultInfo?: Changes.CollectionChangeTracker) {
-        if (this.changes != null) {
-            this.changes.addChange(change);
-            this.eventHandler.fireEvent(change);
+    /** Deregister event listeners and destroy the event handler for this collection.
+     * NOTE: After calling this method getCollectionEventHandler() will return null
+     */
+    public destroyEventHandler() {
+        if (this.changes) {
+            this.changes = null;
         }
-        if (secondaryResultInfo != null) {
-            secondaryResultInfo.addChange(change);
+        if (this.eventHandler) {
+            this.eventHandler.reset();
+            this.eventHandler = null;
         }
     }
 
 
-    private createCollChange(secondaryResultInfo?: Changes.CollectionChangeTracker): ChangeTrackers.CompoundCollectionChange {
-        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : null;
-    }
-
-
-    private _add(docs: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
-        if (docs == null) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
-    }
-
-
-    private _addAll(docs: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
-        if (docs == null || docs.length === 0) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
+    /**
+     * @return the event handler for this collection.  Fires events when items in this collection are added, removed, or modified
+     * @see #initializeEventHandler()
+     * @see #destroyEventHandler()
+     */
+    public getEventHandler() {
+        return this.eventHandler;
     }
 
 
     // ======== CRUD Operations ========
+
+    /** Performs a single search operation and returns an array of results
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @return array of objects matching the query
+     */
+    public data(query?: LokiQueryLike<E, K>): E[] {
+        return this.dbInst.data(this.collection, this.dataModel, query);
+    }
+
+
+    /** Starts a chained search operation and returns a search result set which can be further refined
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     */
+    public find(query?: LokiQueryLike<E, K>): ResultSetLike<E> {
+        return this.dbInst.find(this.collection, this.dataModel, query);
+    }
+
+
+    /** Query a collection, similar to find(), except that exactly one result is expected
+     * @return a single object matching the query specified
+     * @throws Error if the query results in more than one or no results
+     */
+    public first(query: LokiQueryLike<E, K>, throwIfNone = false, throwIfMultiple = false): E {
+        return this.dbInst.first(this.collection, this.dataModel, query, null, throwIfNone, throwIfMultiple);
+    }
+
+
+    /** Lookup an object by primary key
+     * @param value the primary key value to lookup
+     * @returns matching object
+     */
+    public lookup<P extends keyof K>(value: K[P]): E {
+        var primaryKey = this.dataModel.primaryKeys[0];
+        var query: any = {};
+        query[primaryKey] = value;
+        return this.dbInst.first(this.collection, this.dataModel, query, [primaryKey]);
+    }
+
+
+    /** Starts a chained filter operation and returns a search result set which can be further refined
+     * @param func: a javascript Array.filter() style function that accepts an object
+     * and returns a flag indicating whether the object is a match or not
+     */
+    public where(func: (doc: E) => boolean): ResultSetLike<E> {
+        return this.dbInst.find(this.collection, this.dataModel, null).where(func);
+    }
+
+
     /** Add a document to this collection
      */
     public add(docs: E, dstResultInfo?: Changes.CollectionChangeTracker): E {
@@ -173,91 +180,6 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      */
     public addAllNoModify(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): E[] {
         return this._addAll(docs, true, dstResultInfo);
-    }
-
-
-    /** Mark an existing document in this collection modified.
-     * The document specified must already exist in the collection
-     */
-    public update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
-        if (doc == null) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
-    }
-
-
-    /** Mark multiple existing documents in this collection modified.
-     * The documents specified must all already exist in the collection
-     */
-    public updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
-        if (docs == null || docs.length === 0) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
-    }
-
-
-    /** Performs a single search operation and returns an array of results
-     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @return array of objects matching the query
-     */
-    public data(query?: LokiQueryLike<E, K>): E[] {
-        var queryProps = query ? Object.keys(query) : null;
-        if (queryProps != null && queryProps.length === 1) {
-            return this.dbInst.findSinglePropQuery(this.collection, this.dataModel, query, queryProps);
-        }
-        return this.dbInst.find(this.collection, this.dataModel, query, queryProps).data();
-    }
-
-
-    /** Starts a chained search operation and returns a search result set which can be further refined
-     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     */
-    public find(query?: LokiQueryLike<E, K>): ResultSetLike<E> {
-        return this.dbInst.find(this.collection, this.dataModel, query);
-    }
-
-
-    /** Query a collection, similar to find(), except that exactly one result is expected
-     * @return a single object matching the query specified
-     * @throws Error if the query results in more than one or no results
-     */
-    public findOne(query: LokiQueryLike<E, K>): E {
-        return this.dbInst.findOne(this.collection, this.dataModel, query);
-    }
-
-
-    /** Starts a chained filter operation and returns a search result set which can be further refined
-     * @param func: a javascript Array.filter() style function that accepts an object
-     * and returns a flag indicating whether the object is a match or not
-     */
-    public where(func: (doc: E) => boolean): ResultSetLike<E> {
-        return this.dbInst.find(this.collection, this.dataModel).where(func);
-    }
-
-
-    /** Update documents matching a query with properties from a provided update object
-     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
-     * @param obj: the properties to overwrite onto each document matching the provided query
-     */
-    public updateWhere(query: LokiQueryLike<E, K>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
-        if (obj == null) { return; }
-
-        var change = this.createCollChange(dstResultInfo);
-
-        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
-
-        this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
@@ -333,6 +255,52 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     }
 
 
+    /** Mark an existing document in this collection modified.
+     * The document specified must already exist in the collection
+     */
+    public update(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
+        if (doc == null) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    /** Mark multiple existing documents in this collection modified.
+     * The documents specified must all already exist in the collection
+     */
+    public updateAll(docs: E[], dstResultInfo?: Changes.CollectionChangeTracker): void {
+        if (docs == null || docs.length === 0) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    /** Update documents matching a query with properties from a provided update object
+     * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
+     * @param obj: the properties to overwrite onto each document matching the provided query
+     */
+    public updateWhere(query: LokiQueryLike<E, K>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
+        if (obj == null) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
     /** Remove a document from this collection.
      */
     public remove(doc: E, dstResultInfo?: Changes.CollectionChangeTracker): void {
@@ -377,6 +345,48 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
         var change = this.createCollChange(dstResultInfo);
 
         var res = this.dbInst.removeCollection(this.collection, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    // ==== helper/implementation methods ====
+
+    private collChange(change: Changes.CollectionChange, secondaryResultInfo?: Changes.CollectionChangeTracker) {
+        if (this.changes != null) {
+            this.changes.addChange(change);
+            this.eventHandler.fireEvent(change);
+        }
+        if (secondaryResultInfo != null) {
+            secondaryResultInfo.addChange(change);
+        }
+    }
+
+
+    private createCollChange(secondaryResultInfo?: Changes.CollectionChangeTracker): ChangeTrackers.CompoundCollectionChange {
+        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : null;
+    }
+
+
+    private _add(docs: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
+        if (docs == null) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
+
+        this.collChange(change, dstResultInfo);
+        return res;
+    }
+
+
+    private _addAll(docs: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
+        if (docs == null || docs.length === 0) { return; }
+
+        var change = this.createCollChange(dstResultInfo);
+
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;

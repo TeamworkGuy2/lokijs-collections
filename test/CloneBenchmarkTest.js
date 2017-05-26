@@ -1,6 +1,8 @@
 "use strict";
-/// <reference path="../../definitions/chai/chai.d.ts" />
-/// <reference path="../../definitions/mocha/mocha.d.ts" />
+Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference types="chai" />
+/// <reference types="mocha" />
+/// <reference types="node" />
 /// <reference path="../../definitions/lokijs/lokijs.d.ts" />
 var chai = require("chai");
 var InMemDbImpl = require("../db-collections/InMemDbImpl");
