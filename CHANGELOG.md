@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.20.1](N/A) - 2017-05-26
+### [0.20.2](N/A) - 2017-05-26
+#### Changed
+* Improved `first()` and `single()` implementation
+* Some additional documentation
+
+
+--------
+### [0.20.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/e0c83fa2455829361d83c8524a376700ef9f7b60) - 2017-05-26
 #### Added
 * Added `DataCollection.single()` to provide single object lookup functionality
 

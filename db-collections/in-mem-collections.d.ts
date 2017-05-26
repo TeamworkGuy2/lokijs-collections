@@ -128,16 +128,22 @@ interface InMemDb extends CollectionManager {
 /** Collection management */
 interface CollectionManager {
 
+    /** Get a list of all available collections */
     getCollections(): LokiCollection<any>[];
 
+    /** Clear all of the data from a specified collection by collection name */
     clearCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
+    /** Remove a collection by name */
     removeCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
 
+    /** Retrieve a collection by name */
     getCollection(collectionName: string, autoCreate?: boolean): LokiCollection<any>;
 
+    /** Clear all of the data from a specified collection */
     clearCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
+    /** Remove a collection */
     removeCollection(collection: LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void;
 
 }
@@ -150,16 +156,22 @@ interface CollectionManager {
  */
 interface ResultSetLike<E> {
 
+    /** Finish the result set and return matching data */
     data(): E[];
 
+    /** Filter the result set and return the new result set to allow for further queries */
     find(query?: any, firstOnly?: boolean): ResultSetLike<E>;
 
-    offset(index: number): ResultSetLike<E>;
+    /** set an offset constraint on the result set which causes 'offset' number of results to be skipped from the results returned by 'data()' */
+    offset(offset: number): ResultSetLike<E>;
 
+    /** set a limit constraint on the result set which causes the first 'qty' number of results to be returned by 'data()' */
     limit(qty: number): ResultSetLike<E>;
 
+    /** Apply a simple property name sort to the result set */
     simplesort(propname: string, isdesc?: boolean): ResultSetLike<E>;
 
+    /** Filter the results set by a function */
     where(func: (doc: E) => boolean): ResultSetLike<E>;
 
 }
@@ -341,6 +353,7 @@ interface _DataCollection<E extends K, K> extends DataCollection<E, K> { }
  */
 interface DtoCollection<E extends K, K, S> extends DataCollection<E, K> {
 
+    /** Get data model helper functions associated with this collection/data model */
     getDataModelFuncs(): DtoAllFuncs<E, S>;
 }
 
@@ -383,6 +396,7 @@ interface DataPersister {
 
 declare module DataPersister {
 
+    /** Information about a set of collections */
     interface CollectionData {
         collections: {
             [index: string]: {
@@ -443,7 +457,9 @@ interface DtoFuncs<E> {
  * @since 2016-3-11
  */
 interface DtoSvcFuncs<E, S> {
+    /** Convert a server data model to a client data model */
     convertToLocalObjectFunc: (item: S) => E;
+    /** Convert a client data model to a server data model */
     convertToSvcObjectFunc: (item: E) => S;
 }
 

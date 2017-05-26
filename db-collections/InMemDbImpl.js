@@ -267,29 +267,34 @@ var InMemDbImpl = (function () {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
+        // null query or empty collection
         if (collection.data.length === 0) {
             return max === 1 ? null : [];
         }
-        // Single item lookups are probably based on a strong key, perhaps a primary key, so get the query properties to see if it's a single primary key query
-        if (max === 1 && queryProps == null) {
-            queryProps = query != null ? Object.keys(query) : null;
+        if (query == null) {
+            return max === 1 ? collection.data[0] : collection.data;
         }
+        // single item lookups are probably based on a strong key, perhaps a primary key, so get the query properties to see if it's a single primary key query
+        if (max === 1 && queryProps == null) {
+            queryProps = Object.keys(query);
+        }
+        // search by primary key
         if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
             return collection.by(queryProps[0], query[queryProps[0]]);
         }
-        var res = this.find(collection, dataModel, query, queryProps).data();
+        var res = this._findMultiProp(collection, query, queryProps, max === 1).data();
         if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {
             throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + "matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found " + res.length + " results");
         }
         return max === 1 ? res[0] : res;
     };
-    InMemDbImpl.prototype._findMultiProp = function (coll, query, queryProps) {
+    InMemDbImpl.prototype._findMultiProp = function (coll, query, queryProps, firstOnly) {
         var results = coll.chain();
         if (!queryProps) {
             for (var prop in query) {
                 var localQuery = {};
                 localQuery[prop] = query[prop];
-                results = results.find(localQuery);
+                results = results.find(localQuery, firstOnly);
             }
         }
         else {
@@ -297,7 +302,7 @@ var InMemDbImpl = (function () {
                 var propI = queryProps[i];
                 var localQuery = {};
                 localQuery[propI] = query[propI];
-                results = results.find(localQuery);
+                results = results.find(localQuery, firstOnly);
             }
         }
         return results;
