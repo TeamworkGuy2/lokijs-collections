@@ -1,6 +1,6 @@
 "use strict";
 /// <reference path="./in-mem-collections.d.ts" />
-var EventListenerList = require("../../ts-event-handlers-lite/EventListenerList");
+var ListenerList = require("../../ts-event-handlers-lite/ListenerList");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 /** DataCollection class
@@ -59,7 +59,7 @@ var DataCollection = (function () {
      */
     DataCollection.prototype.initializeEventHandler = function () {
         this.changes = new ChangeTrackers.ChangeTracker(16);
-        this.eventHandler = new EventListenerList();
+        this.eventHandler = new ListenerList();
     };
     /** Deregister event listeners and destroy the event handler for this collection.
      * NOTE: After calling this method getCollectionEventHandler() will return null

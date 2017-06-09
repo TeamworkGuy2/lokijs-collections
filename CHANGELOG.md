@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.20.3](N/A) - 2017-05-26
+### [0.20.4](N/A) - 2017-06-09
+#### Changed
+* Updated to latest version of ts-event-handlers-lite@0.2.0
+
+
+--------
+### [0.20.3](https://github.com/TeamworkGuy2/lokijs-collections/commit/5aaa564f0e8987aaf7d36aae853a38313fa9388e) - 2017-05-26
 #### Changed
 * Upgraded to TypeScript@2.3.3
 * Improved LokiQueryLike type

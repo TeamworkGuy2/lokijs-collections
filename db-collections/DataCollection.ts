@@ -1,5 +1,5 @@
 ﻿/// <reference path="./in-mem-collections.d.ts" />
-import EventListenerList = require("../../ts-event-handlers-lite/EventListenerList");
+import ListenerList = require("../../ts-event-handlers-lite/ListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 
@@ -20,7 +20,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     private collectionName: string;
     private dbInst: InMemDb;
     private changes: ChangeTrackers.ChangeTracker;
-    private eventHandler: EventListenerList<Changes.CollectionChange, Changes.ChangeListener>;
+    private eventHandler: ListenerList<Changes.CollectionChange, Changes.ChangeListener>;
     private dataModel: DataCollectionModel<E>;
     private dataModelFuncs: DtoFuncs<E>;
 
@@ -76,7 +76,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      */
     public initializeEventHandler() {
         this.changes = new ChangeTrackers.ChangeTracker(16);
-        this.eventHandler = new EventListenerList();
+        this.eventHandler = new ListenerList();
     }
 
 
