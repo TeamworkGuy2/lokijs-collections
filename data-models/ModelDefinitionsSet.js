@@ -71,9 +71,9 @@ var ModelDefinitionsSet = (function () {
         var inst = new ModelDefinitionsSet(dataModels, dataTypes, cloneDeep);
         return inst;
     };
+    ModelDefinitionsSet.EMPTY_ARRAY = Object.freeze([]);
     return ModelDefinitionsSet;
 }());
-ModelDefinitionsSet.EMPTY_ARRAY = Object.freeze([]);
 (function (ModelDefinitionsSet) {
     function extendModelTemplate(parent, child, cloneDeep) {
         var res = Objects.map(parent, null, function (k, v) { return cloneDtoPropertyTemplate(v); });

@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.20.4](N/A) - 2017-06-09
+### [0.20.5](N/A) - 2017-08-05
+#### Changed
+* Update to TypeScript 2.4
+
+
+--------
+### [0.20.4](https://github.com/TeamworkGuy2/lokijs-collections/commit/7dded8ba43847c9cac4898c226d65a64405d21ba) - 2017-06-09
 #### Changed
 * Updated to latest version of ts-event-handlers-lite@0.2.0
 

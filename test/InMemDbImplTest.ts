@@ -50,7 +50,7 @@ function rebuildDb() {
             var keys = Object.keys(obj);
             Arrays.fastRemove(keys, "$loki");
             Arrays.fastRemove(keys, "meta");
-            return keys;
+            return <(keyof typeof obj)[]>keys;
         }
     );
     dbInst.initializeDb();

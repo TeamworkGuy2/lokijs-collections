@@ -2,6 +2,7 @@
   "compileOnSave": true,
   "compilerOptions": {
     "jsx": "preserve",
+    "lib": [ "es2017", "dom" ],
     "module": "commonjs",
     "noEmitOnError": false,
     "noImplicitAny": false,

@@ -57,10 +57,10 @@ var ModelKeysImpl = (function () {
         function Constraint(id) {
             this.id = id;
         }
+        Constraint.NON_NULL = new Constraint(1);
+        Constraint.UNIQUE = new Constraint(2);
         return Constraint;
     }());
-    Constraint.NON_NULL = new Constraint(1);
-    Constraint.UNIQUE = new Constraint(2);
     ModelKeysImpl.Constraint = Constraint;
     /** How to handle auto generated fields (i.e. primary keys)
      */
@@ -68,10 +68,10 @@ var ModelKeysImpl = (function () {
         function Generated(id) {
             this.id = id;
         }
+        Generated.AUTO_GENERATE = new Generated(1);
+        Generated.PRESERVE_EXISTING = new Generated(2);
         return Generated;
     }());
-    Generated.AUTO_GENERATE = new Generated(1);
-    Generated.PRESERVE_EXISTING = new Generated(2);
     ModelKeysImpl.Generated = Generated;
 })(ModelKeysImpl || (ModelKeysImpl = {}));
 module.exports = ModelKeysImpl;

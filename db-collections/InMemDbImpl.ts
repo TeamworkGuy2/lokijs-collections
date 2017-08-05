@@ -57,7 +57,7 @@ class InMemDbImpl implements InMemDb {
         modelDefinitions: ModelDefinitions,
         databaseInitializer: (dbName: string) => InMemDbProvider<any>,
         dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
-        createCollectionSettingsFunc: <O>(collectionName: string) => O,
+        createCollectionSettingsFunc: (collectionName: string) => any,
         modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]
     ) {
         this.dbName = dbName;
@@ -158,8 +158,8 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
+    public add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T {
+        return <T><any>this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
             noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
             [doc], dstMetaData);
     }

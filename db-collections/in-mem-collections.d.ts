@@ -180,7 +180,11 @@ interface ResultSetLike<E> {
 
 
 /** A lokijs MongoDB style query based on a data model */
-type LokiQueryLike<E, K> = (Partial<E> & Partial<K>) | Partial<Record<keyof E, { [Y in keyof LokiOps]?: any }>>;
+type PartialModelRecord<E, T> = {
+    [P in keyof E]?: T | E[P];
+};
+
+type LokiQueryLike<E, K> = PartialModelRecord<E, {[Y in keyof LokiOps]?: any }>;
 
 
 
