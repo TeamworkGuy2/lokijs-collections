@@ -18,7 +18,7 @@ class NonNullKeyMaintainer {
      */
     public manageKeys<T>(collectionName: string, docs: T[], throwErrorIfNull: boolean) {
         //Ensure a legacy uniqueId field is present
-        var keyNames = this.modelDefs.getPrimaryKeyNames(collectionName);
+        var keyNames = this.modelDefs.getPrimaryKeys(collectionName);
         if (keyNames.length > 0) {
             if (throwErrorIfNull) {
                 for (var i = 0, size = docs.length; i < size; i++) {

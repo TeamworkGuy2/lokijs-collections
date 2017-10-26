@@ -14,11 +14,10 @@ var DummyDataPersister = require("./DummyDataPersister");
 var M = require("./TestModels");
 var asr = chai.assert;
 var now = new Date();
-var dataTypes = null;
 function rebuildDb() {
     var persister;
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap, dataTypes), function createDb(dbName) {
+    var dbInst = new InMemDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createDb(dbName) {
         var lokiDb = new Loki(dbName, {});
         return {
             addCollection: function (name, opts) { return lokiDb.addCollection(name, opts); },
@@ -45,9 +44,9 @@ function rebuildDb() {
         return keys;
     });
     dbInst.initializeDb();
-    var modelA = dbInst.getModelDefinitions().getDataModel("coll_a");
+    var modelA = dbInst.getModelDefinitions().getModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
-    var modelB = dbInst.getModelDefinitions().getDataModel("coll_b");
+    var modelB = dbInst.getModelDefinitions().getModel("coll_b");
     var modelFuncsB = dbInst.getModelDefinitions().getDataModelFuncs("coll_b");
     return {
         dbInst: dbInst,
