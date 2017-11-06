@@ -1,4 +1,4 @@
-﻿/// <reference path="./in-mem-collections.d.ts" />
+﻿/// <reference path="./mem-collections.d.ts" />
 import ListenerList = require("../../ts-event-handlers-lite/ListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -16,11 +16,11 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  */
 class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     /** The underlying lokijs collection */
-    public readonly collection: LokiCollection<E>;
+    public readonly collection: MemDbCollection<E>;
     private collectionName: string;
     private dbInst: InMemDb;
-    private changes: ChangeTrackers.ChangeTracker;
-    private eventHandler: ListenerList<Changes.CollectionChange, Changes.ChangeListener>;
+    private changes: ChangeTrackers.ChangeTracker | null;
+    private eventHandler: ListenerList<Changes.CollectionChange, Changes.ChangeListener> | null;
     private dataModel: DataCollectionModel<E>;
     private dataModelFuncs: DtoFuncs<E>;
 
@@ -110,7 +110,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @return an array of objects
      */
-    public data(query?: LokiQueryLike<E, K>): E[] {
+    public data(query?: MemDbQueryLike<E, K>): E[] {
         return this.dbInst.data(this.collection, this.dataModel, query);
     }
 
@@ -119,7 +119,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @returns a result set which can be further queried
      */
-    public find(query?: LokiQueryLike<E, K>): ResultSetLike<E> {
+    public find(query?: MemDbQueryLike<E, K>): ResultSetLike<E> {
         return this.dbInst.find(this.collection, this.dataModel, query);
     }
 
@@ -128,8 +128,8 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @return a single object matching the query specified
      * @throws Error if the 'throwIfNone' or 'throwIfMultiple' flags are set and the query returns no results or more than one result
      */
-    public first(query: LokiQueryLike<E, K>, throwIfNone = false, throwIfMultiple = false): E {
-        return this.dbInst.first(this.collection, this.dataModel, query, null, throwIfNone, throwIfMultiple);
+    public first(query: MemDbQueryLike<E, K>, throwIfNone = false, throwIfMultiple = false): E {
+        return this.dbInst.first(this.collection, this.dataModel, query, <undefined><any>null, throwIfNone, throwIfMultiple);
     }
 
 
@@ -150,8 +150,8 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @returns a single object matching the query specified
      * @throws Error if the query returns no results or more than one result
      */
-    public single(query: LokiQueryLike<E, K>): E {
-        return this.dbInst.first(this.collection, this.dataModel, query, null, true, true);
+    public single(query: MemDbQueryLike<E, K>): E {
+        return this.dbInst.first(this.collection, this.dataModel, query, <undefined><any>null, true, true);
     }
 
 
@@ -200,7 +200,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhereNoModify(query: LokiQueryLike<E, K>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhereNoModify(query: MemDbQueryLike<E, K>, obj: Partial<E> & K, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
@@ -217,12 +217,12 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public addOrUpdateWhere(query: LokiQueryLike<E, K>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere(query: MemDbQueryLike<E, K>, obj: Partial<E> & K, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, this.dataModelFuncs, query, obj, noModify, change);
+        var res = this.dbInst.addOrUpdateWhere(this.collection, this.dataModel, this.dataModelFuncs, query, obj, <boolean>noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -259,7 +259,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, this.dataModelFuncs, keyNames[0], updatesArray, noModify, change);
+        var res = this.dbInst.addOrUpdateAll(this.collection, this.dataModel, this.dataModelFuncs, keyNames[0], updatesArray, <boolean>noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -274,10 +274,9 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
+        this.dbInst.update(this.collection, this.dataModel, doc, change);
 
         this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
@@ -289,10 +288,9 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
+        this.dbInst.update(this.collection, this.dataModel, docs, change);
 
         this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
@@ -300,15 +298,14 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
      * @param obj: the properties to overwrite onto each document matching the provided query
      */
-    public updateWhere(query: LokiQueryLike<E, K>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public updateWhere(query: MemDbQueryLike<E, K>, obj: Partial<E>, dstResultInfo?: Changes.CollectionChangeTracker): void {
         if (obj == null) { return; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
+        this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
 
         this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
@@ -319,22 +316,20 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.remove(this.collection, this.dataModel, doc, change);
+        this.dbInst.remove(this.collection, this.dataModel, doc, change);
 
         this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
     /** Remove documents from this collection that match a given query
      */
-    public removeWhere(query: LokiQueryLike<E, K>, dstResultInfo?: Changes.CollectionChangeTracker): void {
+    public removeWhere(query: MemDbQueryLike<E, K>, dstResultInfo?: Changes.CollectionChangeTracker): void {
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.removeWhere(this.collection, this.dataModel, query, change);
+        this.dbInst.removeWhere(this.collection, this.dataModel, query, change);
 
         this.collChange(change, dstResultInfo);
-        return res;
     }
 
 
@@ -364,28 +359,30 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
     // ==== helper/implementation methods ====
 
-    private collChange(change: Changes.CollectionChange, secondaryResultInfo?: Changes.CollectionChangeTracker) {
-        if (this.changes != null) {
-            this.changes.addChange(change);
-            this.eventHandler.fireEvent(change);
-        }
-        if (secondaryResultInfo != null) {
-            secondaryResultInfo.addChange(change);
+    private collChange(change: Changes.CollectionChange | null | undefined, secondaryResultInfo?: Changes.CollectionChangeTracker) {
+        if (change != null) {
+            if (this.changes != null && this.eventHandler != null) {
+                this.changes.addChange(change);
+                this.eventHandler.fireEvent(change);
+            }
+            if (secondaryResultInfo != null) {
+                secondaryResultInfo.addChange(change);
+            }
         }
     }
 
 
-    private createCollChange(secondaryResultInfo?: Changes.CollectionChangeTracker): ChangeTrackers.CompoundCollectionChange {
-        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : null;
+    private createCollChange(secondaryResultInfo?: Changes.CollectionChangeTracker): ChangeTrackers.CompoundCollectionChange | undefined {
+        return (this.changes != null || secondaryResultInfo != null) ? new ChangeTrackers.CompoundCollectionChange() : <undefined><any>null;
     }
 
 
-    private _add(docs: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
-        if (docs == null) { return; }
+    private _add(docs: E, noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker): E {
+        if (docs == null) { return <any>null; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
+        var res = this.dbInst.add(this.collection, this.dataModel, docs, <boolean>noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -393,11 +390,11 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
 
     private _addAll(docs: E[], noModify?: boolean, dstResultInfo?: Changes.CollectionChangeTracker) {
-        if (docs == null || docs.length === 0) { return; }
+        if (docs == null || docs.length === 0) { return []; }
 
         var change = this.createCollChange(dstResultInfo);
 
-        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);
+        var res = this.dbInst.addAll(this.collection, this.dataModel, docs, <boolean>noModify, change);
 
         this.collChange(change, dstResultInfo);
         return res;
@@ -405,7 +402,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
 
 
     public static fromDataModel<U extends V, V>(collectionName: string, dataModel: DtoModel, dbInst: InMemDb, trackChanges: boolean = false): DataCollection<U, V> {
-        var model = ModelDefinitionsSet.modelDefToCollectionModelDef<U, V>(collectionName, dataModel, null);
+        var model = ModelDefinitionsSet.modelDefToCollectionModelDef<U, V>(collectionName, dataModel, <any>null);
         var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     }

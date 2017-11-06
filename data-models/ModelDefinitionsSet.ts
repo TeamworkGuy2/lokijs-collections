@@ -9,7 +9,7 @@
  * @since 2015-12-16
  */
 class ModelDefinitionsSet implements ModelDefinitions {
-    private static EMPTY_ARRAY = Object.freeze([]);
+    private static EMPTY_ARRAY = <string[]><any>Object.freeze([]);
 
     private cloneDeep: <T1>(obj: T1) => T1;
     public modelNames: string[];
@@ -172,8 +172,8 @@ module ModelDefinitionsSet {
 
             modelsFuncs[modelName] = {
                 copyFunc: tableFuncs.copyFunc,
-                convertToLocalObjectFunc: tableFuncs.convertToLocalObjectFunc,
-                convertToSvcObjectFunc: tableFuncs.convertToSvcObjectFunc
+                toLocalObject: tableFuncs.toLocalObject,
+                toSvcObject: tableFuncs.toSvcObject
             };
         }
 
@@ -188,7 +188,7 @@ module ModelDefinitionsSet {
             primaryKey: prop.primaryKey,
             readOnly: prop.readOnly,
             required: prop.required,
-            server: prop.server == null ? null : {
+            server: prop.server == null ? <undefined><any>null : {
                 autoGenerate: prop.server.autoGenerate,
                 //defaultValue: prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : prop.server.defaultValue,
                 name: prop.server.name,
@@ -202,8 +202,12 @@ module ModelDefinitionsSet {
             toService: prop.toService,
             type: prop.type,
         };
-        if (Object.prototype.hasOwnProperty.call(prop, "defaultValue")) { (<any>res).defaultValue = prop.defaultValue != null ? cloneDeep(prop.defaultValue) : prop.defaultValue; }
-        if (res.server && Object.prototype.hasOwnProperty.call(prop.server, "defaultValue")) { (<any>res.server).defaultValue = prop.server.defaultValue != null ? cloneDeep(prop.server.defaultValue) : prop.server.defaultValue; }
+        if (Object.prototype.hasOwnProperty.call(prop, "defaultValue")) {
+            (<any>res).defaultValue = prop.defaultValue != null ? cloneDeep(prop.defaultValue) : prop.defaultValue;
+        }
+        if (res.server && Object.prototype.hasOwnProperty.call(prop.server, "defaultValue")) {
+            (<any>res.server).defaultValue = (<any>prop.server).defaultValue != null ? cloneDeep((<any>prop.server).defaultValue) : (<any>prop.server).defaultValue;
+        }
         return res;
     }
 

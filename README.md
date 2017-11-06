@@ -3,11 +3,11 @@ LokiJS Collections
 
 Strongly typed TypeScript collection wrappers for [lokiJS](https://github.com/techfort/LokiJS).
 
-### Usage
+## Usage
 This project is designed to be imported using commonJs `require(...)` calls.
 To use this in a web app, it's currently setup to be required and then included in a bundle at build time.
 
-### Setup
+## Setup
 Creating a database instance is the most involved task, once the database instance is created the rest is fairly straightfoward. 
 You'll need a few things to create a lokijs collection database:
 * A database name
@@ -20,7 +20,9 @@ You can use defaults for the rest of the settings, most of them work fine
 var InMemDbImpl = require(".../lokijs-collections/db-collections/InMemDbImpl");
 var DummyDataPersister = require(".../lokijs-collections/test/DummyDataPersister");
 var DtoPropertyConverter = require(".../ts-code-generator/code-types/DtoPropertyConverter");
+
 var databaseName = "...";
+
 // two collection schemas or models, enables a lot of cool TypeScript type checking, fewer bugs, and easy constraint setup (i.e. not-null, unique, auto-generated)
 var dataModels = {
     collection_1_name: {
@@ -45,31 +47,59 @@ var dbInst = new InMemDbImpl(databaseName,
     { compressLocalStores: false },
     "for-in-if",
     "collection_meta_data",
-    ModelDefinitionsSet.fromCollectionModels(dataModels, null/*defaultDataTypes*/),
-    function createPersister(dbInst) {
-        var persister = new DummyDataPersister(() => dbInst.getCollections(), InMemDbImpl.cloneForInIf, null);
-        return persister;
-    });
+    ModelDefinitionsSet.fromCollectionModels(dataModels, null/*defaultDataTypes*/)
+);
+```
+
+### Example - Creating a WebSQL database persister:
+__Note: the `WebSqlPersister.WebSqlAdapter` constructor has several parameters which are highly customizable, please read the class and constructor documentation for details.__
+```ts
+// log to console or other error logger
+var trace: WebSqlSpi.Trace = {
+    log: (...args: any[]) => ...,
+    error: (...args: any[]) => ...,
+    text: (...args: any[]) => ...,
+};
+
+var sqlInst = WebSqlSpi.newWebSqlDbInst("persistent-websql-database", null, null, null,
+    { trace: trace, logVerbosity: WebSqlSpi.DbUtils.logLevels.ERROR });
+
+var persister = new WebSqlPersister.WebSqlAdapter(sqlInst,
+    trace,
+    () => dbInst.listCollections(),
+    (collName, data) => {
+        var coll = dbInst.getCollection(collName, true);
+        coll.insert(data);
+        return coll;
+    },
+    (itm) => InMemDbImpl.cloneCloneDelete(itm, true),
+    null,
+    null,
+    (err) => trace.error("storage error", err)
+);
 ```
 
 You now have a working in-memory database using lokijs and TypeScript.
 Checkout the 'test/' directory for some examples of how to use it.
 
 
-### Project Structure
+## Project Structure
 
-#### db-collections/
+### db-collections/
 Contains 'DataCollection', a wrapper for a loki.js collection, add/remove/update functions modify the underlying loki.js collection. 
 Also contains 'InMemDbImpl' which bridges the gap between an untyped loki.js instance and 'DataCollection'. 
 
-#### data-models/
+### data-models/
 ModelDefinitionsSet for creating and managing a group of DataCollectionModels using DtoModels or DataCollectionModels as a starting point.
 
-#### change-trackers/
+### change-trackers/
 Collections and handlers for tracking lokijs collection changes (i.e. updates, additions, deletions). 
 
-#### key-constraints/
+### key-constraints/
 Collection meta-data and unique/primary key constraint handlers for 'DataCollection'. 
 Includes:
 - `PrimaryKeyMaintainer` for checking uniqueness of primary keys and/or generating numerical keys (i.e. 1, 2, 3, ...), 
 - `NonNullKeyMaintainer` for checking that fields have values
+
+### persisters/
+'DataPersister' implementations and helper classes for persisting and restoring in-memory databases.

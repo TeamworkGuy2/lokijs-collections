@@ -1,12 +1,13 @@
 "use strict";
-var Q = require("q");
 var Arrays = require("../../ts-mortar/utils/Arrays");
 var Objects = require("../../ts-mortar/utils/Objects");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
-var PermissionedDataPersister = require("./PermissionedDataPersister");
+var PermissionedDataPersister = require("../persisters/PermissionedDataPersister");
+var Collection = require("./Collection");
+var EventEmitter = require("./TsEventEmitter");
 /** An InMemDb implementation that wraps a InMemDbProvider database
  */
 var InMemDbImpl = (function () {
@@ -24,39 +25,121 @@ var InMemDbImpl = (function () {
      * @param createCollectionSettingsFunc a function which returns collection initialization settings for a given collection name
      * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
-    function InMemDbImpl(dbName, settings, storeSettings, cloneType, metaDataCollectionName, reloadMetaData, modelDefinitions, databaseInitializer, dataPersisterFactory, createCollectionSettingsFunc, modelKeysFunc) {
-        this.dbName = dbName;
-        this.dbInitializer = databaseInitializer;
-        this.syncSettings = settings;
-        this.storeSettings = storeSettings;
+    function InMemDbImpl(dbName, options, cloneType, metaDataCollectionName, reloadMetaData, modelDefinitions, createCollectionSettingsFunc, modelKeysFunc) {
+        var _this = this;
+        this.name = dbName;
+        this.collections = [];
+        this.databaseVersion = 1.2; // persist version of code which created the database
+        this.settings = options;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataCollectionName = metaDataCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
+        this.cloneFunc = (cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
             (cloneType === "keys-for-if" ? InMemDbImpl.cloneKeysForIf :
                 (cloneType === "keys-excluding-for" ? InMemDbImpl.cloneKeysExcludingFor :
-                    (cloneType === "clone-delete" ? InMemDbImpl.cloneCloneDelete : null)));
+                    (cloneType === "clone-delete" ? InMemDbImpl.cloneCloneDelete : null))));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
         this.getCreateCollectionSettings = createCollectionSettingsFunc;
         this.getModelObjKeys = modelKeysFunc;
-        this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersister = InMemDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.events = new EventEmitter({
+            "init": [],
+            "flushChanges": [],
+            "close": [],
+            "changes": [],
+            "warning": []
+        });
+        function getEnvironment() {
+            if (typeof window === "undefined") {
+                return "NODEJS";
+            }
+            if (typeof global !== "undefined" && global["window"]) {
+                return "NODEJS"; //node-webkit
+            }
+            if (typeof document !== "undefined") {
+                if (document.URL.indexOf("http://") === -1 && document.URL.indexOf("https://") === -1) {
+                    return "CORDOVA";
+                }
+                return "BROWSER";
+            }
+            return "CORDOVA";
+        }
+        // if no options.env provided, detect environment (browser vs node vs cordova).
+        // two properties used for similar thing (options.env and options.persistenceMethod)
+        //   might want to review whether we can consolidate.
+        if (options && options.env != null) {
+            this.environment = options.env;
+        }
+        else {
+            this.environment = getEnvironment();
+        }
+        this.events.on("init", function () { return _this.changeTracker.clearChanges(); });
     }
-    // ======== private methods ========
-    InMemDbImpl.prototype.getPrimaryKeyMaintainer = function () {
-        if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
-        }
-        return this.primaryKeyMaintainer;
+    InMemDbImpl.prototype.getName = function () {
+        return this.name;
     };
-    InMemDbImpl.prototype.getNonNullKeyMaintainer = function () {
-        if (this.nonNullKeyMaintainer == null) {
-            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelDefinitions);
+    // ======== Data Collection manipulation ========
+    InMemDbImpl.prototype.listCollections = function () {
+        return this.collections;
+    };
+    InMemDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
+        if (autoCreate === void 0) { autoCreate = true; }
+        var coll = null;
+        for (var i = 0, len = this.collections.length; i < len; i++) {
+            if (this.collections[i].name === collectionName) {
+                coll = this.collections[i];
+            }
         }
-        return this.nonNullKeyMaintainer;
+        if (coll == null) {
+            if (!autoCreate) {
+                // no such collection
+                this.events.emit("warning", "collection " + collectionName + " not found");
+                return null;
+            }
+            else {
+                var settings = this.getCreateCollectionSettings != null ? this.getCreateCollectionSettings(collectionName) : null;
+                coll = this.addCollection(collectionName, settings);
+                coll.dirty = true;
+            }
+        }
+        return coll;
+    };
+    InMemDbImpl.prototype.addCollection = function (name, options) {
+        var collection = new Collection(name, options);
+        this.collections.push(collection);
+        return collection;
+    };
+    InMemDbImpl.prototype.loadCollection = function (collection) {
+        if (!collection.name) {
+            throw new Error("Collection must be have a name property to be loaded");
+        }
+        this.collections.push(collection);
+    };
+    InMemDbImpl.prototype.clearCollection = function (collection, dstMetaData) {
+        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
+        if (coll != null) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
+            }
+            coll.dirty = true;
+            coll.clear();
+        }
+    };
+    InMemDbImpl.prototype.removeCollection = function (collection, dstMetaData) {
+        var coll = typeof collection === "string" ? this.getCollection(collection, false) : collection;
+        if (coll != null) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
+            }
+            for (var i = 0, len = this.collections.length; i < len; i++) {
+                if (this.collections[i].name === coll.name) {
+                    this.collections.splice(i, 1);
+                    break;
+                }
+            }
+        }
     };
     // ==== Meta-data Getters/Setters ====
     InMemDbImpl.prototype.getModelDefinitions = function () {
@@ -65,23 +148,17 @@ var InMemDbImpl = (function () {
     InMemDbImpl.prototype.getModelKeys = function () {
         return this.modelKeys;
     };
-    InMemDbImpl.prototype.initializeDb = function () {
-        this.db = this.dbInitializer(this.dbName);
-    };
-    InMemDbImpl.prototype.resetDataStore = function () {
-        var dfd = Q.defer();
-        this.db = null;
-        this.dataPersister = InMemDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
-        dfd.resolve(null);
-        return dfd.promise;
-    };
-    InMemDbImpl.prototype.setDataPersister = function (dataPersisterFactory) {
+    InMemDbImpl.prototype.createDataPersister = function (dataPersisterFactory, permissioned) {
         var _this = this;
-        this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersister = dataPersisterFactory(this, function () { return _this.getCollections(); }, function (collName) { return _this.cloneFunc; }, function (collName) { return null; });
-    };
-    InMemDbImpl.prototype.getDataPersister = function () {
-        return this.dataPersister;
+        if (permissioned === void 0) { permissioned = true; }
+        var dataPersister = dataPersisterFactory(this, function () { return _this.listCollections(); }, function (collName) { return _this.cloneFunc; }, function (collName) { return null; });
+        if (permissioned) {
+            var permissionedAdapter = new PermissionedDataPersister(dataPersister, this.settings, this.settings);
+            return permissionedAdapter;
+        }
+        else {
+            return dataPersister;
+        }
     };
     // ======== Database CRUD Operations ========
     InMemDbImpl.prototype.data = function (collection, dataModel, query, queryProps) {
@@ -187,7 +264,7 @@ var InMemDbImpl = (function () {
         if (dstMetaData) {
             dstMetaData.addChangeItemsModified(doc);
         }
-        collection.isDirty = true;
+        collection.dirty = true;
         this.dataModified(collection, doc, null, dstMetaData);
         return collection.update(doc);
     };
@@ -197,7 +274,7 @@ var InMemDbImpl = (function () {
         if (dstMetaData && resData.length > 0) {
             dstMetaData.addChangeItemsModified(resData.length);
         }
-        // get obj props, except the lokijs specific ones
+        // get obj props, except the MemDb specific ones
         var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
         var updateKeysLen = updateKeys.length;
         for (var i = 0, size = resData.length; i < size; i++) {
@@ -215,7 +292,7 @@ var InMemDbImpl = (function () {
         if (dstMetaData) {
             dstMetaData.addChangeItemsRemoved(doc);
         }
-        collection.isDirty = true;
+        collection.dirty = true;
         this.dataRemoved(collection, doc, null, dstMetaData);
         collection.remove(doc);
     };
@@ -226,15 +303,11 @@ var InMemDbImpl = (function () {
             this.remove(collection, dataModel, doc, dstMetaData);
         }
     };
-    // Array-like
-    InMemDbImpl.prototype.mapReduce = function (collection, dataModel, map, reduce) {
-        return collection.mapReduce(map, reduce);
-    };
     // ======== query and insert implementations ========
     InMemDbImpl.prototype._addHandlePrimaryAndGeneratedKeys = function (collection, dataModel, primaryConstraint, generateOption, docs, dstMetaData) {
         // TODO primaryConstraint and generateOption validation
         if (!docs || docs.length === 0) {
-            return;
+            return null;
         }
         // Generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
         this.getPrimaryKeyMaintainer().manageKeys(collection.name, docs, generateOption === ModelKeysImpl.Generated.AUTO_GENERATE);
@@ -248,9 +321,22 @@ var InMemDbImpl = (function () {
         if (dstMetaData) {
             dstMetaData.addChangeItemsAdded(docs);
         }
-        collection.isDirty = true;
+        collection.dirty = true;
         this.dataAdded(collection, docs, null, dstMetaData);
         return collection.insert(docs);
+    };
+    // ======== private methods ========
+    InMemDbImpl.prototype.getPrimaryKeyMaintainer = function () {
+        if (this.primaryKeyMaintainer == null) {
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
+        }
+        return this.primaryKeyMaintainer;
+    };
+    InMemDbImpl.prototype.getNonNullKeyMaintainer = function () {
+        if (this.nonNullKeyMaintainer == null) {
+            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelDefinitions);
+        }
+        return this.nonNullKeyMaintainer;
     };
     /** Execute a query (including optimizations and additional flags for various use cases)
      * @param collection the collection to query
@@ -313,44 +399,6 @@ var InMemDbImpl = (function () {
         }
         return results;
     };
-    // ======== Data Collection manipulation ========
-    InMemDbImpl.prototype.getCollections = function () {
-        return this.db.listCollections();
-    };
-    InMemDbImpl.prototype.getCollection = function (collectionName, autoCreate) {
-        if (autoCreate === void 0) { autoCreate = true; }
-        var coll = this.db.getCollection(collectionName);
-        if (!coll) {
-            if (!autoCreate) {
-                return;
-            }
-            else {
-                var settings = this.getCreateCollectionSettings(collectionName);
-                coll = this.db.addCollection(collectionName, settings);
-                coll.isDirty = true;
-            }
-        }
-        return coll;
-    };
-    InMemDbImpl.prototype.clearCollection = function (collection, dstMetaData) {
-        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
-        if (coll != null) {
-            if (dstMetaData) {
-                dstMetaData.addChangeItemsRemoved(coll.data.length);
-            }
-            coll.isDirty = true;
-            coll.clear();
-        }
-    };
-    InMemDbImpl.prototype.removeCollection = function (collection, dstMetaData) {
-        var coll = typeof collection === "string" ? this.db.getCollection(collection) : this.db.getCollection(collection.name);
-        if (coll != null) {
-            if (dstMetaData) {
-                dstMetaData.addChangeItemsRemoved(coll.data.length);
-            }
-            this.db.removeCollection(coll.name);
-        }
-    };
     // ======== event loggers ========
     InMemDbImpl.prototype.dataAdded = function (coll, newDocs, query, dstMetaData) {
         // events not yet implemented
@@ -410,15 +458,50 @@ var InMemDbImpl = (function () {
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
         return type(obj, cloneDeep);
     };
-    // ======== private static methods ========
-    InMemDbImpl.createDefaultDataPersister = function (dbDataInst, dataPersisterFactory) {
-        dbDataInst.setDataPersister(function (dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) {
-            var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
-            var permissionedAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
-            return permissionedAdapter;
-        });
-        return dbDataInst.getDataPersister();
-    };
     return InMemDbImpl;
+}());
+/**-------------------------+
+| Changes API               |
++--------------------------*/
+/** The Changes API enables the tracking the changes occurred in the collections since the beginning of the session,
+ * so it's possible to create a differential dataset for synchronization purposes (possibly to a remote db)
+ */
+var DbChanges = (function () {
+    function DbChanges(getCollections) {
+        this.getCollections = getCollections;
+    }
+    /** takes all the changes stored in each
+     * collection and creates a single array for the entire database. If an array of names
+     * of collections is passed then only the included collections will be tracked.
+     *
+     * @param {array} optional array of collection names. No arg means all collections are processed.
+     * @returns {array} array of changes
+     * @see private method createChange() in Collection
+     */
+    DbChanges.prototype.generateChangesNotification = function (collectionNames) {
+        var changes = [];
+        this.getCollections().forEach(function (coll) {
+            if (collectionNames == null || collectionNames.indexOf(coll.name) !== -1) {
+                changes = changes.concat(coll.getChanges());
+            }
+        });
+        return changes;
+    };
+    /** stringify changes for network transmission
+     * @returns {string} string representation of the changes
+     */
+    DbChanges.prototype.serializeChanges = function (collectionNames) {
+        return JSON.stringify(this.generateChangesNotification(collectionNames));
+    };
+    /** clears all the changes in all collections.
+     */
+    DbChanges.prototype.clearChanges = function () {
+        this.getCollections().forEach(function (coll) {
+            if (coll.flushChanges) {
+                coll.flushChanges();
+            }
+        });
+    };
+    return DbChanges;
 }());
 module.exports = InMemDbImpl;

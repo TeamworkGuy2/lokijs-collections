@@ -4,9 +4,9 @@
  * @since 2015-12-17
  */
 class DummyDataPersister implements DataPersister {
-    private getDataSources: () => LokiCollection<any>[];
-    private getItemSaveConverter: (collName: string) => ((item: any) => any);
-    private getItemLoadConverter: (collName: string) => ((item: any) => any);
+    private getDataSources: (() => MemDbCollection<any>[]) | null;
+    private getItemSaveConverter: ((collName: string) => (item: any) => any) | null;
+    private getItemLoadConverter: ((collName: string) => (item: any) => any) | null;
 
 
     /**
@@ -16,7 +16,7 @@ class DummyDataPersister implements DataPersister {
      * @param restoreItemTransformation: a conversion function to pass items through
      * after restoring them and before storing them in getDataSources()
      */
-    constructor(getDataSources: () => LokiCollection<any>[], getSaveItemTransformFunc?: (collName: string) => ((item: any) => any), getRestoreItemTransformFunc?: (collName: string) => ((item: any) => any)) {
+    constructor(getDataSources: () => MemDbCollection<any>[], getSaveItemTransformFunc: ((collName: string) => (item: any) => any) | null, getRestoreItemTransformFunc: ((collName: string) => (item: any) => any) | null) {
         this.getDataSources = getDataSources;
         this.getItemSaveConverter = getSaveItemTransformFunc;
         this.getItemLoadConverter = getRestoreItemTransformFunc;
@@ -25,7 +25,7 @@ class DummyDataPersister implements DataPersister {
 
     /** Get a list of collections in this data persister */
     public getCollectionNames(): Q.Promise<string[]> {
-        return null;
+        return <any>null;
     }
 
 
@@ -33,7 +33,7 @@ class DummyDataPersister implements DataPersister {
      * Removes tables from store that don't exist in in-memory db
      */
     public persist(defaultOptions?: DataPersister.WriteOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.WriteOptions)): Q.Promise<DataPersister.PersistResult> {
-        return null;
+        return <any>null;
     }
 
 
@@ -41,25 +41,25 @@ class DummyDataPersister implements DataPersister {
      * All in memory tables are dropped and re-added
      */
     public restore(defaultOptions?: DataPersister.ReadOptions, getCollectionSpecificOptions ?: ((collName: string) => DataPersister.ReadOptions)): Q.Promise<DataPersister.RestoreResult> {
-        return null;
+        return <any>null;
     }
 
 
     /** Get all data from a specific collection */
     public getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): Q.Promise<any[]> {
-        return null;
+        return <any>null;
     }
 
 
     /** Add data to a specific collection */
-    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<{ size: number; dataSizeBytes: number; }> {
-        return null;
+    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
+        return <any>null;
     }
 
 
     /** Remove all data from a specific collection */
     public clearCollections(collectionNames: string[]): Q.Promise<void> {
-        return null;
+        return <any>null;
     }
 
 

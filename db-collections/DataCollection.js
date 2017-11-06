@@ -1,5 +1,5 @@
 "use strict";
-/// <reference path="./in-mem-collections.d.ts" />
+/// <reference path="./mem-collections.d.ts" />
 var ListenerList = require("../../ts-event-handlers-lite/ListenerList");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -221,9 +221,8 @@ var DataCollection = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.update(this.collection, this.dataModel, doc, change);
+        this.dbInst.update(this.collection, this.dataModel, doc, change);
         this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Mark multiple existing documents in this collection modified.
      * The documents specified must all already exist in the collection
@@ -233,9 +232,8 @@ var DataCollection = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.update(this.collection, this.dataModel, docs, change);
+        this.dbInst.update(this.collection, this.dataModel, docs, change);
         this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Update documents matching a query with properties from a provided update object
      * @param query: a mongo style query object, supports query fields like '$le', '$eq', '$ne', etc.
@@ -246,9 +244,8 @@ var DataCollection = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
+        this.dbInst.updateWhere(this.collection, this.dataModel, query, obj, change);
         this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Remove a document from this collection.
      */
@@ -257,17 +254,15 @@ var DataCollection = (function () {
             return;
         }
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.remove(this.collection, this.dataModel, doc, change);
+        this.dbInst.remove(this.collection, this.dataModel, doc, change);
         this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Remove documents from this collection that match a given query
      */
     DataCollection.prototype.removeWhere = function (query, dstResultInfo) {
         var change = this.createCollChange(dstResultInfo);
-        var res = this.dbInst.removeWhere(this.collection, this.dataModel, query, change);
+        this.dbInst.removeWhere(this.collection, this.dataModel, query, change);
         this.collChange(change, dstResultInfo);
-        return res;
     };
     /** Remove all documents from this collection
      */
@@ -287,12 +282,14 @@ var DataCollection = (function () {
     };
     // ==== helper/implementation methods ====
     DataCollection.prototype.collChange = function (change, secondaryResultInfo) {
-        if (this.changes != null) {
-            this.changes.addChange(change);
-            this.eventHandler.fireEvent(change);
-        }
-        if (secondaryResultInfo != null) {
-            secondaryResultInfo.addChange(change);
+        if (change != null) {
+            if (this.changes != null && this.eventHandler != null) {
+                this.changes.addChange(change);
+                this.eventHandler.fireEvent(change);
+            }
+            if (secondaryResultInfo != null) {
+                secondaryResultInfo.addChange(change);
+            }
         }
     };
     DataCollection.prototype.createCollChange = function (secondaryResultInfo) {
@@ -300,7 +297,7 @@ var DataCollection = (function () {
     };
     DataCollection.prototype._add = function (docs, noModify, dstResultInfo) {
         if (docs == null) {
-            return;
+            return null;
         }
         var change = this.createCollChange(dstResultInfo);
         var res = this.dbInst.add(this.collection, this.dataModel, docs, noModify, change);
@@ -309,7 +306,7 @@ var DataCollection = (function () {
     };
     DataCollection.prototype._addAll = function (docs, noModify, dstResultInfo) {
         if (docs == null || docs.length === 0) {
-            return;
+            return [];
         }
         var change = this.createCollChange(dstResultInfo);
         var res = this.dbInst.addAll(this.collection, this.dataModel, docs, noModify, change);

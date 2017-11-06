@@ -140,8 +140,8 @@ var ModelDefinitionsSet = (function () {
             };
             modelsFuncs[modelName] = {
                 copyFunc: tableFuncs.copyFunc,
-                convertToLocalObjectFunc: tableFuncs.convertToLocalObjectFunc,
-                convertToSvcObjectFunc: tableFuncs.convertToSvcObjectFunc
+                toLocalObject: tableFuncs.toLocalObject,
+                toSvcObject: tableFuncs.toSvcObject
             };
         }
         return { modelDefs: modelDefs, modelsFuncs: modelsFuncs };

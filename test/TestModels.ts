@@ -69,19 +69,19 @@ module TestModels {
         var now = new Date();
 
         itemA1 = {
-            id: null,
+            id: <number><any>null,
             name: "Alfred",
             styles: ["color: #F0F0F0", "font-size: 12px"]
         };
 
         itemA2 = {
-            id: null,
+            id: <number><any>null,
             name: "Billy",
             styles: ["color: #33AACC", "font-size: 10px"]
         };
 
         itemA3 = {
-            id: null,
+            id: <number><any>null,
             name: "Charlie",
             styles: ["color: #CCBBAA", "font-size: 8px"]
         };
@@ -91,7 +91,7 @@ module TestModels {
             note: "the fabled warrior",
             token: "C8A33B1-3B8EA7D7F89",
             lastModified: now.toISOString(),
-            timestamp: null,
+            timestamp: <Date><any>null,
         };
 
         itemB2 = {
@@ -99,7 +99,7 @@ module TestModels {
             note: "the quiet monk",
             token: "89A324D-3B883283C22",
             lastModified: now.toISOString(),
-            timestamp: null,
+            timestamp: <Date><any>null,
         };
 
         var yesterday = new Date();
@@ -110,7 +110,7 @@ module TestModels {
             note: "the quiet monk",
             token: "LL28VMN-28A946T3B28",
             lastModified: yesterday.toISOString(),
-            timestamp: null,
+            timestamp: <Date><any>null,
         };
 
     }

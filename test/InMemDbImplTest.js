@@ -2,9 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference types="chai" />
 /// <reference types="mocha" />
-/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
+/// <reference path="../db-collections/mem-db.d.ts" />
 var chai = require("chai");
-var Loki = require("lokijs");
 var Arrays = require("../../ts-mortar/utils/Arrays");
 var Objects = require("../../ts-mortar/utils/Objects");
 var InMemDbImpl = require("../db-collections/InMemDbImpl");
@@ -13,26 +12,10 @@ var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 var DummyDataPersister = require("./DummyDataPersister");
 var M = require("./TestModels");
 var asr = chai.assert;
-var now = new Date();
 function rebuildDb() {
-    var persister;
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createDb(dbName) {
-        var lokiDb = new Loki(dbName, {});
-        return {
-            addCollection: function (name, opts) { return lokiDb.addCollection(name, opts); },
-            getCollection: function (name) { return lokiDb.getCollection(name); },
-            getName: function () { return lokiDb.getName(); },
-            listCollections: function () { return lokiDb.collections; },
-            removeCollection: function (name) { return lokiDb.removeCollection(name); }
-        };
-    }, function createPersister(dbInst) {
-        persister = new DummyDataPersister(function () { return dbInst.getCollections(); }, InMemDbImpl.cloneForInIf, null);
-        return persister;
-    }, function createCollectionSettingsFunc(collectionName) {
-        var settings = {
-            asyncListeners: false // lokijs async listeners cause performance issues (2015-1)
-        };
+    var dbInst = new InMemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createCollectionSettingsFunc(collectionName) {
+        var settings = {};
         if (collectionName === "coll_b") {
             settings["unique"] = ["userId"];
         }
@@ -43,7 +26,6 @@ function rebuildDb() {
         Arrays.fastRemove(keys, "meta");
         return keys;
     });
-    dbInst.initializeDb();
     var modelA = dbInst.getModelDefinitions().getModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
     var modelB = dbInst.getModelDefinitions().getModel("coll_b");
@@ -55,6 +37,9 @@ function rebuildDb() {
         getMetaDataCollection: function () { return dbInst.getCollection(metaDataCollName, false); }
     };
 }
+function createPersister(dbInst) {
+    return new DummyDataPersister(function () { return dbInst.listCollections(); }, InMemDbImpl.cloneForInIf, null);
+}
 function createSorter(prop) {
     return function sorter(a, b) {
         return a[prop] > b[prop] ? 1 : (a[prop] == b[prop] ? 0 : -1);
@@ -64,7 +49,7 @@ suite("InMemDbImpl", function LokiDbImplTest() {
     test("new InMemDbImpl()", function newLokiDbImplTest() {
         M.rebuildItems();
         var db = rebuildDb();
-        asr.deepEqual(db.dbInst.getCollections().map(function (c) { return c.name; }), ["coll_a", "coll_b"]);
+        asr.deepEqual(db.dbInst.listCollections().map(function (c) { return c.name; }), ["coll_a", "coll_b"]);
     });
     test("collection settings", function collectionSettingsTest() {
         var db = rebuildDb();

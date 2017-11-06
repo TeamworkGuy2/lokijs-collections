@@ -4,7 +4,39 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.21.0](N/A) - 2017-10-26
+### [0.22.0](N/A) - 2017-10-28
+__Integrate simplified version of Lokijs code into this project, remove Lokijs dependency__
+#### Added
+* Ported `lokijs@~1.3.0` to project and removed lokijs dependency from `package.json`
+  * Copied lokijs into `db-collections` new classes: `Collection`, `DynamicView`, `Resultset`, `MemDbPersisters`, and `TsEventEmitter`
+  * Removed lokijs 'deep.property.scan' query feature to reduce complexity
+  * Removed LokiEventEmitter `asyncListeners` option since it causes performance issues
+  * Delegation instead of inheritance: `Loki`, `Collection`, `DynamicView`, and `Resultset` no longer extend `EventEmitter`. All of these, excluding Resultset, now contain `events` fields which are instances of `EventEmitter`.
+  * Merged `InMemDbImpl` with `Loki`
+* `WebSqlSpi` containing low level interface for reading/writing parameterized queries to WebSQL tables in browser
+* `WebSqlPersister` implements `DataPersister` and creates basic WebSQL queries for persisting and restoring `DataCollection`s
+  * `WebSqlPersister` is decoupled for `WebSqlSpi` via a simple interface with two methods: `getTables()` and `executeQueries(WebSqlSpi.SqlQuery[])`
+
+#### Changed
+* Added `strictNullChecks` to `tsconfig.json` and updated code to handle nulls
+* Improved data types with null checks
+* Updated to ts-mortar@0.15.0 (strict null checks)
+* Merged `Loki` dependency library/class with `InMemDbImpl`
+* Renamed `InMemDb.getCollections()` -> `listCollections()`
+* Renamed `InMemDbImpl` fields: `dbName` -> `name`, merged fields `syncSettings` and `storeSettings` into new `settings` field
+* Merged and consolidated `Loki` interfaces with `in-mem-collections.d.ts` interfaces
+* Renamed and split definition file `in-mem-collections.d.ts` into `mem-collections.d.ts`, `mem-db.d.ts`, and `mem-models.d.ts`
+* Merged `DtoSvcFuncs` and `DtoAllFuncs` interfaces, renamed fields `convertToLocalObjectFunc` -> `toLocalObject` and `convertToSvcObjectFunc` -> `toSvcObject`
+
+#### Removed
+* `InMemDbImpl` fields: `db` and `dbInitializer`
+* `InMemDbImpl` `databaseInitializer` constructor field and merged constructor fields `syncSettings` and `storeSettings` into new `settings` field
+* `InMemDb` `initializeDb()` since there is no underlying `InMemDbProvider` anymore
+* Removed `DtoSvcFuncs` interface (mreged with `DtoAllFuncs`
+
+
+--------
+### [0.21.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/91fdf7e3e226ee5165eed9923dba312d7dc6d1cc) - 2017-10-26
 #### Changed
 * `ModelDefinitions` interface changes:
   * `getPrimaryKeyNames()` renamed `getPrimaryKeys()`
@@ -15,7 +47,6 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 #### Removed
 * Removed `ModelDefinitionsSet` fields: `dataTypes` and `models`
 * Removed interface `ModelDefinitions.DataTypeDefault`
-
 
 
 --------

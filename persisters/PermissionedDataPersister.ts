@@ -64,11 +64,11 @@ class PermissionedDataPersisterAdapter implements DataPersister {
     }
 
 
-    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<{ size: number; dataSizeBytes: number; }> {
+    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
         if (this.syncSettings.writeAllow) {
             return this.persister.addCollectionRecords(collectionName, {
                 compress: (options != null ? options.compress : this.storeSettings.compressLocalStores),
-                maxObjectsPerChunk: (options != null ? options.maxObjectsPerChunk : null)
+                maxObjectsPerChunk: (options != null ? options.maxObjectsPerChunk : <undefined><any>null)
             }, records, removeExisting);
         }
         else {

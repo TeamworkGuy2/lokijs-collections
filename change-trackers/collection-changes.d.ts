@@ -1,6 +1,5 @@
 ﻿
 /** Interfaces for collection changes (i.e. add, remove, update)
- * @author TeamworkGuy2
  */
 declare module Changes {
 

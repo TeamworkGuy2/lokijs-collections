@@ -1,10 +1,10 @@
 ﻿/// <reference types="chai" />
 /// <reference types="mocha" />
-/// <reference path="../../definitions/lokijs/lokijs.d.ts" />
+/// <reference path="../db-collections/mem-db.d.ts" />
 import chai = require("chai");
-import Loki = require("lokijs");
 import Arrays = require("../../ts-mortar/utils/Arrays");
 import Objects = require("../../ts-mortar/utils/Objects");
+import Collection = require("../db-collections/Collection");
 import InMemDbImpl = require("../db-collections/InMemDbImpl");
 import DataCollection = require("../db-collections/DataCollection");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -13,31 +13,13 @@ import M = require("./TestModels");
 
 var asr = chai.assert;
 
-var now = new Date();
-
 
 function rebuildDb() {
-    var persister: DummyDataPersister;
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("lokijs-collections-test", { readAllow: true, writeAllow: true }, { compressLocalStores: false }, "for-in-if",
+    var dbInst = new InMemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if",
         metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap),
-        function createDb(dbName: string) {
-            var lokiDb = new Loki(dbName, {});
-            return {
-                addCollection: (name, opts) => lokiDb.addCollection(name, opts),
-                getCollection: (name) => lokiDb.getCollection(name),
-                getName: () => lokiDb.getName(),
-                listCollections: () => lokiDb.collections,
-                removeCollection: (name) => lokiDb.removeCollection(name)
-            };
-        },
-        function createPersister(dbInst: InMemDb) {
-            persister = new DummyDataPersister(() => dbInst.getCollections(), InMemDbImpl.cloneForInIf, null);
-            return persister;
-        },
         function createCollectionSettingsFunc(collectionName: string) {
             var settings = {
-                asyncListeners: false // lokijs async listeners cause performance issues (2015-1)
             };
             if (collectionName === "coll_b") {
                 settings["unique"] = ["userId"];
@@ -51,7 +33,6 @@ function rebuildDb() {
             return <(keyof typeof obj)[]>keys;
         }
     );
-    dbInst.initializeDb();
 
     var modelA = dbInst.getModelDefinitions().getModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
@@ -62,8 +43,13 @@ function rebuildDb() {
         dbInst: dbInst,
         collA: new DataCollection<M.MdA, M.PkA>("coll_a", modelA, modelFuncsA, dbInst),
         collB: new DataCollection<M.MdB, M.PkB>("coll_b", modelB, modelFuncsB, dbInst),
-        getMetaDataCollection: () => dbInst.getCollection(metaDataCollName, false)
+        getMetaDataCollection: () => <MemDbCollection<any>>dbInst.getCollection(metaDataCollName, false)
     };
+}
+
+
+function createPersister(dbInst: InMemDb) {
+    return new DummyDataPersister(() => dbInst.listCollections(), InMemDbImpl.cloneForInIf, null);
 }
 
 
@@ -80,7 +66,7 @@ suite("InMemDbImpl", function LokiDbImplTest() {
         M.rebuildItems();
         var db = rebuildDb();
 
-        asr.deepEqual(db.dbInst.getCollections().map((c) => c.name), ["coll_a", "coll_b"]);
+        asr.deepEqual(db.dbInst.listCollections().map((c) => c.name), ["coll_a", "coll_b"]);
     });
 
 

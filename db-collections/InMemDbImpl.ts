@@ -1,11 +1,12 @@
-﻿import Q = require("q");
-import Arrays = require("../../ts-mortar/utils/Arrays");
+﻿import Arrays = require("../../ts-mortar/utils/Arrays");
 import Objects = require("../../ts-mortar/utils/Objects");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
-import PermissionedDataPersister = require("./PermissionedDataPersister");
+import PermissionedDataPersister = require("../persisters/PermissionedDataPersister");
+import Collection = require("./Collection");
+import EventEmitter = require("./TsEventEmitter");
 
 
 interface InMemDbCloneFunc {
@@ -15,23 +16,23 @@ interface InMemDbCloneFunc {
 
 /** An InMemDb implementation that wraps a InMemDbProvider database
  */
-class InMemDbImpl implements InMemDb {
-    private primaryKeyMaintainer: PrimaryKeyMaintainer;
-    private nonNullKeyMaintainer: NonNullKeyMaintainer;
+class InMemDbImpl implements InMemDb, MemDbCollectionSet {
+    public name: string;
+    public events: TsEventEmitter<{ init: any[]; flushChanges: any[]; close: any[]; changes: any[]; warning: any[] }>;
+    readonly settings: ReadWritePermission & StorageFormatSettings;
+    collections: MemDbCollection<any>[];
+    databaseVersion: number;
+    environment: string;
+    changeTracker: DbChanges;
     private metaDataCollectionName: string;
+    private nonNullKeyMaintainer: NonNullKeyMaintainer;
+    private primaryKeyMaintainer: PrimaryKeyMaintainer;
     private reloadMetaData: boolean;
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
-    private db: InMemDbProvider<any>;
-    private dbName: string;
-    private dbInitializer: (dbName: string) => InMemDbProvider<any>;
-    private dataPersisterFactory: DataPersister.Factory;
-    private dataPersister: DataPersister;
-    private syncSettings: ReadWritePermission;
-    private storeSettings: StorageFormatSettings;
-    private getCreateCollectionSettings: (collectionName: string) => any; // ({ unique?: string[]; exact?: string[] } & LokiCollectionOptions & { [name: string]: any; })
+    private getCreateCollectionSettings: ((collectionName: string) => MemDbCollectionOptions | null) | null; // ({ unique?: string[]; exact?: string[] } & LokiCollectionOptions & { [name: string]: any; })
     private cloneFunc: InMemDbCloneFunc;
-    private getModelObjKeys: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[];
+    private getModelObjKeys: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[];
 
 
     /**
@@ -49,54 +50,153 @@ class InMemDbImpl implements InMemDb {
      * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
     constructor(dbName: string,
-        settings: ReadWritePermission,
-        storeSettings: StorageFormatSettings,
+        options: { env?: ("BROWSER" | "CORDOVA" | "NODEJS") } & ReadWritePermission & StorageFormatSettings,
         cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
         metaDataCollectionName: string,
         reloadMetaData: boolean,
         modelDefinitions: ModelDefinitions,
-        databaseInitializer: (dbName: string) => InMemDbProvider<any>,
-        dataPersisterFactory: (dbInst: InMemDb) => DataPersister,
-        createCollectionSettingsFunc: (collectionName: string) => any,
-        modelKeysFunc: <T>(obj: T, collection: LokiCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]
+        createCollectionSettingsFunc: ((collectionName: string) => MemDbCollectionOptions | null) | null,
+        modelKeysFunc: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]
     ) {
-        this.dbName = dbName;
-        this.dbInitializer = databaseInitializer;
-        this.syncSettings = settings;
-        this.storeSettings = storeSettings;
+        this.name = dbName;
+        this.collections = [];
+        this.databaseVersion = 1.2; // persist version of code which created the database
+        this.settings = options;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataCollectionName = metaDataCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
+        this.cloneFunc = <InMemDbCloneFunc>(cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
             (cloneType === "keys-for-if" ? InMemDbImpl.cloneKeysForIf :
                 (cloneType === "keys-excluding-for" ? InMemDbImpl.cloneKeysExcludingFor :
-                    (cloneType === "clone-delete" ? InMemDbImpl.cloneCloneDelete : null)));
+                    (cloneType === "clone-delete" ? InMemDbImpl.cloneCloneDelete : null))));
         if (this.cloneFunc == null) {
             throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
         }
         this.getCreateCollectionSettings = createCollectionSettingsFunc;
         this.getModelObjKeys = modelKeysFunc;
 
-        this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersister = InMemDbImpl.createDefaultDataPersister(this, dataPersisterFactory);
+        this.events = new EventEmitter({
+            "init": [],
+            "flushChanges": [],
+            "close": [],
+            "changes": [],
+            "warning": []
+        });
+
+        function getEnvironment() {
+            if (typeof window === "undefined") {
+                return "NODEJS";
+            }
+
+            if (typeof global !== "undefined" && global["window"]) {
+                return "NODEJS"; //node-webkit
+            }
+
+            if (typeof document !== "undefined") {
+                if (document.URL.indexOf("http://") === -1 && document.URL.indexOf("https://") === -1) {
+                    return "CORDOVA";
+                }
+                return "BROWSER";
+            }
+            return "CORDOVA";
+        }
+
+        // if no options.env provided, detect environment (browser vs node vs cordova).
+        // two properties used for similar thing (options.env and options.persistenceMethod)
+        //   might want to review whether we can consolidate.
+        if (options && options.env != null) {
+            this.environment = options.env;
+        } else {
+            this.environment = getEnvironment();
+        }
+
+        this.events.on("init", () => this.changeTracker.clearChanges());
     }
 
 
-    // ======== private methods ========
-
-    private getPrimaryKeyMaintainer() {
-        if (this.primaryKeyMaintainer == null) {
-            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
-        }
-        return this.primaryKeyMaintainer;
+    public getName() {
+        return this.name;
     }
 
-    private getNonNullKeyMaintainer() {
-        if (this.nonNullKeyMaintainer == null) {
-            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelDefinitions);
+
+    // ======== Data Collection manipulation ========
+
+    public listCollections(): MemDbCollection<any>[] {
+        return this.collections;
+    }
+
+
+    public getCollection(collectionName: string, autoCreate: true): MemDbCollection<any>;
+    public getCollection(collectionName: string, autoCreate?: boolean): MemDbCollection<any> | null;
+    public getCollection(collectionName: string, autoCreate: boolean = true): MemDbCollection<any> | null {
+        var coll: MemDbCollection<any> | null = null;
+        for (var i = 0, len = this.collections.length; i < len; i++) {
+            if (this.collections[i].name === collectionName) {
+                coll = this.collections[i];
+            }
         }
-        return this.nonNullKeyMaintainer;
+
+        if (coll == null) {
+            if (!autoCreate) {
+                // no such collection
+                this.events.emit("warning", "collection " + collectionName + " not found");
+                return null;
+            }
+            else {
+                var settings = this.getCreateCollectionSettings != null ? this.getCreateCollectionSettings(collectionName) : null;
+                coll = this.addCollection(collectionName, settings);
+                coll.dirty = true;
+            }
+        }
+        return coll;
+    }
+
+
+    public addCollection(name: string, options?: MemDbCollectionOptions | null): MemDbCollection<any> {
+        var collection = new Collection(name, options);
+        this.collections.push(collection);
+
+        return collection;
+    }
+
+
+    public loadCollection(collection: MemDbCollection<any>) {
+        if (!collection.name) {
+            throw new Error("Collection must be have a name property to be loaded");
+        }
+        this.collections.push(collection);
+    }
+
+
+    public clearCollection(collection: string | MemDbCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
+
+        if (coll != null) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
+            }
+
+            coll.dirty = true;
+            coll.clear();
+        }
+    }
+
+
+    public removeCollection(collection: string | MemDbCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
+        var coll = typeof collection === "string" ? this.getCollection(collection, false) : collection;
+
+        if (coll != null) {
+            if (dstMetaData) {
+                dstMetaData.addChangeItemsRemoved(coll.data.length);
+            }
+            for (var i = 0, len = this.collections.length; i < len; i++) {
+                if (this.collections[i].name === coll.name) {
+                    this.collections.splice(i, 1);
+                    break;
+                }
+            }
+        }
     }
 
 
@@ -112,39 +212,26 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public initializeDb() {
-        this.db = this.dbInitializer(this.dbName);
-    }
-
-
-    public resetDataStore(): Q.Promise<void> {
-        var dfd = Q.defer<void>();
-        this.db = null;
-        this.dataPersister = InMemDbImpl.createDefaultDataPersister(this, this.dataPersisterFactory);
-        dfd.resolve(null);
-        return dfd.promise;
-    }
-
-
-    public setDataPersister(dataPersisterFactory: DataPersister.Factory): void {
-        this.dataPersisterFactory = dataPersisterFactory;
-        this.dataPersister = dataPersisterFactory(this, () => this.getCollections(), (collName: string) => this.cloneFunc, (collName: string) => null);
-    }
-
-
-    public getDataPersister(): DataPersister {
-        return this.dataPersister;
+    public createDataPersister(dataPersisterFactory: DataPersister.Factory, permissioned = true): DataPersister {
+        var dataPersister = dataPersisterFactory(this, () => this.listCollections(), (collName: string) => this.cloneFunc, (collName: string) => null);
+        if (permissioned) {
+            var permissionedAdapter = new PermissionedDataPersister(dataPersister, this.settings, this.settings);
+            return permissionedAdapter;
+        }
+        else {
+            return dataPersister;
+        }
     }
 
 
     // ======== Database CRUD Operations ========
 
-    public data<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): T[] {
+    public data<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): T[] {
         return <T[]>this._findNResults(collection, dataModel, 0, Infinity, query, queryProps, false, false);
     }
 
 
-    public find<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): ResultSetLike<T> {
+    public find<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[]): ResultSetLike<T> {
         if (query == null || collection.data.length === 0) {
             return collection.chain();
         }
@@ -153,31 +240,31 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public first<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[], throwIfNone?: boolean, throwIfMultiple?: boolean): T {
+    public first<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, query: any, queryProps?: string[], throwIfNone?: boolean, throwIfMultiple?: boolean): T {
         return <T>this._findNResults(collection, dataModel, 1, 1, query, queryProps, throwIfNone, throwIfMultiple);
     }
 
 
-    public add<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T {
+    public add<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, doc: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T {
         return <T><any>this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
             noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
             [doc], dstMetaData);
     }
 
 
-    public addAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
-        return this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
+    public addAll<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, docs: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): T[] {
+        return <T[]>this._addHandlePrimaryAndGeneratedKeys(collection, dataModel, ModelKeysImpl.Constraint.NON_NULL,
             noModify ? ModelKeysImpl.Generated.PRESERVE_EXISTING : ModelKeysImpl.Generated.AUTO_GENERATE,
             docs, dstMetaData);
     }
 
 
-    public addOrUpdateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
         var results = this.find(collection, dataModel, query);
 
-        var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange = null;
+        var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange | undefined = <never>null;
         if (dstMetaData) {
             compoundDstMetaData = new ChangeTrackers.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
@@ -224,11 +311,11 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public addOrUpdateAll<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => InMemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
         var existingData = this.find(collection, dataModel, null).data();
         // pluck keys from existing data
-        var existingDataKeys = [];
+        var existingDataKeys: T[keyof T][] = [];
         for (var i = 0, size = existingData.length; i < size; i++) {
             var prop = existingData[i][keyName];
             existingDataKeys.push(prop);
@@ -247,7 +334,7 @@ class InMemDbImpl implements InMemDb {
             }
         }
 
-        var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange = null;
+        var compoundDstMetaData: Changes.CollectionChangeTracker & Changes.CollectionChange | undefined = <never>null;
         if (dstMetaData) {
             compoundDstMetaData = new ChangeTrackers.CompoundCollectionChange();
             dstMetaData.addChange(compoundDstMetaData);
@@ -268,18 +355,18 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public update<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public update<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, doc: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (dstMetaData) {
             dstMetaData.addChangeItemsModified(doc);
         }
 
-        collection.isDirty = true;
+        collection.dirty = true;
         this.dataModified(collection, doc, null, dstMetaData);
-        return collection.update(<T>doc);
+        return collection.update(<T & MemDbObj>doc);
     }
 
 
-    public updateWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public updateWhere<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, query: any, obj: Partial<T>, dstMetaData?: Changes.CollectionChangeTracker): void {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
         var resData = this._findMultiProp(collection, query).data();
@@ -288,7 +375,7 @@ class InMemDbImpl implements InMemDb {
             dstMetaData.addChangeItemsModified(resData.length);
         }
 
-        // get obj props, except the lokijs specific ones
+        // get obj props, except the MemDb specific ones
         var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
         var updateKeysLen = updateKeys.length;
 
@@ -299,7 +386,7 @@ class InMemDbImpl implements InMemDb {
             var idx = -1;
             while (idx++ < updateKeysLen) {
                 var key = updateKeys[idx];
-                doc[key] = obj[key];
+                doc[key] = <T[keyof T]>obj[key];
             }
 
             this.update(collection, dataModel, doc);
@@ -307,18 +394,18 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    public remove<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public remove<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, doc: T, dstMetaData?: Changes.CollectionChangeTracker): void {
         if (dstMetaData) {
             dstMetaData.addChangeItemsRemoved(doc);
         }
 
-        collection.isDirty = true;
+        collection.dirty = true;
         this.dataRemoved(collection, doc, null, dstMetaData);
         collection.remove(doc);
     }
 
 
-    public removeWhere<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public removeWhere<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, query: any, dstMetaData?: Changes.CollectionChangeTracker): void {
         var docs = this.find(collection, dataModel, query).data();
         for (var i = docs.length - 1; i > -1; i--) {
             var doc = docs[i];
@@ -327,20 +414,13 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    // Array-like
-    public mapReduce<T, U, R>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, map: (value: T, index: number, array: T[]) => U,
-            reduce: (previousValue: R, currentValue: U, currentIndex: number, array: U[]) => R): R {
-        return collection.mapReduce(map, reduce);
-    }
-
-
     // ======== query and insert implementations ========
 
-    _addHandlePrimaryAndGeneratedKeys<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, primaryConstraint: ModelKeysImpl.Constraint,
-        generateOption: ModelKeysImpl.Generated, docs: T[], dstMetaData?: Changes.CollectionChangeTracker): T[] {
+    _addHandlePrimaryAndGeneratedKeys<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, primaryConstraint: ModelKeysImpl.Constraint,
+            generateOption: ModelKeysImpl.Generated, docs: T[], dstMetaData?: Changes.CollectionChangeTracker): T[] | null {
         // TODO primaryConstraint and generateOption validation
         if (!docs || docs.length === 0) {
-            return;
+            return null;
         }
 
         // Generate auto-generated keys if requested before checking unique IDs since the auto-generated keys may be unique IDs
@@ -357,9 +437,26 @@ class InMemDbImpl implements InMemDb {
             dstMetaData.addChangeItemsAdded(docs);
         }
 
-        collection.isDirty = true;
+        collection.dirty = true;
         this.dataAdded(collection, docs, null, dstMetaData);
         return collection.insert(docs);
+    }
+
+
+    // ======== private methods ========
+
+    private getPrimaryKeyMaintainer() {
+        if (this.primaryKeyMaintainer == null) {
+            this.primaryKeyMaintainer = new PrimaryKeyMaintainer(this.metaDataCollectionName, this.reloadMetaData, this, this.modelDefinitions, this.modelKeys);
+        }
+        return this.primaryKeyMaintainer;
+    }
+
+    private getNonNullKeyMaintainer() {
+        if (this.nonNullKeyMaintainer == null) {
+            this.nonNullKeyMaintainer = new NonNullKeyMaintainer(this.modelDefinitions);
+        }
+        return this.nonNullKeyMaintainer;
     }
 
 
@@ -374,7 +471,8 @@ class InMemDbImpl implements InMemDb {
      * @param throwIfLess whether to throw an error if less than 'min' results are found by the query
      * @param throwIfMore whether to throw an error if more than 'max' results are found by the query
      */
-    private _findNResults<T>(collection: LokiCollection<T>, dataModel: DataCollectionModel<T>, min: number, max: number, query: any, queryProps: string[], throwIfLess: boolean, throwIfMore: boolean): T | T[] {
+    private _findNResults<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, min: number, max: number, query: any,
+            queryProps: string[] | null | undefined, throwIfLess: boolean | null | undefined, throwIfMore: boolean | null | undefined): T | T[] | null {
         if (min > max) {
             throw new Error("illegal argument exception min=" + min + ", max=" + max + ", min must be less than max");
         }
@@ -394,7 +492,7 @@ class InMemDbImpl implements InMemDb {
 
         // search by primary key
         if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
-            var itm = collection.by(queryProps[0], query[queryProps[0]]);
+            var itm = collection.by(<keyof T>queryProps[0], query[queryProps[0]]);
 
             if (throwIfLess && itm == null) {
                 throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found 0 results");
@@ -413,13 +511,13 @@ class InMemDbImpl implements InMemDb {
     }
 
 
-    private _findMultiProp<S>(coll: LokiCollection<S>, query: any, queryProps?: string[], firstOnly?: boolean): ResultSetLike<S> {
-        var results = coll.chain();
+    private _findMultiProp<S>(coll: MemDbCollection<S>, query: any, queryProps?: string[] | null, firstOnly?: boolean): ResultSetLike<S> {
+        var results: MemDbResultset<S> = coll.chain();
         if (!queryProps) {
             for (var prop in query) {
                 var localQuery: StringMap<any> = {};
                 localQuery[prop] = query[prop];
-                results = results.find(localQuery, firstOnly);
+                results = <any>results.find(localQuery, firstOnly);
             }
         }
         else {
@@ -427,74 +525,25 @@ class InMemDbImpl implements InMemDb {
                 var propI = queryProps[i];
                 var localQuery: StringMap<any> = {};
                 localQuery[propI] = query[propI];
-                results = results.find(localQuery, firstOnly);
+                results = <any>results.find(localQuery, firstOnly);
             }
         }
         return results;
     }
 
 
-    // ======== Data Collection manipulation ========
-
-    public getCollections(): LokiCollection<any>[] {
-        return this.db.listCollections();
-    }
-
-
-    public getCollection(collectionName: string, autoCreate: boolean = true): LokiCollection<any> {
-        var coll = this.db.getCollection(collectionName);
-        if (!coll) {
-            if (!autoCreate) {
-                return;
-            }
-            else {
-                var settings = this.getCreateCollectionSettings(collectionName);
-                coll = this.db.addCollection(collectionName, settings);
-                coll.isDirty = true;
-            }
-        }
-        return coll;
-    }
-
-
-    public clearCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var coll = typeof collection === "string" ? this.getCollection(collection) : collection;
-
-        if (coll != null) {
-            if (dstMetaData) {
-                dstMetaData.addChangeItemsRemoved(coll.data.length);
-            }
-
-            coll.isDirty = true;
-            coll.clear();
-        }
-    }
-
-
-    public removeCollection(collection: string | LokiCollection<any>, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var coll = typeof collection === "string" ? this.db.getCollection(collection) : this.db.getCollection(collection.name);
-
-        if (coll != null) {
-            if (dstMetaData) {
-                dstMetaData.addChangeItemsRemoved(coll.data.length);
-            }
-            this.db.removeCollection(coll.name);
-        }
-    }
-
-
     // ======== event loggers ========
-    private dataAdded(coll: LokiCollection<any>, newDocs: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker) {
+    private dataAdded(coll: MemDbCollection<any>, newDocs: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker | null | undefined) {
         // events not yet implemented
     }
 
 
-    private dataModified(coll: LokiCollection<any>, changeDoc: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker) {
+    private dataModified(coll: MemDbCollection<any>, changeDoc: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker | null | undefined) {
         // events not yet implemented
     }
 
 
-    private dataRemoved(coll: LokiCollection<any>, removedDoc: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker) {
+    private dataRemoved(coll: MemDbCollection<any>, removedDoc: any | any[], query: any, dstMetaData: Changes.CollectionChangeTracker | null | undefined) {
         // events not yet implemented
     }
 
@@ -564,16 +613,60 @@ class InMemDbImpl implements InMemDb {
         return type(obj, cloneDeep);
     }
 
+}
 
-    // ======== private static methods ========
 
-    private static createDefaultDataPersister(dbDataInst: InMemDbImpl, dataPersisterFactory: DataPersister.Factory): DataPersister {
-        dbDataInst.setDataPersister((dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc) => {
-            var dataPersister = dataPersisterFactory(dbInst, getDataCollections, getSaveItemTransformFunc, getRestoreItemTransformFunc);
-            var permissionedAdapter = new PermissionedDataPersister(dataPersister, dbDataInst.syncSettings, dbDataInst.storeSettings);
-            return permissionedAdapter;
+/**-------------------------+
+| Changes API               |
++--------------------------*/
+/** The Changes API enables the tracking the changes occurred in the collections since the beginning of the session,
+ * so it's possible to create a differential dataset for synchronization purposes (possibly to a remote db)
+ */
+class DbChanges implements MemDbChanges {
+    getCollections: () => MemDbCollection<any>[]
+
+
+    constructor(getCollections: () => MemDbCollection<any>[]) {
+        this.getCollections = getCollections;
+    }
+
+
+    /** takes all the changes stored in each
+     * collection and creates a single array for the entire database. If an array of names
+     * of collections is passed then only the included collections will be tracked.
+     *
+     * @param {array} optional array of collection names. No arg means all collections are processed.
+     * @returns {array} array of changes
+     * @see private method createChange() in Collection
+     */
+    public generateChangesNotification(collectionNames: string[] | null | undefined) {
+        var changes: any[] = [];
+
+        this.getCollections().forEach(function (coll) {
+            if (collectionNames == null || collectionNames.indexOf(coll.name) !== -1) {
+                changes = changes.concat(coll.getChanges());
+            }
         });
-        return dbDataInst.getDataPersister();
+        return changes;
+    }
+
+
+    /** stringify changes for network transmission
+     * @returns {string} string representation of the changes
+     */
+    public serializeChanges(collectionNames: string[] | null | undefined) {
+        return JSON.stringify(this.generateChangesNotification(collectionNames));
+    }
+
+
+    /** clears all the changes in all collections.
+     */
+    public clearChanges() {
+        this.getCollections().forEach(function (coll) {
+            if (coll.flushChanges) {
+                coll.flushChanges();
+            }
+        });
     }
 
 }
