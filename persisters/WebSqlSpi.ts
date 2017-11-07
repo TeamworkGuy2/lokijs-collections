@@ -579,7 +579,7 @@ module WebSqlUtil {
                         });
                     }
                     else {
-                        for (var j, szJ = params.length; j < szJ; j++) {
+                        for (var j = 0, szJ = params.length; j < szJ; j++) {
                             xact.executeSql(cmnd.sql, params[j], function (xact: SQLTransaction, rs: SQLResultSet) {
                                 results.push(rsCallback ? rsCallback(rs) : rs);
                             });

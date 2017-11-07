@@ -1,7 +1,8 @@
 LokiJS Collections
 ==============
 
-Strongly typed TypeScript collection wrappers for [lokiJS](https://github.com/techfort/LokiJS).
+TypeScript port of [lokiJS](https://github.com/techfort/LokiJS).
+As of version `0.22.0` of this project, lokiJS is no longer a dependency and a lokiJS is integrates directly into this project.
 
 ## Usage
 This project is designed to be imported using commonJs `require(...)` calls.
@@ -12,10 +13,10 @@ Creating a database instance is the most involved task, once the database instan
 You'll need a few things to create a lokijs collection database:
 * A database name
 * Data models - one for each collection with schema information about the type of data being stored in each
-* A database persister.  You can use the dummy in the 'test/' directory if you don't need to persist your data yet or aren't sure how a data persister works.
+* (optional) A database persister.  You can use the DummyDataPersister in the 'test/' directory if you don't need to persist your data yet or aren't sure how a data persister works.
 You can use defaults for the rest of the settings, most of them work fine 
 
-### Example - Creating an in-memory database instance:
+### 1. Example - Creating an in-memory database instance:
 ```ts
 var InMemDbImpl = require(".../lokijs-collections/db-collections/InMemDbImpl");
 var DummyDataPersister = require(".../lokijs-collections/test/DummyDataPersister");
@@ -43,16 +44,21 @@ var dataModels = {
 
 // create the DB instance, there are a lot of configurable settings, this one is using a dummy data persister, everything is in-memory
 var dbInst = new InMemDbImpl(databaseName,
-    { readAllow: true, writeAllow: true },
-    { compressLocalStores: false },
+    { readAllow: true, writeAllow: true, compressLocalStores: false },
     "for-in-if",
-    "collection_meta_data",
-    ModelDefinitionsSet.fromCollectionModels(dataModels, null/*defaultDataTypes*/)
+    "collection_meta_data", false,
+    ModelDefinitionsSet.fromCollectionModels(dataModels, null/*defaultDataTypes*/),
+    (collectionName) => { return { ... }; },
+    (obj, collection, dataModel) => {
+        return Object.keys(obj);
+        // or
+        return dataModel.fieldNames;
+    }
 );
 ```
 
-### Example - Creating a WebSQL database persister:
-__Note: the `WebSqlPersister.WebSqlAdapter` constructor has several parameters which are highly customizable, please read the class and constructor documentation for details.__
+### 2. Example - Creating a WebSQL database persister:
+__Note:__ the `WebSqlPersister.WebSqlAdapter` constructor has several parameters which are highly customizable, please read the class and constructor documentation for details.
 ```ts
 // log to console or other error logger
 var trace: WebSqlSpi.Trace = {

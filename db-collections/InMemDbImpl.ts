@@ -35,7 +35,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
     private getModelObjKeys: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[];
 
 
-    /**
+    /** Create an in-memory database instance using the following parameters.
      * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
      * this only affects the underlying data persister created from the 'dataPersisterFactory'
@@ -384,7 +384,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
 
             // assign obj props -> doc
             var idx = -1;
-            while (idx++ < updateKeysLen) {
+            while (++idx < updateKeysLen) {
                 var key = updateKeys[idx];
                 doc[key] = <T[keyof T]>obj[key];
             }
@@ -451,6 +451,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         }
         return this.primaryKeyMaintainer;
     }
+
 
     private getNonNullKeyMaintainer() {
         if (this.nonNullKeyMaintainer == null) {

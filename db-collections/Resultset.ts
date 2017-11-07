@@ -86,7 +86,7 @@ class Resultset<T> implements MemDbResultset<T> {
      * @returns Returns a copy of the resultset (set) but the underlying document references will be the same.
      */
     public copy() {
-        var result: Resultset<T> = Resultset.from(this.collection, null, null);
+        var result = <Resultset<T>><any>Resultset.from(this.collection, null, null);
 
         result.filteredrows = this.filteredrows.slice();
         result.filterInitialized = this.filterInitialized;
@@ -720,7 +720,7 @@ class Resultset<T> implements MemDbResultset<T> {
     public map<U>(mapFun: (value: T, index: number, array: T[]) => U): Resultset<U> {
         var data = this.data().map(mapFun);
         //return return a new resultset with no filters
-        this.collection = new Collection("mappedData");
+        this.collection = new Collection<T>("mappedData");
         this.collection.insert(<any[]>data);
         this.filteredrows = [];
         this.filterInitialized = false;

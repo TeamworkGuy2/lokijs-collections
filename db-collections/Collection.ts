@@ -743,7 +743,7 @@ class Collection<T> implements MemDbCollection<T> {
      * on a collection.
      */
     public chain(): Resultset<T> {
-        return Resultset.from<T>(this, null, null);
+        return <Resultset<T>><any>Resultset.from<T>(this, null, null);
     }
 
 

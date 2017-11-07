@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.22.0](N/A) - 2017-10-28
+### [0.22.1](N/A) - 2017-11-07
+#### Change
+* Updated and fixed some README info
+
+#### Fixed
+* Some errors when compiling without `strictNullChecks`
+* Nested loop counter not getting initialized in `WebSqlSpi.execSqlStatements()` when passed a query with an `args` array containing one or more elements
+
+
+--------
+### [0.22.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/ee215894242c187ea25a55dc66d60eac1bcc6021) - 2017-11-06
 __Integrate simplified version of Lokijs code into this project, remove Lokijs dependency__
 #### Added
 * Ported `lokijs@~1.3.0` to project and removed lokijs dependency from `package.json`

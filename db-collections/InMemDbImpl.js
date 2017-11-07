@@ -11,7 +11,7 @@ var EventEmitter = require("./TsEventEmitter");
 /** An InMemDb implementation that wraps a InMemDbProvider database
  */
 var InMemDbImpl = (function () {
-    /**
+    /** Create an in-memory database instance using the following parameters.
      * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
      * this only affects the underlying data persister created from the 'dataPersisterFactory'
@@ -281,7 +281,7 @@ var InMemDbImpl = (function () {
             var doc = resData[i];
             // assign obj props -> doc
             var idx = -1;
-            while (idx++ < updateKeysLen) {
+            while (++idx < updateKeysLen) {
                 var key = updateKeys[idx];
                 doc[key] = obj[key];
             }
