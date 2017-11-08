@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.22.1",
+  "version": "0.22.2",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
   "dependencies": {

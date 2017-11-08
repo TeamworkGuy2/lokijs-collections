@@ -2,7 +2,7 @@ LokiJS Collections
 ==============
 
 TypeScript port of [lokiJS](https://github.com/techfort/LokiJS).
-As of version `0.22.0` of this project, lokiJS is no longer a dependency and a lokiJS is integrates directly into this project.
+As of version `0.22.0` of this project, lokiJS is no longer a dependency and a `lokijs@1.3.0` is integrates directly into this project.
 
 ## Usage
 This project is designed to be imported using commonJs `require(...)` calls.
@@ -10,12 +10,13 @@ To use this in a web app, it's currently setup to be required and then included 
 
 ## Setup
 Creating a database instance is the most involved task, once the database instance is created the rest is fairly straightfoward. 
-You'll need a few things to create a lokijs collection database:
+You'll need a few things to create a lokijs-collection database:
 * A database name
 * Data models - one for each collection with schema information about the type of data being stored in each
 * (optional) A database persister.  You can use the DummyDataPersister in the 'test/' directory if you don't need to persist your data yet or aren't sure how a data persister works.
 You can use defaults for the rest of the settings, most of them work fine 
 
+--------
 ### 1. Example - Creating an in-memory database instance:
 ```ts
 var InMemDbImpl = require(".../lokijs-collections/db-collections/InMemDbImpl");
@@ -57,6 +58,7 @@ var dbInst = new InMemDbImpl(databaseName,
 );
 ```
 
+--------
 ### 2. Example - Creating a WebSQL database persister:
 __Note:__ the `WebSqlPersister.WebSqlAdapter` constructor has several parameters which are highly customizable, please read the class and constructor documentation for details.
 ```ts
@@ -85,10 +87,11 @@ var persister = new WebSqlPersister.WebSqlAdapter(sqlInst,
 );
 ```
 
-You now have a working in-memory database using lokijs and TypeScript.
+You now have a working in-memory database using TypeScript.
 Checkout the 'test/' directory for some examples of how to use it.
 
 
+--------
 ## Project Structure
 
 ### db-collections/

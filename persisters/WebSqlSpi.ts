@@ -185,7 +185,7 @@ module WebSqlUtil {
                     // seems to synchronously open WebSQL, even though window.openDatabase is async
                     var db: Database = window.openDatabase(name, version, displayName, estimatedSize);
                     self.initDb(db);
-                    if (!util._isDatabase(self.db)) {
+                    if (util._isDatabase(self.db)) {
                         dfd.resolve(self);
                     } else {
                         util._rejectError(dfd, "Failed to open database");
@@ -777,7 +777,7 @@ module WebSqlUtil {
                 if (options.sqlError) (<any>error).sqlError = options.sqlError;
             }
 
-            this.log(this.ERROR, "ERROR: " + (<any>error).exception || (<any>error).sqlError || error.message);
+            this.log(this.ERROR, "ERROR: " + ((<any>error).exception || (<any>error).sqlError || error.message));
             dfd.reject(error);
             return dfd.promise;
         }

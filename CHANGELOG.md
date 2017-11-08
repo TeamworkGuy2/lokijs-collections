@@ -4,7 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.22.1](N/A) - 2017-11-07
+### [0.22.2](N/A) - 2017-11-08
+#### Fixed
+* A bug in `WebSqlSpi.WebSqlDatabase.openDatabase()` that was rejecting the database initialization promise when the database was successfully opened
+* `WebSqlPersister.WebSqlAdapter.persist()` now correctly tracks the byte size of the restored data strings
+* DataCollection `mem-collections.d.ts` reference changed to `mem-db.d.ts` to fix compile issue when compiling just the DataCollection file
+
+
+--------
+### [0.22.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/34cd3d8fb02864f30a4d8af9563fb96995982cf4) - 2017-11-07
 #### Change
 * Updated and fixed some README info
 

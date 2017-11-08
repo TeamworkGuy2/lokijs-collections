@@ -182,7 +182,7 @@ module WebSqlPersister {
 
                         // check whether the row format has our required column
                         if (result.rows.item(0)[dataColumnName]) {
-                            docs = self.readRecords(result.rows, dataColumnName, decompress);
+                            docs = self.readRecords(result.rows, dataColumnName, decompress, res);
                         }
                         else {
                             if (self.logger != null && self.logger.error != null) self.logger.error("skip restoring table: " + tableName + " (unrecognized data format)");

@@ -1,4 +1,4 @@
-﻿/// <reference path="./mem-collections.d.ts" />
+﻿/// <reference path="./mem-db.d.ts" />
 import ListenerList = require("../../ts-event-handlers-lite/ListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
