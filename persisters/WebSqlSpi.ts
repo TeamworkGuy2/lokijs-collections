@@ -363,13 +363,10 @@ module WebSqlUtil {
                     } catch (exception) {
                         util._rejectError(dfd, webSqlFuncName + " callback threw an exception", { exception: exception });
                     }
-                    return;
                 }, function (sqlError) {
                     util._rejectError(dfd, "Failed executing " + webSqlFuncName.replace(/transaction/i, "") + " transaction", { sqlError: sqlError });
-                    return;
                 }, function () {
                     dfd.resolve(<void><any>null);
-                    return;
                 });
             } catch (exception) {
                 util._rejectError(dfd, "Failed calling " + webSqlFuncName, { exception: exception });
@@ -777,7 +774,7 @@ module WebSqlUtil {
                 if (options.sqlError) (<any>error).sqlError = options.sqlError;
             }
 
-            this.log(this.ERROR, "ERROR: " + ((<any>error).exception || (<any>error).sqlError || error.message));
+            this.log(this.ERROR, "ERROR: " + ((<any>error).exception || ((<any>error).sqlError ? (<SQLError>(<any>error).sqlError).message : (<any>error).sqlError) || error.message));
             dfd.reject(error);
             return dfd.promise;
         }

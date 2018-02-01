@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.22.2",
+  "version": "0.22.3",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
   "dependencies": {
@@ -16,7 +16,8 @@
     "@types/node": "~8.0.0",
     "@types/q": "~1.0.0",
     "chai": "~4.1.0",
-    "mocha": "~4.0.0"
+    "mocha": "~4.0.0",
+    "typescript": "~2.4.0"
   },
   "scripts": {
     "test": "mocha -u tdd"

@@ -74,9 +74,11 @@ var WebSqlPersister;
                         }
                         persistCount++;
                         // create the sql statements
-                        var res = self.createInsertStatements(coll.name, coll.data, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress);
-                        addOrUpdatePersistInfo(coll.name, res.itemCount, res.jsonSize);
-                        sqls.push({ sql: res.sql, args: res.args });
+                        if (coll.data.length > 0) {
+                            var res = self.createInsertStatements(coll.name, coll.data, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress);
+                            addOrUpdatePersistInfo(coll.name, res.itemCount, res.jsonSize);
+                            sqls.push({ sql: res.sql, args: res.args });
+                        }
                         coll.dirty = false;
                     }
                     if (sqls.length > 0) {
@@ -181,15 +183,19 @@ var WebSqlPersister;
         };
         WebSqlAdapter.prototype.addCollectionRecords = function (collectionName, options, records, removeExisting) {
             var opts = getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlAdapter.MAX_OBJECTS_PER_PERSIST_RECORD });
-            var res = this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress);
+            if (records.length > 0) {
+                var res = this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress);
+            }
             var sqls = [];
             if (removeExisting) {
                 sqls.push({ sql: "DELETE FROM " + collectionName, args: [] });
             }
-            sqls.push({ sql: res.sql, args: res.args });
+            if (records.length > 0) {
+                sqls.push({ sql: res.sql, args: res.args });
+            }
             return this.persistenceInterface.executeQueries(sqls).then(function (_a) {
                 var result = _a[0];
-                return ({ size: res.itemCount, dataSizeBytes: res.jsonSize });
+                return (res != null ? { size: res.itemCount, dataSizeBytes: res.jsonSize } : { size: 0, dataSizeBytes: 0 });
             });
         };
         WebSqlAdapter.prototype.clearCollections = function (collectionNames) {

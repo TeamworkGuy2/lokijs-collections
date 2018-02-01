@@ -117,9 +117,11 @@ module WebSqlPersister {
                         }
                         persistCount++;
                         // create the sql statements
-                        var res = self.createInsertStatements(coll.name, coll.data, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress);
-                        addOrUpdatePersistInfo(coll.name, res.itemCount, res.jsonSize);
-                        sqls.push({ sql: res.sql, args: res.args });
+                        if (coll.data.length > 0) {
+                            var res = self.createInsertStatements(coll.name, coll.data, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress);
+                            addOrUpdatePersistInfo(coll.name, res.itemCount, res.jsonSize);
+                            sqls.push({ sql: res.sql, args: res.args });
+                        }
                         coll.dirty = false;
                     }
                     if (sqls.length > 0) {
@@ -237,13 +239,17 @@ module WebSqlPersister {
 
         public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
             var opts = getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlAdapter.MAX_OBJECTS_PER_PERSIST_RECORD });
-            var res = this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress);
+            if (records.length > 0) {
+                var res = this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress);
+            }
             var sqls: WebSqlSpi.SqlQuery[] = [];
             if (removeExisting) {
                 sqls.push({ sql: "DELETE FROM " + collectionName, args: [] });
             }
-            sqls.push({ sql: res.sql, args: res.args });
-            return this.persistenceInterface.executeQueries(sqls).then(([result]) => ({ size: res.itemCount, dataSizeBytes: res.jsonSize }));
+            if (records.length > 0) {
+                sqls.push({ sql: res.sql, args: res.args });
+            }
+            return this.persistenceInterface.executeQueries(sqls).then(([result]) => (res != null ? { size: res.itemCount, dataSizeBytes: res.jsonSize } : { size: 0, dataSizeBytes: 0 }));
         }
 
 

@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.22.2](N/A) - 2017-11-08
+### [0.22.3](N/A) - 2018-01-31
+#### Change
+* SQLError message now included in errors thrown by WebSqlSpi _rejectError()
+
+#### Fixed
+* A bug in WebSqlPersister related to persisting empty collections
+
+
+--------
+### [0.22.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/9888586b9a0152521490ff834fdd1f54f2bb37c6) - 2017-11-08
 #### Fixed
 * A bug in `WebSqlSpi.WebSqlDatabase.openDatabase()` that was rejecting the database initialization promise when the database was successfully opened
 * `WebSqlPersister.WebSqlAdapter.persist()` now correctly tracks the byte size of the restored data strings

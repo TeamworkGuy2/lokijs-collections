@@ -300,13 +300,10 @@ var WebSqlUtil;
                     catch (exception) {
                         util._rejectError(dfd, webSqlFuncName + " callback threw an exception", { exception: exception });
                     }
-                    return;
                 }, function (sqlError) {
                     util._rejectError(dfd, "Failed executing " + webSqlFuncName.replace(/transaction/i, "") + " transaction", { sqlError: sqlError });
-                    return;
                 }, function () {
                     dfd.resolve(null);
-                    return;
                 });
             }
             catch (exception) {
@@ -635,7 +632,7 @@ var WebSqlUtil;
                 if (options.sqlError)
                     error.sqlError = options.sqlError;
             }
-            this.log(this.ERROR, "ERROR: " + (error.exception || error.sqlError || error.message));
+            this.log(this.ERROR, "ERROR: " + (error.exception || (error.sqlError ? error.sqlError.message : error.sqlError) || error.message));
             dfd.reject(error);
             return dfd.promise;
         };
