@@ -98,7 +98,7 @@ module WebSqlPersister {
             // add new tables and remove tables that do not have collections
             self.persistenceInterface.getTables().then((tables) => {
                 var tableNames = Arrays.pluck(tables, "name");
-                var promises: Q.Promise<SQLResultSet[]>[] = [];
+                var promises: Promise<SQLResultSet[]>[] = [];
 
                 self.getDataCollections().forEach((coll) => {
                     var sqls: WebSqlSpi.SqlQuery[] = [];
@@ -125,11 +125,11 @@ module WebSqlPersister {
                         coll.dirty = false;
                     }
                     if (sqls.length > 0) {
-                        var collPromise = self.persistenceInterface.executeQueries(sqls);
+                        var collPromise = <Promise<SQLResultSet[]>><any>self.persistenceInterface.executeQueries(sqls);
                         promises.push(collPromise);
                     }
                 });
-                return Q.all(promises);
+                return <Promise<SQLResultSet[][]>><any>Q.all(promises);
             }).done((results) => {
                 if (persistCount > 0) {
                     var timeMs = timerId.measure();
@@ -168,7 +168,7 @@ module WebSqlPersister {
                 tableNames = Arrays.pluck(tables, "name").filter((n) => WebSqlAdapter.tablesToNotLoad.indexOf(n) === -1);
                 var sqls: WebSqlSpi.SqlQuery[] = tables.filter((t) => WebSqlAdapter.tablesToNotLoad.indexOf(t.name) === -1)
                     .map((table) => ({ sql: "SELECT * FROM " + table.name, args: [] }));
-                return self.persistenceInterface.executeQueries(sqls);
+                return <Promise<SQLResultSet[]>><any>self.persistenceInterface.executeQueries(sqls);
             }).done((results) => {
                 results.forEach((result, tableIndex) => {
                     var tableName = tableNames[tableIndex];
@@ -239,9 +239,8 @@ module WebSqlPersister {
 
         public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
             var opts = getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlAdapter.MAX_OBJECTS_PER_PERSIST_RECORD });
-            if (records.length > 0) {
-                var res = this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress);
-            }
+            var res = records.length > 0 ? this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress) : <{ sql: string; args: ObjectArray[]; itemCount: number; jsonSize: number; }><any>null;
+
             var sqls: WebSqlSpi.SqlQuery[] = [];
             if (removeExisting) {
                 sqls.push({ sql: "DELETE FROM " + collectionName, args: [] });
@@ -268,7 +267,7 @@ module WebSqlPersister {
                 var sqls: WebSqlSpi.SqlQuery[] = tables
                     .filter((t) => WebSqlAdapter.tablesToNotClear.indexOf(t.name) === -1)
                     .map((table) => ({ sql: "DROP TABLE " + table.name, args: [] }));
-                return this.persistenceInterface.executeQueries(sqls);
+                return <Promise<SQLResultSet[]>><any>this.persistenceInterface.executeQueries(sqls);
             }).done((sqls) => {
                 var timeMs = timerId.measure();
                 if(this.logger != null) this.logger.log("Data cleared", Math.floor(timeMs), "(ms)");
@@ -360,7 +359,7 @@ module WebSqlPersister {
 
                 if (typeof keyGetter === "string") {
                     var uniqueKeyLists = items.reduce((mp, itm) => {
-                        var value = <string><any>itm[keyGetter];
+                        var value = <string>(<any>itm)[keyGetter];
                         var ary = (mp[value] || (mp[value] = []));
                         ary.push(itm);
                         return mp;
@@ -390,7 +389,7 @@ module WebSqlPersister {
                     for (var i = 0, sz = items.length; i < sz; i++) {
                         var datum = items[i];
                         var jsonData = JSON.stringify(datum, this.itemKeyValueFilter);
-                        var keyVal = datum[keyGetter];
+                        var keyVal = (<any>datum)[keyGetter];
                         itemCount += 1;
                         jsonSize += jsonData.length;
                         sqlArgs.push(keyColumn != null ? [keyVal, jsonData] : [jsonData]);

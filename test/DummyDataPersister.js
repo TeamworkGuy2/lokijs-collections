@@ -3,7 +3,7 @@
  * @author TeamworkGuy2
  * @since 2015-12-17
  */
-var DummyDataPersister = (function () {
+var DummyDataPersister = /** @class */ (function () {
     /**
      * @param getDataSources: returns a list of data collections that contain the data to persist/restore to
      * @param saveItemTransformation: a conversion function to pass items from getDataSources()

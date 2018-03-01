@@ -11,7 +11,7 @@ var Resultset = require("./Resultset");
  *   mydv.applyFind({ 'doors' : 4 });
  *   var results = mydv.data();
  */
-var DynamicView = (function () {
+var DynamicView = /** @class */ (function () {
     /**
      * @param collection - A reference to the collection to work against
      * @param name - The name of this dynamic view

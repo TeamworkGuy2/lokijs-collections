@@ -22,7 +22,7 @@ function rebuildDb() {
             var settings = {
             };
             if (collectionName === "coll_b") {
-                settings["unique"] = ["userId"];
+                (<any>settings)["unique"] = ["userId"];
             }
             return settings;
         },
@@ -123,9 +123,9 @@ suite("InMemDbImpl", function LokiDbImplTest() {
         asr.equal(itemA3New.name, newName);
 
         var newStyle = ["text-align: center"];
-        collA.updateWhere({ name: { $regex: { test: function (str) { console.log("testing: " + str); return /(Billy|Charlie).*/.test(str); } } } }, { styles: newStyle });
+        collA.updateWhere({ name: { $regex: { test: function (str: string) { console.log("testing: " + str); return /(Billy|Charlie).*/.test(str); } } } }, { styles: newStyle });
 
-        var itms = collA.data({ name: { $regex: { test: function (str) { console.log("testing: " + str); return /(Billy|Charlie).*/.test(str); } } } });
+        var itms = collA.data({ name: { $regex: { test: function (str: string) { console.log("testing: " + str); return /(Billy|Charlie).*/.test(str); } } } });
         asr.equal(itms.length, 2);
         asr.deepEqual(itms[0].styles, newStyle);
         asr.deepEqual(itms[1].styles, newStyle);

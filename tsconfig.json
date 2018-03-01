@@ -3,8 +3,8 @@
   "compilerOptions": {
     "lib": [ "es2017", "dom" ],
     "module": "commonjs",
-    "noEmitOnError": false,
-    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "noImplicitAny": true,
     "noImplicitThis": true,
     "removeComments": false,
     "sourceMap": false,

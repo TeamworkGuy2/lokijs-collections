@@ -24,7 +24,7 @@ class NonNullKeyMaintainer {
                 for (var i = 0, size = docs.length; i < size; i++) {
                     var doc = docs[i];
                     for (var ii = 0, sizeI = keyNames.length; ii < sizeI; ii++) {
-                        if (doc[keyNames[ii]] == null) {
+                        if ((<any>doc)[keyNames[ii]] == null) {
                             throw new Error("Attempting to insert object into " + collectionName + " without valid unique keys: [" + keyNames + "]");
                         }
                     }
@@ -38,7 +38,7 @@ class NonNullKeyMaintainer {
                     var doc = docs[i];
                     var valid = true;
                     for (var ii = 0, sizeI = keyNames.length; ii < sizeI; ii++) {
-                        if (doc[keyNames[ii]] == null) {
+                        if ((<any>doc)[keyNames[ii]] == null) {
                             valid = false;
                             break;
                         }

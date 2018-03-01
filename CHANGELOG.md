@@ -4,7 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.22.3](N/A) - 2018-01-31
+### [0.22.4](N/A) - 2018-03-01
+#### Changed
+* Update to TypeScript 2.7
+* Update dependencies: mocha, @types/chai, @types/mocha, @types/node
+* Enable tsconfig.json `noImplicitAny`
+
+
+--------
+### [0.22.3](https://github.com/TeamworkGuy2/lokijs-collections/commit/4bf9eef6477323f1a6789bd1449e5760e9d7daeb) - 2018-01-31
 #### Change
 * SQLError message now included in errors thrown by WebSqlSpi _rejectError()
 

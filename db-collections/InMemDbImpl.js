@@ -10,7 +10,7 @@ var Collection = require("./Collection");
 var EventEmitter = require("./TsEventEmitter");
 /** An InMemDb implementation that wraps a InMemDbProvider database
  */
-var InMemDbImpl = (function () {
+var InMemDbImpl = /** @class */ (function () {
     /** Create an in-memory database instance using the following parameters.
      * @param dbName the name of the in-memory database
      * @param settings permissions for the underlying data persister, this doesn't enable/disable the read/writing to this in-memory database,
@@ -466,7 +466,7 @@ var InMemDbImpl = (function () {
 /** The Changes API enables the tracking the changes occurred in the collections since the beginning of the session,
  * so it's possible to create a differential dataset for synchronization purposes (possibly to a remote db)
  */
-var DbChanges = (function () {
+var DbChanges = /** @class */ (function () {
     function DbChanges(getCollections) {
         this.getCollections = getCollections;
     }

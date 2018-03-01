@@ -8,7 +8,7 @@ var Arrays = require("../../ts-mortar/utils/Arrays");
  */
 var WebSqlPersister;
 (function (WebSqlPersister) {
-    var WebSqlAdapter = (function () {
+    var WebSqlAdapter = /** @class */ (function () {
         /** Create a DataPersister based on a WebSqlSpi instance and some additional functions to control the behavior of this persister.
          * @param persistenceInterface the underlying database to persist to
          * @param trace the object with functions for logging debug messages and errors
@@ -183,9 +183,7 @@ var WebSqlPersister;
         };
         WebSqlAdapter.prototype.addCollectionRecords = function (collectionName, options, records, removeExisting) {
             var opts = getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlAdapter.MAX_OBJECTS_PER_PERSIST_RECORD });
-            if (records.length > 0) {
-                var res = this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress);
-            }
+            var res = records.length > 0 ? this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress) : null;
             var sqls = [];
             if (removeExisting) {
                 sqls.push({ sql: "DELETE FROM " + collectionName, args: [] });

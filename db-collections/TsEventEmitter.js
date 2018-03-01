@@ -3,7 +3,7 @@
  * It manages a map associating event names and arrays of event listeners, as well as emitting events and triggering
  * listeners that have been added to the event through the on(event, callback) method
  */
-var EventEmitter = (function () {
+var EventEmitter = /** @class */ (function () {
     function EventEmitter(events) {
         if (events != null) {
             this.events = events || {};

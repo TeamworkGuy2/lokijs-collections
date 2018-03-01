@@ -2,7 +2,7 @@
 /** Check that a collection of objects have non null values for certain keys
  * @author TeamworkGuy2
  */
-var NonNullKeyMaintainer = (function () {
+var NonNullKeyMaintainer = /** @class */ (function () {
     function NonNullKeyMaintainer(modelDefs) {
         this.modelDefs = modelDefs;
     }

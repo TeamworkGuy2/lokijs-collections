@@ -78,13 +78,13 @@ class Collection<T> implements MemDbCollection<T> {
             if (!Array.isArray(options.unique)) {
                 options.unique = [options.unique];
             }
-            options.unique.forEach(function (prop) {
+            (<(keyof T)[]>options.unique).forEach(function (prop) {
                 self.constraints.unique[prop] = new UniqueIndex(prop);
             });
         }
 
         if (options.exact != null) {
-            options.exact.forEach(function (prop) {
+            (<(keyof T)[]>options.exact).forEach(function (prop) {
                 self.constraints.exact[prop] = new ExactIndex(prop);
             });
         }
@@ -234,7 +234,7 @@ class Collection<T> implements MemDbCollection<T> {
         for (var k in template) {
             if (!template.hasOwnProperty(k)) continue;
             query.push((
-                obj = {},
+                obj = <any>{},
                 obj[k] = template[k],
                 obj
             ));
@@ -289,7 +289,7 @@ class Collection<T> implements MemDbCollection<T> {
         }
 
         var coll = this;
-        function comparer(a, b) {
+        function comparer(a: number, b: number) {
             var prop1 = coll.data[a][prop];
             var prop2 = coll.data[b][prop];
 
@@ -337,7 +337,7 @@ class Collection<T> implements MemDbCollection<T> {
 
         var i = objKeys.length;
         while (i--) {
-            this.binaryIndices[objKeys[i]].dirty = true;
+            this.binaryIndices[<keyof T>objKeys[i]].dirty = true;
         }
     }
 
@@ -464,10 +464,10 @@ class Collection<T> implements MemDbCollection<T> {
         this.binaryIndices = <any>{};
         /* custom fix repopulating collection */
         var self = this;
-        Object.keys(this.constraints.unique).forEach(function (prop) {
+        (<(keyof T)[]>Object.keys(this.constraints.unique)).forEach(function (prop) {
             self.constraints.unique[prop].clear();
         });
-        Object.keys(this.constraints.exact).forEach(function (prop) {
+        (<(keyof T)[]>Object.keys(this.constraints.exact)).forEach(function (prop) {
             self.constraints.exact[prop].clear();
         });
         this.cachedIndex = null;
@@ -481,7 +481,7 @@ class Collection<T> implements MemDbCollection<T> {
     /** Update method
      */
     public update(doc: T & MemDbObj) {
-        var binaryIdxs = Object.keys(this.binaryIndices);
+        var binaryIdxs = <(keyof T)[]>Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
             this.flagBinaryIndexesDirty(binaryIdxs);
         }
@@ -508,7 +508,7 @@ class Collection<T> implements MemDbCollection<T> {
             this.events.emit("pre-update", doc);
 
             var obj = arr[0];
-            Object.keys(this.constraints.unique).forEach(function (key) {
+            (<(keyof T)[]>Object.keys(this.constraints.unique)).forEach(function (key) {
                 self.constraints.unique[key].update(obj);
             });
             // get current position in data array
@@ -575,7 +575,7 @@ class Collection<T> implements MemDbCollection<T> {
             this.data.push(obj);
 
             var self = this;
-            Object.keys(this.constraints.unique).forEach(function (key) {
+            (<(keyof T)[]>Object.keys(this.constraints.unique)).forEach(function (key) {
                 self.constraints.unique[key].set(obj);
             });
 
@@ -641,7 +641,7 @@ class Collection<T> implements MemDbCollection<T> {
             throw new Error("Object is not a document stored in the collection");
         }
 
-        var binaryIdxs = <(keyof T)[]>Object.keys(this.binaryIndices);
+        var binaryIdxs = Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
             this.flagBinaryIndexesDirty();
         }
@@ -653,8 +653,8 @@ class Collection<T> implements MemDbCollection<T> {
                 // obj = arr[0],
                 position = arr[1];
             var self = this;
-            Object.keys(this.constraints.unique).forEach(function (key) {
-                self.constraints.unique[key].remove(item/*custom fix bug)*/[key]);
+            (<(keyof T)[]>Object.keys(this.constraints.unique)).forEach(function (key) {
+                self.constraints.unique[key].remove(<any>item[key]);
             });
             // now that we can efficiently determine the data[] position of newly added document,
             // submit it for all registered DynamicViews to remove
@@ -779,7 +779,7 @@ class Collection<T> implements MemDbCollection<T> {
     public findOneUnindexed(prop: string, value: any): (T & MemDbObj) | null {
         var i = this.data.length;
         while (i--) {
-            if (this.data[i][prop] === value) {
+            if ((<any>this.data[i])[prop] === value) {
                 return this.data[i];
             }
         }
@@ -890,7 +890,7 @@ class Collection<T> implements MemDbCollection<T> {
      */
     public stage(stageName: string, obj: T & MemDbObj): T & MemDbObj {
         var copy = JSON.parse(JSON.stringify(obj));
-        this.getStage(stageName)[obj.$loki] = copy;
+        (<any>this.getStage(stageName))[obj.$loki] = copy;
         return copy;
     }
 
@@ -903,11 +903,11 @@ class Collection<T> implements MemDbCollection<T> {
             timestamp = new Date().getTime();
 
         for (var prop in stage) {
-            this.update(stage[prop]);
+            this.update((<any>stage)[prop]);
             this.commitLog.push({
                 timestamp: <number>timestamp,
                 message: message,
-                data: JSON.parse(JSON.stringify(stage[prop]))
+                data: JSON.parse(JSON.stringify((<any>stage)[prop]))
             });
         }
         this.stages[stageName] = {};
@@ -1054,11 +1054,12 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
     }
 
     public set(obj: E) {
-        if (this.keyMap[obj[this.field]]) {
-            throw new Error("Duplicate key for property " + this.field + ": " + obj[this.field]);
+        var field = <keyof E>this.field;
+        if (this.keyMap[<any>obj[field]]) {
+            throw new Error("Duplicate key for property " + field + ": " + obj[field]);
         } else {
-            this.keyMap[obj[this.field]] = obj;
-            this.lokiMap[obj.$loki] = obj[this.field];
+            this.keyMap[<any>obj[field]] = obj;
+            this.lokiMap[obj.$loki] = obj[field];
         }
     }
 
@@ -1071,13 +1072,14 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
     }
 
     public update(obj: E) {
-        if (this.lokiMap[obj.$loki] !== obj[this.field]) {
+        var field = <keyof E>this.field;
+        if (this.lokiMap[obj.$loki] !== obj[field]) {
             var old = this.lokiMap[obj.$loki];
             this.set(obj);
             // make the old key fail bool test, while avoiding the use of delete (mem-leak prone)
             this.keyMap[<string>old] = undefined;
         } else {
-            this.keyMap[obj[this.field]] = obj;
+            this.keyMap[<any>obj[field]] = obj;
         }
     }
 

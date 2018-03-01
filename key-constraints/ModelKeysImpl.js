@@ -3,7 +3,7 @@
  * For managing the primary and auto-generated keys from a data model
  * @author TeamworkGuy2
  */
-var ModelKeysImpl = (function () {
+var ModelKeysImpl = /** @class */ (function () {
     function ModelKeysImpl(modelDefs) {
         this.modelDefs = modelDefs;
     }
@@ -53,7 +53,7 @@ var ModelKeysImpl = (function () {
 (function (ModelKeysImpl) {
     /** Constrains the value of a field
      */
-    var Constraint = (function () {
+    var Constraint = /** @class */ (function () {
         function Constraint(id) {
             this.id = id;
         }
@@ -64,7 +64,7 @@ var ModelKeysImpl = (function () {
     ModelKeysImpl.Constraint = Constraint;
     /** How to handle auto generated fields (i.e. primary keys)
      */
-    var Generated = (function () {
+    var Generated = /** @class */ (function () {
         function Generated(id) {
             this.id = id;
         }

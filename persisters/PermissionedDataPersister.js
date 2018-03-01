@@ -3,7 +3,7 @@ var Q = require("q");
 /** DataPersister wrapper that checks permissions before reading/writing data
  * @author TeamworkGuy2
  */
-var PermissionedDataPersisterAdapter = (function () {
+var PermissionedDataPersisterAdapter = /** @class */ (function () {
     function PermissionedDataPersisterAdapter(persister, syncSettings, storeSettings) {
         this.syncSettings = syncSettings;
         this.storeSettings = storeSettings;

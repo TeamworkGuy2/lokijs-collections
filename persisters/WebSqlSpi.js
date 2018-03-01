@@ -68,7 +68,7 @@ var WebSqlUtil;
         return db;
     }
     WebSqlUtil.newWebSqlDbInst = newWebSqlDbInst;
-    var WebSqlDatabase = (function () {
+    var WebSqlDatabase = /** @class */ (function () {
         function WebSqlDatabase(util, name, version, displayName, estimatedSize) {
             this.util = util;
             this.transaction = this.transaction.bind(this);
@@ -396,10 +396,7 @@ var WebSqlUtil;
          *
          * Other Usage: (single `sqlStatement` with multiple sets of `args`)
          *     wsdb.read("SELECT * FROM person WHERE first = ?",
-         *             [
-         *                 ["Bob"],
-         *                 ["John"]
-         *             ],
+         *             [ ["Bob"], ["John"] ],
          *             // called for each row in args
          *             function (rs) {
          *                 return rs.rows;
@@ -416,7 +413,6 @@ var WebSqlUtil;
          *         }, {
          *             sql: "SELECT * FROM address WHERE state in (?, ?, ?)",
          *             args: ["CA", "FL", "TX"]
-         *
          *         }],
          *         // called for each object in args
          *         function (rs) {
@@ -524,7 +520,7 @@ var WebSqlUtil;
     /** Utility functions used by WebSqlDatabase class
      * @since 2015-2-4
      */
-    var DbUtils = (function () {
+    var DbUtils = /** @class */ (function () {
         /** Sets `websql` configuration:
          * `defer`: specifies the function that constructs a deferred object.
          *   Default is window.when, window.Q or window.jQuery.Deferred, if present.

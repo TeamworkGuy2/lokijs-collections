@@ -9,7 +9,7 @@
  */
 var MemDbPersisters;
 (function (MemDbPersisters) {
-    var DbPersister = (function () {
+    var DbPersister = /** @class */ (function () {
         function DbPersister(filename, getCollections) {
             // alias
             this.save = DbPersister.prototype.saveDatabase;
@@ -287,7 +287,7 @@ var MemDbPersisters;
     /**
      * constructor for fs
      */
-    var MemDbFsAdapter = (function () {
+    var MemDbFsAdapter = /** @class */ (function () {
         function MemDbFsAdapter() {
             this.fs = require("fs");
         }
@@ -321,7 +321,7 @@ var MemDbPersisters;
     /**
      * constructor for local storage
      */
-    var MemDbLocalStorageAdapter = (function () {
+    var MemDbLocalStorageAdapter = /** @class */ (function () {
         function MemDbLocalStorageAdapter() {
         }
         /** Load data from localstorage

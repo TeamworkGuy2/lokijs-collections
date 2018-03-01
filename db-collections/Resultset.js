@@ -9,7 +9,7 @@ var Collection = require("./Collection");
  *     .where(function(obj) { return obj.name === 'Toyota' })
  *     .data();
  */
-var Resultset = (function () {
+var Resultset = /** @class */ (function () {
     /**
      * @param collection - The collection which this Resultset will query against.
      * @param queryObj - Optional mongo-style query object to initialize resultset with.
@@ -245,7 +245,7 @@ var Resultset = (function () {
         }
         var queryObj = query || "getAll", property = null, value, operator = null, p, result = [], index = null, 
         // collection data
-        t, 
+        dt, ix, 
         // collection data length
         i, emptyQO = true;
         // if this was not invoked via findOne()
@@ -289,7 +289,7 @@ var Resultset = (function () {
                         // our $and operation internally chains filters
                         result = this.collection.chain().findAnd(queryVal).data();
                         // if this was coll.findOne() return first object or empty array if null
-                        // since this is invoked from a constructor we can"t return null, so we will
+                        // since this is invoked from a constructor we can't return null, so we will
                         // make null in coll.findOne();
                         if (firstOnly) {
                             if (result.length === 0)
@@ -360,7 +360,7 @@ var Resultset = (function () {
         }
         // the comparison function
         var op = operator;
-        var fun = LokiOps[operator];
+        var fun = LokiOps[op];
         // Query executed differently depending on :
         //    - whether it is chained or not
         //    - whether the property being queried has an index defined
@@ -370,37 +370,37 @@ var Resultset = (function () {
         // If not a chained query, bypass filteredrows and work directly against data
         if (!this.searchIsChained) {
             if (index == null) {
-                t = this.collection.data;
-                i = t.length;
+                dt = this.collection.data;
+                i = dt.length;
                 if (firstOnly) {
                     while (i--) {
-                        if (fun(t[i][property], value)) {
-                            return t[i];
+                        if (fun(dt[i][property], value)) {
+                            return dt[i];
                         }
                     }
                     return [];
                 }
                 else {
                     while (i--) {
-                        if (fun(t[i][property], value)) {
-                            result.push(t[i]);
+                        if (fun(dt[i][property], value)) {
+                            result.push(dt[i]);
                         }
                     }
                 }
             }
             else {
                 // searching by binary index via calculateRange() utility method
-                t = this.collection.data;
+                dt = this.collection.data;
                 var seg = this.calculateRange(op, property, value);
                 // not chained so this 'find' was designated in Resultset constructor so return object itself
                 if (firstOnly) {
                     if (seg[1] !== -1) {
-                        return t[index.values[seg[0]]];
+                        return dt[index.values[seg[0]]];
                     }
                     return [];
                 }
                 for (i = seg[0]; i <= seg[1]; i++) {
-                    result.push(t[index.values[i]]);
+                    result.push(dt[index.values[i]]);
                 }
                 // TODO is this correct
                 this.filteredrows = index.values.slice(seg[0], seg[1] + 1);
@@ -414,20 +414,21 @@ var Resultset = (function () {
                 var res = [];
                 // not searching by index
                 if (index == null) {
-                    t = this.collection.data;
+                    dt = this.collection.data;
                     i = this.filteredrows.length;
                     while (i--) {
-                        if (fun(t[this.filteredrows[i]][property], value)) {
+                        if (fun(dt[this.filteredrows[i]][property], value)) {
                             res.push(this.filteredrows[i]);
                         }
                     }
                 }
                 else {
                     // search by index
-                    t = index;
+                    ix = index;
                     i = this.filteredrows.length;
                     while (i--) {
-                        if (fun(t[this.filteredrows[i]], value)) {
+                        // TODO probably doesn't work
+                        if (fun(ix[this.filteredrows[i]], value)) {
                             res.push(this.filteredrows[i]);
                         }
                     }
@@ -436,12 +437,12 @@ var Resultset = (function () {
             }
             else {
                 var res = [];
-                t = this.collection.data;
+                dt = this.collection.data;
                 // if not searching by index
                 if (index == null) {
-                    i = t.length;
+                    i = dt.length;
                     while (i--) {
-                        if (fun(t[i][property], value)) {
+                        if (fun(dt[i][property], value)) {
                             res.push(i);
                         }
                     }

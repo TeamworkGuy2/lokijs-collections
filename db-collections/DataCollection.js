@@ -14,7 +14,7 @@ var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * @template E the type of data stored in this data collection
  * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
  */
-var DataCollection = (function () {
+var DataCollection = /** @class */ (function () {
     /** Create a new document collection backed by a provided 'InMemDb' instance.
      * @param collectionName: the name of this collection
      * @param dataModel: the data model used to determine primary key constraints, object validity, syncing behavior, etc.

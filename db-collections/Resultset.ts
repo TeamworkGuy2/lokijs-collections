@@ -320,7 +320,8 @@ class Resultset<T> implements MemDbResultset<T> {
             result: (T & MemDbObj)[] = [],
             index: MemDbCollectionIndex | null = null,
             // collection data
-            t,
+            dt: (T & MemDbObj)[],
+            ix: MemDbCollectionIndex,
             // collection data length
             i: number,
             emptyQO = true;
@@ -355,7 +356,7 @@ class Resultset<T> implements MemDbResultset<T> {
         for (p in queryObj) {
             if (queryObj.hasOwnProperty(p)) {
                 property = <keyof T>p;
-                var queryVal = queryObj[p];
+                var queryVal = (<any>queryObj)[p];
 
                 // injecting $and and $or expression tree evaluation here.
                 if (p === "$and") {
@@ -374,7 +375,7 @@ class Resultset<T> implements MemDbResultset<T> {
                         result = this.collection.chain().findAnd(queryVal).data();
 
                         // if this was coll.findOne() return first object or empty array if null
-                        // since this is invoked from a constructor we can"t return null, so we will
+                        // since this is invoked from a constructor we can't return null, so we will
                         // make null in coll.findOne();
                         if (firstOnly) {
                             if (result.length === 0) return <any>[];
@@ -456,7 +457,7 @@ class Resultset<T> implements MemDbResultset<T> {
 
         // the comparison function
         var op = <keyof MemDbOps>operator;
-        var fun = LokiOps[operator];
+        var fun = LokiOps[op];
 
         // Query executed differently depending on :
         //    - whether it is chained or not
@@ -468,41 +469,41 @@ class Resultset<T> implements MemDbResultset<T> {
         // If not a chained query, bypass filteredrows and work directly against data
         if (!this.searchIsChained) {
             if (index == null) {
-                t = this.collection.data;
-                i = t.length;
+                dt = this.collection.data;
+                i = dt.length;
 
                 if (firstOnly) {
                     while (i--) {
-                        if (fun(t[i][property], value)) {
-                            return t[i];
+                        if (fun(dt[i][property], value)) {
+                            return dt[i];
                         }
                     }
                     return <any>[];
                 }
                 else {
                     while (i--) {
-                        if (fun(t[i][property], value)) {
-                            result.push(t[i]);
+                        if (fun(dt[i][property], value)) {
+                            result.push(dt[i]);
                         }
                     }
                 }
             }
             else {
                 // searching by binary index via calculateRange() utility method
-                t = this.collection.data;
+                dt = this.collection.data;
 
                 var seg = this.calculateRange(op, property, value);
 
                 // not chained so this 'find' was designated in Resultset constructor so return object itself
                 if (firstOnly) {
                     if (seg[1] !== -1) {
-                        return t[index.values[seg[0]]];
+                        return dt[index.values[seg[0]]];
                     }
                     return <any>[];
                 }
 
                 for (i = seg[0]; i <= seg[1]; i++) {
-                    result.push(t[index.values[i]]);
+                    result.push(dt[index.values[i]]);
                 }
 
                 // TODO is this correct
@@ -518,21 +519,22 @@ class Resultset<T> implements MemDbResultset<T> {
                 var res: number[] = [];
                 // not searching by index
                 if (index == null) {
-                    t = this.collection.data;
+                    dt = this.collection.data;
                     i = this.filteredrows.length;
 
                     while (i--) {
-                        if (fun(t[this.filteredrows[i]][property], value)) {
+                        if (fun(dt[this.filteredrows[i]][property], value)) {
                             res.push(this.filteredrows[i]);
                         }
                     }
                 }
                 else {
                     // search by index
-                    t = index;
+                    ix = index;
                     i = this.filteredrows.length;
                     while (i--) {
-                        if (fun(t[this.filteredrows[i]], value)) {
+                        // TODO probably doesn't work
+                        if (fun((<any>ix)[this.filteredrows[i]], value)) {
                             res.push(this.filteredrows[i]);
                         }
                     }
@@ -543,14 +545,14 @@ class Resultset<T> implements MemDbResultset<T> {
             // first chained query so work against data[] but put results in filteredrows
             else {
                 var res: number[] = [];
-                t = this.collection.data;
+                dt = this.collection.data;
 
                 // if not searching by index
                 if (index == null) {
-                    i = t.length;
+                    i = dt.length;
 
                     while (i--) {
-                        if (fun(t[i][property], value)) {
+                        if (fun(dt[i][property], value)) {
                             res.push(i);
                         }
                     }
@@ -965,46 +967,46 @@ function containsCheckFn(a: any, b: any): (c: any) => boolean {
 
 var LokiOps = {
     // comparison operators
-    $eq: function (a, b) {
+    $eq: function (a: any, b: any) {
         return a === b;
     },
 
-    $gt: function (a, b) {
+    $gt: function (a: any, b: any) {
         return gtHelper(a, b);
     },
 
-    $gte: function (a, b) {
+    $gte: function (a: any, b: any) {
         return gtHelper(a, b, true);
     },
 
-    $lt: function (a, b) {
+    $lt: function (a: any, b: any) {
         return ltHelper(a, b);
     },
 
-    $lte: function (a, b) {
+    $lte: function (a: any, b: any) {
         return ltHelper(a, b, true);
     },
 
-    $ne: function (a, b) {
+    $ne: function (a: any, b: any) {
         return a !== b;
     },
 
-    $regex: function (a, b) {
+    $regex: function (a: any, b: any) {
         return b.test(a);
     },
 
-    $in: function (a, b) {
+    $in: function (a: any, b: any) {
         return b.indexOf(a) > -1;
     },
 
-    $contains: function (a, b) {
+    $contains: function (a: any, b: any) {
         if (!Array.isArray(b)) {
             b = [b];
         }
 
         var checkFn = containsCheckFn(a, b);
 
-        return b.reduce(function (prev, curr) {
+        return b.reduce(function (prev: any, curr: any) {
             if (!prev) {
                 return prev;
             }
@@ -1012,14 +1014,14 @@ var LokiOps = {
         }, true);
     },
 
-    $containsAny: function (a, b) {
+    $containsAny: function (a: any, b: any) {
         if (!Array.isArray(b)) {
             b = [b];
         }
 
         var checkFn = containsCheckFn(a, b);
 
-        return b.reduce(function (prev, curr) {
+        return b.reduce(function (prev: any, curr: any) {
             if (prev) {
                 return prev;
             }

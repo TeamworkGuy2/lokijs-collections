@@ -89,7 +89,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
                 return "NODEJS";
             }
 
-            if (typeof global !== "undefined" && global["window"]) {
+            if (typeof global !== "undefined" && (<any>global)["window"]) {
                 return "NODEJS"; //node-webkit
             }
 
@@ -492,7 +492,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         }
 
         // search by primary key
-        if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
+        if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[<keyof T>queryProps[0]] != null) {
             var itm = collection.by(<keyof T>queryProps[0], query[queryProps[0]]);
 
             if (throwIfLess && itm == null) {
@@ -572,7 +572,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
 
         var copy: any = {};
-        var keys = Object.keys(obj);
+        var keys = <string[]>Object.keys(obj);
         for (var i = 0, size = keys.length; i < size; i++) {
             var key = keys[i];
             if (key !== "$loki" && key !== "meta") {
@@ -587,7 +587,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
 
         var copy: any = {};
-        var keys = Object.keys(obj);
+        var keys = <string[]>Object.keys(obj);
         Arrays.fastRemove(keys, "$loki");
         Arrays.fastRemove(keys, "meta");
         for (var i = 0, size = keys.length; i < size; i++) {

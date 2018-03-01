@@ -30,7 +30,7 @@ function buildPersister() {
 
     // mock WebSqlSpi
     function newResultSet<T>(data: T[]): SQLResultSetRowList {
-        data["item"] = function item(idx: number) { return data[idx]; };
+        (<any>data)["item"] = function item(idx: number) { return data[idx]; };
         return <any>data;
     }
 

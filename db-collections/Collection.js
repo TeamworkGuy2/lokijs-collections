@@ -3,7 +3,7 @@ var EventEmitter = require("./TsEventEmitter");
 var Resultset = require("./Resultset");
 /** Collection class that handles documents of same type
  */
-var Collection = (function () {
+var Collection = /** @class */ (function () {
     /**
      * @param name - collection name
      * @param options - configuration object
@@ -509,7 +509,7 @@ var Collection = (function () {
             position = arr[1];
             var self = this;
             Object.keys(this.constraints.unique).forEach(function (key) {
-                self.constraints.unique[key].remove(item /*custom fix bug)*/[key]);
+                self.constraints.unique[key].remove(item[key]);
             });
             // now that we can efficiently determine the data[] position of newly added document,
             // submit it for all registered DynamicViews to remove
@@ -794,7 +794,7 @@ var Collection = (function () {
     };
     return Collection;
 }());
-var UniqueIndex = (function () {
+var UniqueIndex = /** @class */ (function () {
     function UniqueIndex(uniqueField) {
         this.keyMap = {};
         this.lokiMap = {};
@@ -803,12 +803,13 @@ var UniqueIndex = (function () {
         this.lokiMap = {};
     }
     UniqueIndex.prototype.set = function (obj) {
-        if (this.keyMap[obj[this.field]]) {
-            throw new Error("Duplicate key for property " + this.field + ": " + obj[this.field]);
+        var field = this.field;
+        if (this.keyMap[obj[field]]) {
+            throw new Error("Duplicate key for property " + field + ": " + obj[field]);
         }
         else {
-            this.keyMap[obj[this.field]] = obj;
-            this.lokiMap[obj.$loki] = obj[this.field];
+            this.keyMap[obj[field]] = obj;
+            this.lokiMap[obj.$loki] = obj[field];
         }
     };
     UniqueIndex.prototype.get = function (key) {
@@ -818,14 +819,15 @@ var UniqueIndex = (function () {
         return this.keyMap[this.lokiMap[id]];
     };
     UniqueIndex.prototype.update = function (obj) {
-        if (this.lokiMap[obj.$loki] !== obj[this.field]) {
+        var field = this.field;
+        if (this.lokiMap[obj.$loki] !== obj[field]) {
             var old = this.lokiMap[obj.$loki];
             this.set(obj);
             // make the old key fail bool test, while avoiding the use of delete (mem-leak prone)
             this.keyMap[old] = undefined;
         }
         else {
-            this.keyMap[obj[this.field]] = obj;
+            this.keyMap[obj[field]] = obj;
         }
     };
     UniqueIndex.prototype.remove = function (key) {
@@ -844,7 +846,7 @@ var UniqueIndex = (function () {
     };
     return UniqueIndex;
 }());
-var ExactIndex = (function () {
+var ExactIndex = /** @class */ (function () {
     function ExactIndex(exactField) {
         this.index = {};
         this.field = exactField;

@@ -205,7 +205,7 @@ module WebSqlUtil {
          *         xact.executeSQL(...);
          *     }).then(function() {...});
          */
-        public changeVersion(oldVersion, newVersion, xactCallback: SQLTransactionCallback) {
+        public changeVersion(oldVersion: DOMString, newVersion: DOMString, xactCallback: SQLTransactionCallback) {
             var funcName = "changeVersion";
             var util = this.util;
             var dfd = util.defer<void>();
@@ -465,10 +465,7 @@ module WebSqlUtil {
          *
          * Other Usage: (single `sqlStatement` with multiple sets of `args`)
          *     wsdb.read("SELECT * FROM person WHERE first = ?",
-         *             [
-         *                 ["Bob"],
-         *                 ["John"]
-         *             ],
+         *             [ ["Bob"], ["John"] ],
          *             // called for each row in args
          *             function (rs) {
          *                 return rs.rows;
@@ -485,7 +482,6 @@ module WebSqlUtil {
          *         }, {
          *             sql: "SELECT * FROM address WHERE state in (?, ?, ?)",
          *             args: ["CA", "FL", "TX"]
-         *
          *         }],
          *         // called for each object in args
          *         function (rs) {
@@ -522,8 +518,8 @@ module WebSqlUtil {
         public readRow(sqlStatements: SqlQuery | SqlQuery[], rowCallback?: (row?: any) => void, defaultValue?: any) {
             var util = this.util;
 
-            return util.pipe(this.read(sqlStatements), function (rs: SQLResultSet) {
-                var row;
+            return util.pipe(<Q.IPromise<SQLResultSet | SQLResultSet[]>>this.read(sqlStatements), function (rs: SQLResultSet) {
+                var row: any;
                 if (rs.rows.length > 1) {
                     return util._rejectError(util.defer(), new Error("Query returned " + rs.rows.length + " rows"));
                 }
@@ -557,8 +553,8 @@ module WebSqlUtil {
         execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined, xactMethodType: SqlStatementType): Q.Promise<SQLResultSet[] | U[] | SQLResultSet | U>;
         execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined, xactMethodType: SqlStatementType): Q.Promise<SQLResultSet[] | U[] | SQLResultSet | U> {
             var start = new Date().getTime();
-            if (!window["startQueriesTime"]) {
-                window["startQueriesTime"] = start;
+            if (!(<any>window)["startQueriesTime"]) {
+                (<any>window)["startQueriesTime"] = start;
             }
 
             var util = this.util;
@@ -566,7 +562,7 @@ module WebSqlUtil {
             var sqls = <SqlQuery[]>(isArray ? sqlStatements : [sqlStatements]);
             var results: (SQLResultSet | U)[] = [];
 
-            var pipeReturn = util.pipe(xactMethod(function (xact: SQLTransaction) {
+            var pipeReturn = util.pipe(<Q.IPromise<T>>xactMethod(function (xact: SQLTransaction) {
                 for (var i = 0; i < sqls.length; i++) {
                     var cmnd: SqlQuery = sqls[i];
                     var params = (typeof cmnd.args === "undefined" ? null : cmnd.args);
@@ -585,7 +581,7 @@ module WebSqlUtil {
                 }
             }), function () {
                 return isArray ? <SQLResultSet[] | U[]>results : results[0];
-            }, function (err) {
+            }, function (err: any) {
                 err.sql = sqls;
                 return err;
             });
@@ -594,7 +590,7 @@ module WebSqlUtil {
                 pipeReturn.done(function () {
                     var end = new Date().getTime();
                     var time = <number>end - <number>start;
-                    window["endQueriesTime"] = end;
+                    (<any>window)["endQueriesTime"] = end;
 
                     util.log(util.DEBUG, "websql finish args: ", xactMethodType, sqls.length, sqls);
                     util.log(util.DEBUG, "websql runtime: ", time);

@@ -196,12 +196,12 @@ class PrimaryKeyMaintainer {
         // search each item for each of the auto-generated properties and save the largest ones
         // first loop initializing the array of largest auto-generated values using item[0]
         for (var ii = 0; ii < propCount; ii++) {
-            largestValues[ii] = items[0][props[ii]];
+            largestValues[ii] = items[0][<keyof T>props[ii]];
         }
         for (var i = 1, size = items.length; i < size; i++) {
             var item = items[i];
             for (var ii = 0; ii < propCount; ii++) {
-                var keyName = props[ii];
+                var keyName = <keyof T>props[ii];
                 if (largestValues[ii] > item[keyName]) {
                     largestValues[ii] = item[keyName];
                 }

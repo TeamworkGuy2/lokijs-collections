@@ -119,9 +119,9 @@ module MemDbPersisters {
 
                 if (options.persistenceMethod != null) {
                     // check if the specified persistence method is known
-                    if (typeof persistenceMethods[options.persistenceMethod] == "function") {
+                    if (typeof (<any>persistenceMethods)[options.persistenceMethod] == "function") {
                         this.persistenceMethod = options.persistenceMethod;
-                        this.persistenceAdapter = new persistenceMethods[options.persistenceMethod]();
+                        this.persistenceAdapter = new (<any>(<any>persistenceMethods)[options.persistenceMethod])();
                     }
                     // should be throw an error here, or just fall back to defaults ??
                 }
@@ -155,9 +155,9 @@ module MemDbPersisters {
 
             // if by now there is no adapter specified by user nor derived from persistenceMethod: use sensible defaults
             if (this.persistenceAdapter === null) {
-                this.persistenceMethod = defaultPersistence[db.environment];
+                this.persistenceMethod = (<any>defaultPersistence)[db.environment];
                 if (this.persistenceMethod) {
-                    this.persistenceAdapter = new persistenceMethods[this.persistenceMethod]();
+                    this.persistenceAdapter = new (<any>(<any>persistenceMethods)[this.persistenceMethod])();
                 }
             }
         }
@@ -368,7 +368,7 @@ module MemDbPersisters {
      * constructor for fs
      */
     export class MemDbFsAdapter {
-        fs;
+        fs: any;
 
         constructor() {
             this.fs = require("fs");
@@ -379,10 +379,10 @@ module MemDbPersisters {
          * @param dbname - the filename of the database to load
          * @param callback - the callback to handle the result
          */
-        public loadDatabase(dbname: string, callback) {
+        public loadDatabase(dbname: string, callback: (dataOrError: any) => void) {
             this.fs.readFile(dbname, {
                 encoding: "utf8"
-            }, function readFileCallback(err, data) {
+            }, function readFileCallback(err: any, data: any) {
                 if (err) {
                     callback(new Error(err));
                 } else {
@@ -397,7 +397,7 @@ module MemDbPersisters {
          * @param dbname - the filename of the database to load
          * @param callback - the callback to handle the result
          */
-        public saveDatabase(dbname: string, dbstring: string, callback) {
+        public saveDatabase(dbname: string, dbstring: string, callback: (...args: any[]) => any) {
             this.fs.writeFile(dbname, dbstring, callback);
         }
 
@@ -455,7 +455,7 @@ module MemDbPersisters {
 
     function copyProps(src: object, dest: object) {
         for (var prop in src) {
-            dest[prop] = src[prop];
+            (<any>dest)[prop] = (<any>src)[prop];
         }
     }
 

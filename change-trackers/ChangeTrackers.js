@@ -7,7 +7,7 @@ var ChangeTrackers;
 (function (ChangeTrackers) {
     /** A CollectionChangeInfo wrapper which simply adds to its existing 'added', 'modified', 'removed' values
      */
-    var CompoundCollectionChange = (function () {
+    var CompoundCollectionChange = /** @class */ (function () {
         function CompoundCollectionChange(changeInfo) {
             this.changeInfo = changeInfo || ChangeTracker.createChangeInfoObject(0, 0, 0);
         }
@@ -48,7 +48,7 @@ var ChangeTrackers;
     ChangeTrackers.CompoundCollectionChange = CompoundCollectionChange;
     /** Default CollectionChangeInfo implementation using a change history buffer with a maximum size
      */
-    var ChangeTracker = (function () {
+    var ChangeTracker = /** @class */ (function () {
         function ChangeTracker(maxChangesTracked) {
             if (maxChangesTracked === void 0) { maxChangesTracked = 50; }
             this.changeInfo = [];

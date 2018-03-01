@@ -4,7 +4,7 @@ var DataCollection = require("../db-collections/DataCollection");
 /* PrimaryKeyMaintainer - helper for DataCollection
  * @author TeamworkGuy2
  */
-var PrimaryKeyMaintainer = (function () {
+var PrimaryKeyMaintainer = /** @class */ (function () {
     /**
      * @param metaDataCollectionName the name of the collection being managed
      * @param reloadAll whether to re-calculate all primary key meta-data based on collection data

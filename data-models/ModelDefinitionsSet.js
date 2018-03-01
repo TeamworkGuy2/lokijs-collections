@@ -8,7 +8,7 @@ var Objects = require("../../ts-mortar/utils/Objects");
  * @author TeamworkGuy2
  * @since 2015-12-16
  */
-var ModelDefinitionsSet = (function () {
+var ModelDefinitionsSet = /** @class */ (function () {
     // generate model information the first time this JS module loads
     function ModelDefinitionsSet(dataModels, cloneDeep) {
         if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
