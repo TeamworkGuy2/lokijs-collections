@@ -451,7 +451,7 @@ class Collection<T> implements MemDbCollection<T> {
                 results.push(obj);
             }
             else {
-                return undefined;
+                return;
             }
         });
         return results.length === 1 ? results[0] : results;

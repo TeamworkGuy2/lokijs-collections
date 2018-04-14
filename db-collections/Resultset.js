@@ -267,6 +267,7 @@ var Resultset = /** @class */ (function () {
                 this.filteredrows = Object.keys(this.collection.data).map(_parseFloat);
                 return this;
             }
+            // not chained, so return collection data array
             else {
                 return this.collection.data;
             }
@@ -408,6 +409,7 @@ var Resultset = /** @class */ (function () {
             // not a chained query so return result as data[]
             return result;
         }
+        // Otherwise this is a chained query
         else {
             // If the filteredrows[] is already initialized, use it
             if (this.filterInitialized) {
@@ -435,6 +437,7 @@ var Resultset = /** @class */ (function () {
                 }
                 this.filteredrows = res;
             }
+            // first chained query so work against data[] but put results in filteredrows
             else {
                 var res = [];
                 dt = this.collection.data;
@@ -479,6 +482,7 @@ var Resultset = /** @class */ (function () {
                 // not a chained query so returning result as data[]
                 return result;
             }
+            // else chained query, so run against filteredrows
             else {
                 // If the filteredrows[] is already initialized, use it
                 if (this.filterInitialized) {
@@ -492,6 +496,7 @@ var Resultset = /** @class */ (function () {
                     this.filteredrows = rows;
                     return this;
                 }
+                // otherwise this is initial chained op, work against data, push into filteredrows[]
                 else {
                     var idxs = [];
                     var k = this.collection.data.length;

@@ -1,6 +1,6 @@
 "use strict";
-var DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
-var TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
+var DtoPropertyConverter = require("ts-code-generator/code-types/DtoPropertyConverter");
+var TypeConverter = require("ts-code-generator/code-types/TypeConverter");
 var TestModels;
 (function (TestModels) {
     TestModels.dataModels = {

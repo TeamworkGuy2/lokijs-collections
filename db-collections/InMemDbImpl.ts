@@ -1,5 +1,5 @@
-﻿import Arrays = require("../../ts-mortar/utils/Arrays");
-import Objects = require("../../ts-mortar/utils/Objects");
+﻿import Arrays = require("ts-mortar/utils/Arrays");
+import Objects = require("ts-mortar/utils/Objects");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");

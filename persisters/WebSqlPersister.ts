@@ -1,5 +1,5 @@
 ﻿import Q = require("q");
-import Arrays = require("../../ts-mortar/utils/Arrays");
+import Arrays = require("ts-mortar/utils/Arrays");
 import WebSqlSpi = require("./WebSqlSpi");
 
 /* Container for WebSqlAdapter class which implements 'DataPersist' for saving data to WebSQL for long-term browser data storage.

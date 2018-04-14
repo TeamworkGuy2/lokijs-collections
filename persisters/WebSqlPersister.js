@@ -1,6 +1,6 @@
 "use strict";
 var Q = require("q");
-var Arrays = require("../../ts-mortar/utils/Arrays");
+var Arrays = require("ts-mortar/utils/Arrays");
 /* Container for WebSqlAdapter class which implements 'DataPersist' for saving data to WebSQL for long-term browser data storage.
  * Contains 'WebSqlSpi' interface which has two methods: getTables() and executeQueries(), which is the link between this 'WebSqlAdapter' class and the underlying WebSQL database.
  * Also contains 'SimpleDataCollection' interface for the most basic fields needed to persist and restore a full 'DataCollection'

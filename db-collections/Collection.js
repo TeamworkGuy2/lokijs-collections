@@ -343,7 +343,7 @@ var Collection = /** @class */ (function () {
                 results.push(obj);
             }
             else {
-                return undefined;
+                return;
             }
         });
         return results.length === 1 ? results[0] : results;

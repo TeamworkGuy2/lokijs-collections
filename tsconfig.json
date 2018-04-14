@@ -1,10 +1,12 @@
 ﻿{
   "compileOnSave": true,
   "compilerOptions": {
+    "forceConsistentCasingInFileNames": true,
     "lib": [ "es2017", "dom" ],
     "module": "commonjs",
     "noEmitOnError": true,
     "noImplicitAny": true,
+    "noImplicitReturns": true,
     "noImplicitThis": true,
     "removeComments": false,
     "sourceMap": false,

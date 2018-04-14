@@ -1,26 +1,33 @@
 {
   "name": "lokijs-collections",
-  "version": "0.22.3",
+  "version": "0.23.0",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
+  "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TeamworkGuy2/lokijs-collections.git"
+  },
   "dependencies": {
     "q": "~1.5.0",
-    "ts-code-generator": "~0.15.0",
-    "ts-event-handlers-lite": "~0.2.0",
-    "ts-mortar": "~0.11.0",
-    "ts-promises": "~0.2.0"
+    "ts-code-generator": "https://github.com/TeamworkGuy2/ts-code-generator/blob/master/bin/ts-code-generator-0.19.5.tgz?raw=true",
+    "ts-event-handlers-lite": "https://github.com/TeamworkGuy2/ts-event-handlers-lite/blob/master/bin/ts-event-handlers-lite-0.2.5.tgz?raw=true",
+    "ts-mortar": "https://github.com/TeamworkGuy2/ts-mortar/blob/master/bin/ts-mortar-0.15.7.tgz?raw=true"
   },
   "devDependencies": {
     "@types/chai": "~4.1.0",
-    "@types/mocha": "~2.2.48",
-    "@types/node": "~9.4.0",
-    "@types/q": "~1.0.7",
-    "chai": "~4.1.0",
-    "mocha": "~5.0.0",
-    "typescript": "~2.7.0"
+    "@types/mocha": "~5.0.0",
+    "@types/node": "~9.6.1",
+    "@types/q": "~1.5.0",
+    "@types/websql": "~0.0.27",
+    "chai": "~4.1.2",
+    "mocha": "~5.0.5",
+    "typescript": "~2.8.0"
   },
   "scripts": {
+    "build-package": "node ../package-tarball/index.js -exclude \\lokijs\\",
     "test": "mocha -u tdd --recursive",
-    "tsc": "./node_modules/typescript/bin/tsc"
+    "tsc": "tsc"
   }
 }

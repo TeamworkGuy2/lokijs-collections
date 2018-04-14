@@ -1,5 +1,5 @@
-﻿import DtoPropertyConverter = require("../../ts-code-generator/code-types/DtoPropertyConverter");
-import TypeConverter = require("../../ts-code-generator/code-types/TypeConverter");
+﻿import DtoPropertyConverter = require("ts-code-generator/code-types/DtoPropertyConverter");
+import TypeConverter = require("ts-code-generator/code-types/TypeConverter");
 
 module TestModels {
 

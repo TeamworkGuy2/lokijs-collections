@@ -1,6 +1,6 @@
 "use strict";
-var Arrays = require("../../ts-mortar/utils/Arrays");
-var Objects = require("../../ts-mortar/utils/Objects");
+var Arrays = require("ts-mortar/utils/Arrays");
+var Objects = require("ts-mortar/utils/Objects");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
@@ -372,6 +372,7 @@ var InMemDbImpl = /** @class */ (function () {
             }
             return itm;
         }
+        // search by regular multi-property query
         else {
             var res = this._findMultiProp(collection, query, queryProps, max === 1).data();
             if ((throwIfLess && res.length < min) || (throwIfMore && res.length > max)) {

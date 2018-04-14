@@ -57,6 +57,7 @@ class NonNullKeyMaintainer {
                 };
             }
         }
+        return undefined;
     }
 
 }

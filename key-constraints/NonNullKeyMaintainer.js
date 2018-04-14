@@ -51,6 +51,7 @@ var NonNullKeyMaintainer = /** @class */ (function () {
                 };
             }
         }
+        return undefined;
     };
     return NonNullKeyMaintainer;
 }());

@@ -1,11 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-/// <reference types="chai" />
 /// <reference types="mocha" />
 /// <reference path="../db-collections/mem-db.d.ts" />
 var chai = require("chai");
-var Arrays = require("../../ts-mortar/utils/Arrays");
-var Objects = require("../../ts-mortar/utils/Objects");
+var Arrays = require("ts-mortar/utils/Arrays");
+var Objects = require("ts-mortar/utils/Objects");
 var InMemDbImpl = require("../db-collections/InMemDbImpl");
 var DataCollection = require("../db-collections/DataCollection");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");

@@ -1,4 +1,4 @@
-﻿/// <reference path="../../contribute-libs/DefinitelyTyped/types/websql/index.d.ts" />
+﻿/// <reference types="websql" />
 import Q = require("q");
 
 /*! websql.js | MIT license | Stepan Riha | http://bitbucket.org/nonplus/websql-js

@@ -1,5 +1,5 @@
 "use strict";
-var Objects = require("../../ts-mortar/utils/Objects");
+var Objects = require("ts-mortar/utils/Objects");
 /** Contains a set of model definitions.
  * Dto Models are designed around server-side object property names and values
  * being formatted differently than local model property names and values.

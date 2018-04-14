@@ -373,6 +373,7 @@ var DynamicView = /** @class */ (function () {
                     this.resultdata.length = oldlen - 1;
                 }
             }
+            // last row, so just truncate last row
             else {
                 ofr.length = oldlen - 1;
                 if (this.persistent) {
