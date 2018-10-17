@@ -30,6 +30,8 @@ var DataCollection = /** @class */ (function () {
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
+        this.changes = null;
+        this.eventHandler = null;
         this.dataModel = dataModel || {};
         this.dataModelFuncs = dataModelFuncs || {};
         if (trackChanges) {

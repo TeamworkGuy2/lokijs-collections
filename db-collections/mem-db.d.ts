@@ -15,7 +15,7 @@ interface MemDbCollectionSet {
     listCollections(): MemDbCollection<any>[];
 
     /** add a new collection */
-    addCollection<T>(name: string, options?: MemDbCollectionOptions): MemDbCollection<T>;
+    addCollection<T>(name: string, options?: MemDbCollectionOptions<T>): MemDbCollection<T>;
 
     /** Clear all of the data from a specified collection by collection name */
     clearCollection(collectionName: string, dstMetaData?: Changes.CollectionChangeTracker): void;
@@ -63,7 +63,7 @@ interface InMemDb extends MemDbCollectionSet, MemDbCollectionProxy {
     getCollection<T>(collectionName: string, autoCreate: true): MemDbCollection<T>;
     getCollection<T>(collectionName: string, autoCreate?: boolean): MemDbCollection<T> | null;
 
-    addCollection<T>(name: string, options?: MemDbCollectionOptions): MemDbCollection<T>;
+    addCollection<T>(name: string, options?: MemDbCollectionOptions<T>): MemDbCollection<T>;
 
     loadCollection(collection: MemDbCollection<any>): void;
 
@@ -366,13 +366,13 @@ interface MemDbCollectionIndex {
 
 
 
-interface MemDbCollectionOptions {
+interface MemDbCollectionOptions<T> {
     transactional?: boolean;
     clone?: boolean;
     disableChangesApi?: boolean;
-    indices?: string[];
-    exact?: string[];
-    unique?: string[];
+    indices?: (keyof T & string)[];
+    exact?: (keyof T & string)[];
+    unique?: (keyof T & string)[];
 }
 
 

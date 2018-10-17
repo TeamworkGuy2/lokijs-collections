@@ -4,7 +4,21 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.23.0](N/A) - 2018-04-14
+### [0.24.0](N/A) - 2018-10-17
+#### Changed
+* Update to TypeScript 3.1
+* Update dev dependencies and @types
+* Enable `tsconfig.json` `strict` and fix compile errors
+* Removed compiled bin tarball in favor of git tags
+* `MemDbCollectionOptions` now has a generic type which narrows the array type of `indices`, `exact`, and `unique` properties
+* `mem-collections.d.ts` `keyof T` types restricted by `& string` across several method signatures
+
+#### Fixed
+* Ensure `TsEventEmitter.events` is always initialized
+
+
+--------
+### [0.23.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/366481064d944c29c8db4287cefcfd7eb412d2c3) - 2018-04-14
 #### Changed
 * Update to TypeScript 2.8
 * Setup dependencies as proper npm node_modules

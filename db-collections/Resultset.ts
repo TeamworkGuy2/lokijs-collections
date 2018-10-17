@@ -132,7 +132,7 @@ class Resultset<T> implements MemDbResultset<T> {
      * @param isdesc - (Optional) If true, the property will be sorted in descending order
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
-    public simplesort(propname: keyof T, isdesc?: boolean) {
+    public simplesort(propname: keyof T & string, isdesc?: boolean) {
         // if this is chained resultset with no filters applied, just we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
             this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
@@ -313,7 +313,7 @@ class Resultset<T> implements MemDbResultset<T> {
         }
 
         var queryObj = query || "getAll",
-            property: keyof T = <any>null,
+            property: keyof T & string = <any>null,
             value,
             operator: string | null = null,
             p: string,
@@ -355,7 +355,7 @@ class Resultset<T> implements MemDbResultset<T> {
 
         for (p in queryObj) {
             if (queryObj.hasOwnProperty(p)) {
-                property = <keyof T>p;
+                property = <keyof T & string>p;
                 var queryVal = (<any>queryObj)[p];
 
                 // injecting $and and $or expression tree evaluation here.

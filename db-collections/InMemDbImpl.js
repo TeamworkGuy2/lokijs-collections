@@ -27,6 +27,9 @@ var InMemDbImpl = /** @class */ (function () {
      */
     function InMemDbImpl(dbName, options, cloneType, metaDataCollectionName, reloadMetaData, modelDefinitions, createCollectionSettingsFunc, modelKeysFunc) {
         var _this = this;
+        this.changeTracker = null;
+        this.nonNullKeyMaintainer = null;
+        this.primaryKeyMaintainer = null;
         this.name = dbName;
         this.collections = [];
         this.databaseVersion = 1.2; // persist version of code which created the database
@@ -75,7 +78,8 @@ var InMemDbImpl = /** @class */ (function () {
         else {
             this.environment = getEnvironment();
         }
-        this.events.on("init", function () { return _this.changeTracker.clearChanges(); });
+        this.events.on("init", function () { if (_this.changeTracker != null)
+            _this.changeTracker.clearChanges(); });
     }
     InMemDbImpl.prototype.getName = function () {
         return this.name;

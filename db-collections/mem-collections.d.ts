@@ -32,7 +32,7 @@ interface ResultSetLike<E> {
     limit(qty: number): ResultSetLike<E>;
 
     /** Apply a simple property name sort to the result set */
-    simplesort(propname: keyof E, isdesc?: boolean): ResultSetLike<E>;
+    simplesort(propname: keyof E & string, isdesc?: boolean): ResultSetLike<E>;
 
     /** Filter the results set by a function */
     where(func: (doc: E) => boolean): ResultSetLike<E>;
@@ -110,9 +110,9 @@ interface MemDbCollection<E> {
     +----------------------------*/
 
     /** Ensure binary index on a certain field */
-    ensureIndex(property: keyof E, force?: boolean): void;
+    ensureIndex(property: keyof E & string, force?: boolean): void;
 
-    ensureUniqueIndex(field: keyof E): void;
+    ensureUniqueIndex(field: keyof E & string): void;
 
     /** Ensure all binary indices */
     ensureAllIndexes(force?: boolean): void;
@@ -472,7 +472,7 @@ interface MemDbResultset<E> {
      * @param {bool} isdesc - (Optional) If true, the property will be sorted in descending order
      * @returns {Resultset} Reference to this resultset, sorted, for future chain operations.
      */
-    simplesort(propname: keyof E, isdesc?: boolean): MemDbResultset<E>;
+    simplesort(propname: keyof E & string, isdesc?: boolean): MemDbResultset<E>;
 
     /** helper method for compoundsort(), performing individual object comparisons
      * @param {array} properties - array of property names, in order, by which to evaluate sort order
@@ -610,7 +610,7 @@ interface MemDbDynamicView<E> {
      * @param {boolean} isdesc - (Optional) If true, the sort will be in descending order.
      * @returns {DynamicView} this DynamicView object, for further chain ops.
      */
-    applySimpleSort(propname: keyof E, isdesc?: boolean): MemDbDynamicView<E>;
+    applySimpleSort(propname: keyof E & string, isdesc?: boolean): MemDbDynamicView<E>;
 
     /** Allows sorting a resultset based on multiple columns.
      *   Example: dv.applySortCriteria(['age', 'name']); to sort by age and then name (both ascending)

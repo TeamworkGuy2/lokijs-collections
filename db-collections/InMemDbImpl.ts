@@ -23,16 +23,16 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
     collections: MemDbCollection<any>[];
     databaseVersion: number;
     environment: string;
-    changeTracker: DbChanges;
+    changeTracker: DbChanges | null = null;
     private metaDataCollectionName: string;
-    private nonNullKeyMaintainer: NonNullKeyMaintainer;
-    private primaryKeyMaintainer: PrimaryKeyMaintainer;
+    private nonNullKeyMaintainer: NonNullKeyMaintainer | null = null;
+    private primaryKeyMaintainer: PrimaryKeyMaintainer | null = null;
     private reloadMetaData: boolean;
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
-    private getCreateCollectionSettings: ((collectionName: string) => MemDbCollectionOptions | null) | null; // ({ unique?: string[]; exact?: string[] } & LokiCollectionOptions & { [name: string]: any; })
+    private getCreateCollectionSettings: ((collectionName: string) => MemDbCollectionOptions<any> | null) | null; // ({ unique?: string[]; exact?: string[] } & LokiCollectionOptions & { [name: string]: any; })
     private cloneFunc: InMemDbCloneFunc;
-    private getModelObjKeys: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[];
+    private getModelObjKeys: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T & string)[];
 
 
     /** Create an in-memory database instance using the following parameters.
@@ -55,8 +55,8 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         metaDataCollectionName: string,
         reloadMetaData: boolean,
         modelDefinitions: ModelDefinitions,
-        createCollectionSettingsFunc: ((collectionName: string) => MemDbCollectionOptions | null) | null,
-        modelKeysFunc: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T)[]
+        createCollectionSettingsFunc: ((collectionName: string) => MemDbCollectionOptions<any> | null) | null,
+        modelKeysFunc: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T & string)[]
     ) {
         this.name = dbName;
         this.collections = [];
@@ -111,7 +111,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
             this.environment = getEnvironment();
         }
 
-        this.events.on("init", () => this.changeTracker.clearChanges());
+        this.events.on("init", () => { if (this.changeTracker != null) this.changeTracker.clearChanges(); });
     }
 
 
@@ -153,7 +153,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
     }
 
 
-    public addCollection(name: string, options?: MemDbCollectionOptions | null): MemDbCollection<any> {
+    public addCollection(name: string, options?: MemDbCollectionOptions<any> | null): MemDbCollection<any> {
         var collection = new Collection(name, options);
         this.collections.push(collection);
 
@@ -259,7 +259,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
     }
 
 
-    public addOrUpdateWhere<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: T, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateWhere<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, query: any, obj: Partial<T>, noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         query = this.modelKeys.validateQuery(collection.name, query, obj);
 
         var results = this.find(collection, dataModel, query);
@@ -278,7 +278,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
             }
 
             // get obj props, except the implementation specific ones
-            var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
+            var updateKeys = this.getModelObjKeys(<T>obj, collection, dataModel);
             var updateKeysLen = updateKeys.length;
 
             //update
@@ -289,7 +289,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
                 var idx = -1;
                 while (++idx < updateKeysLen) {
                     var key = updateKeys[idx];
-                    doc[key] = obj[key];
+                    (<any>doc)[key] = obj[key];
                 }
 
                 this.update(collection, dataModel, doc);
@@ -298,20 +298,20 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         else {
             // assign query props -> obj
             // This ensures that search keys information is present before inserting
-            var queryKeys = <(keyof T)[]>Object.keys(query);
+            var queryKeys = <(keyof T & string)[]>Object.keys(query);
             var idx = -1;
             var len = queryKeys.length;
             while (idx++ < len) {
                 var key = queryKeys[idx];
-                obj[key] = query[key];
+                (<any>obj)[key] = query[key];
             }
 
-            this.add(collection, dataModel, obj, noModify, compoundDstMetaData);
+            this.add(collection, dataModel, <T>obj, noModify, compoundDstMetaData);
         }
     }
 
 
-    public addOrUpdateAll<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: T[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
+    public addOrUpdateAll<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: Partial<T>[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
         var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => InMemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
         var existingData = this.find(collection, dataModel, null).data();
         // pluck keys from existing data
@@ -325,12 +325,12 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         var toUpdate: T[] = [];
         for (var j = 0, sz = updatesArray.length; j < sz; j++) {
             var update = updatesArray[j];
-            var idx = existingDataKeys.indexOf(update[keyName]);
+            var idx = existingDataKeys.indexOf((<T>update)[keyName]);
             if (idx === -1) {
-                toAdd.push(cloneFunc(update));
+                toAdd.push(cloneFunc((<T>update)));
             }
             else {
-                toUpdate.push(update);
+                toUpdate.push((<T>update));
             }
         }
 
@@ -376,7 +376,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         }
 
         // get obj props, except the MemDb specific ones
-        var updateKeys = this.getModelObjKeys(obj, collection, dataModel);
+        var updateKeys = this.getModelObjKeys<T>(<T>obj, collection, dataModel);
         var updateKeysLen = updateKeys.length;
 
         for (var i = 0, size = resData.length; i < size; i++) {
@@ -386,7 +386,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
             var idx = -1;
             while (++idx < updateKeysLen) {
                 var key = updateKeys[idx];
-                doc[key] = <T[keyof T]>obj[key];
+                doc[key] = <T[keyof T & string]>(<any>obj)[key];
             }
 
             this.update(collection, dataModel, doc);

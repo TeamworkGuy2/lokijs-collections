@@ -5,9 +5,7 @@
  */
 var EventEmitter = /** @class */ (function () {
     function EventEmitter(events) {
-        if (events != null) {
-            this.events = events || {};
-        }
+        this.events = events || {};
     }
     /** adds a listener to the queue of callbacks associated to an event
      * @returns the index of the callback in the array of listeners for a particular event

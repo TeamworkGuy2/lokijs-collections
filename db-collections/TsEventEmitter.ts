@@ -10,9 +10,7 @@ class EventEmitter<T extends { [eventName: string]: any[] }> implements TsEventE
 
 
     constructor(events?: T) {
-        if (events != null) {
-            this.events = events || <T>{};
-        }
+        this.events = events || <T>{};
     }
 
 

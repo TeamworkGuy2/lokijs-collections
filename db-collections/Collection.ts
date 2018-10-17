@@ -44,7 +44,7 @@ class Collection<T> implements MemDbCollection<T> {
      * @param name - collection name
      * @param options - configuration object
      */
-    constructor(name: string, options?: MemDbCollectionOptions | null) {
+    constructor(name: string, options?: MemDbCollectionOptions<T> | null) {
         // the name of the collection
         this.name = name;
         // the data held by the collection
@@ -78,13 +78,13 @@ class Collection<T> implements MemDbCollection<T> {
             if (!Array.isArray(options.unique)) {
                 options.unique = [options.unique];
             }
-            (<(keyof T)[]>options.unique).forEach(function (prop) {
+            options.unique.forEach(function (prop) {
                 self.constraints.unique[prop] = new UniqueIndex(prop);
             });
         }
 
         if (options.exact != null) {
-            (<(keyof T)[]>options.exact).forEach(function (prop) {
+            options.exact.forEach(function (prop) {
                 self.constraints.exact[prop] = new ExactIndex(prop);
             });
         }
@@ -122,12 +122,12 @@ class Collection<T> implements MemDbCollection<T> {
 
         // initialize the id index
         this.ensureId();
-        var indices: (keyof T)[] = [];
+        var indices: (keyof T & string)[] = [];
         // initialize optional user-supplied indices array ['age', 'lname', 'zip']
         //if (typeof indices !== 'undefined') {
         if (options && options.indices) {
             if (Object.prototype.toString.call(options.indices) === "[object Array]") {
-                indices = <(keyof T)[]>options.indices;
+                indices = options.indices;
             } else {
                 throw new TypeError("Indices must be a string or an array of strings");
             }
@@ -259,7 +259,7 @@ class Collection<T> implements MemDbCollection<T> {
 
     /** Ensure binary index on a certain field
      */
-    public ensureIndex(prop: keyof T, force?: boolean) {
+    public ensureIndex(prop: keyof T & string, force?: boolean) {
         // optional parameter to force rebuild whether flagged as dirty or not
         if (force === undefined) {
             force = false;
@@ -308,7 +308,7 @@ class Collection<T> implements MemDbCollection<T> {
     }
 
 
-    public ensureUniqueIndex(field: keyof T) {
+    public ensureUniqueIndex(field: keyof T & string) {
         var index = this.constraints.unique[field];
         if (!index) {
             this.constraints.unique[field] = new UniqueIndex(field);
@@ -323,7 +323,7 @@ class Collection<T> implements MemDbCollection<T> {
     /** Ensure all binary indices
      */
     public ensureAllIndexes(force?: boolean) {
-        var objKeys = <(keyof T)[]>Object.keys(this.binaryIndices);
+        var objKeys = <(keyof T & string)[]>Object.keys(this.binaryIndices);
 
         var i = objKeys.length;
         while (i--) {
@@ -481,7 +481,7 @@ class Collection<T> implements MemDbCollection<T> {
     /** Update method
      */
     public update(doc: T & MemDbObj) {
-        var binaryIdxs = <(keyof T)[]>Object.keys(this.binaryIndices);
+        var binaryIdxs = <(keyof T & string)[]>Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
             this.flagBinaryIndexesDirty(binaryIdxs);
         }
@@ -600,7 +600,7 @@ class Collection<T> implements MemDbCollection<T> {
 
 
     public removeWhere(query: ((obj: T) => boolean) | MemDbQuery) {
-        var list = (typeof query === "function" ? this.data.filter(query) : Resultset.from<T>(this, query));
+        var list = (typeof query === "function" ? this.data.filter(<(obj: T & MemDbObj) => boolean>query) : Resultset.from<T>(this, query));
 
         var len = list.length;
         while (len--) {

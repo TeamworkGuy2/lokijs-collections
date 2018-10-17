@@ -29,7 +29,7 @@ function rebuildDb() {
             var keys = Object.keys(obj);
             Arrays.fastRemove(keys, "$loki");
             Arrays.fastRemove(keys, "meta");
-            return <(keyof typeof obj)[]>keys;
+            return <(keyof typeof obj & string)[]>keys;
         }
     );
 

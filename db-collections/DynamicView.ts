@@ -170,7 +170,7 @@ class DynamicView<T> implements MemDbDynamicView<T> {
      * @param isdesc - (Optional) If true, the sort will be in descending order.
      * @returns this DynamicView object, for further chain ops.
      */
-    public applySimpleSort(propname: keyof T, isdesc?: boolean) {
+    public applySimpleSort(propname: keyof T & string, isdesc?: boolean) {
         if (isdesc === undefined) {
             isdesc = false;
         }

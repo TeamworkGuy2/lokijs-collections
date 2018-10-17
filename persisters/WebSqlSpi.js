@@ -448,10 +448,10 @@ var WebSqlUtil;
             var util = this.util;
             return util.pipe(this.read(sqlStatements), function (rs) {
                 var row;
-                if (rs.rows.length > 1) {
-                    return util._rejectError(util.defer(), new Error("Query returned " + rs.rows.length + " rows"));
+                if (Array.isArray(rs) || rs.rows.length > 1) {
+                    return util._rejectError(util.defer(), new Error("Query returned " + (Array.isArray(rs) ? "array of " + rs.length + " result sets" : rs.rows.length + " rows")));
                 }
-                if (rs.rows.length === 0) {
+                else if (rs.rows.length === 0) {
                     if (defaultValue) {
                         row = defaultValue;
                     }
@@ -529,14 +529,16 @@ var WebSqlUtil;
          */
         function DbUtils(settings) {
             var _this = this;
+            this.trace = null;
             this.NONE = DbUtils.logLevels.NONE;
             this.ERROR = DbUtils.logLevels.ERROR;
             this.DEBUG = DbUtils.logLevels.DEBUG;
             this.verbosity = this.NONE;
             this.timingLogging = (localStorage.getItem("LogWebsql"));
-            if (this._isFunction(settings.defer)) {
-                this.defer = settings.defer;
+            if (!this._isFunction(settings.defer)) {
+                throw new Error("no 'defer' promise function option provided to WebSql adapter");
             }
+            this.defer = settings.defer;
             if (settings.trace != null && this._isFunction(settings.trace.log)) {
                 this.trace = settings.trace;
             }
@@ -602,16 +604,17 @@ var WebSqlUtil;
             for (var _i = 1; _i < arguments.length; _i++) {
                 args[_i - 1] = arguments[_i];
             }
-            if (level <= this.verbosity && this.trace) {
+            var trc = this.trace;
+            if (level <= this.verbosity && trc != null) {
                 args.unshift("websql");
-                if (this._isFunction(this.trace.text)) {
-                    this.trace.text(args, "color: purple");
+                if (this._isFunction(trc.text)) {
+                    trc.text(args, "color: purple");
                 }
-                else if (level === this.ERROR && this._isFunction(this.trace.error)) {
-                    this.trace.error(args);
+                else if (level === this.ERROR && this._isFunction(trc.error)) {
+                    trc.error(args);
                 }
-                else if (this._isFunction(this.trace.log)) {
-                    this.trace.log(args);
+                else if (this._isFunction(trc.log)) {
+                    trc.log(args);
                 }
             }
         };

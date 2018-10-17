@@ -39,6 +39,8 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
         this.dbInst = dbInst;
         this.collectionName = collectionName;
         this.collection = dbInst.getCollection(collectionName, true);
+        this.changes = null;
+        this.eventHandler = null;
         this.dataModel = dataModel || <any>{};
         this.dataModelFuncs = dataModelFuncs || <any>{};
         if (trackChanges) {
