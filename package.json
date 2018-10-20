@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.24.0",
+  "version": "0.24.1",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "q": "~1.5.1",
-    "ts-code-generator": "https://github.com/TeamworkGuy2/ts-code-generator.git#v0.20.0",
-    "ts-event-handlers-lite": "https://github.com/TeamworkGuy2/ts-event-handlers-lite.git#v0.2.6",
-    "ts-mortar": "https://github.com/TeamworkGuy2/ts-mortar.git#v0.15.8"
+    "ts-code-generator": "https://github.com/TeamworkGuy2/ts-code-generator/archive/v0.20.0.tar.gz",
+    "ts-event-handlers-lite": "https://github.com/TeamworkGuy2/ts-event-handlers-lite/archive/v0.2.6.tar.gz",
+    "ts-mortar": "https://github.com/TeamworkGuy2/ts-mortar/archive/v0.15.8.tar.gz"
   },
   "devDependencies": {
     "@types/chai": "~4.1.6",
