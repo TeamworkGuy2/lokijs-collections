@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.1](N/A) - 2018-10-20
+### [0.24.2](N/A) - 2018-11-23
+#### Changed
+* Update dependency `ts-mortar@0.15.9` (fix for `Functions.lazy()` when initializer returns null)
+
+
+--------
+### [0.24.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/e29a058b2890dd9b678893f751e75594a18bb200) - 2018-10-20
 #### Changed
 * Switch `package.json` github dependencies from tag urls to release tarballs to simplify npm install (doesn't require git to npm install tarballs)
 
