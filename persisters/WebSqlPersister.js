@@ -14,9 +14,9 @@ var WebSqlPersister;
          * @param trace the object with functions for logging debug messages and errors
          * @param getDataCollections returns a list of data collections that contain the data to persist/restore to
          * @param addCollection when restoring a database, call this function with each table name found and restored documents
-         * @param [saveItemTransformation] a conversion function to pass items from 'getDataCollections()' through before persisting them
-         * @param [postSaveTransformKeyValueFilter] JSON.stringify() 'replacer', second parameter, function which is called for each object stringified by calls to persist()
-         * @param [restoreItemTransformation] a conversion function to pass items through after restoring them and before storing them in 'getDataCollections()'
+         * @param saveItemTransformation optional conversion function to pass items from 'getDataCollections()' through before persisting them
+         * @param postSaveTransformKeyValueFilter optional JSON.stringify() 'replacer', second parameter, function which is called for each object stringified by calls to persist()
+         * @param restoreItemTransformation optional conversion function to pass items through after restoring them and before storing them in 'getDataCollections()'
          * @param storageFailureCallback callback for handling/logging storage errors
          */
         function WebSqlAdapter(persistenceInterface, trace, getDataCollections, addCollection, saveItemTransformation, postSaveTransformKeyValueFilter, restoreItemTransformation, storageFailureCallback) {
@@ -224,7 +224,7 @@ var WebSqlPersister;
          * @param rows the result set rows to process
          * @param dataColumnName the name of the column containing the model data
          * @param decompress (currently not supported) whether data strings should be decompressed or not
-         * @param [res] optional stats object in which to store info about the rows read
+         * @param res optional stats object in which to store info about the rows read
          */
         WebSqlAdapter.prototype.readRecords = function (rows, dataColumnName, decompress, res) {
             var docs = [];

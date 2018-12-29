@@ -9,6 +9,7 @@
  */
 var MemDbPersisters;
 (function (MemDbPersisters) {
+    MemDbPersisters.localStorage = (typeof window !== "undefined" && "localStorage" in window && window.localStorage !== null ? window.localStorage : null);
     var DbPersister = /** @class */ (function () {
         function DbPersister(filename, getCollections) {
             // alias
@@ -329,8 +330,8 @@ var MemDbPersisters;
          * @param callback - the callback to handle the result
          */
         MemDbLocalStorageAdapter.prototype.loadDatabase = function (dbname, callback) {
-            if (localStorageAvailable()) {
-                callback(localStorage.getItem(dbname));
+            if (MemDbPersisters.localStorage != null) {
+                callback(MemDbPersisters.localStorage.getItem(dbname));
             }
             else {
                 callback(new Error("localStorage is not available"));
@@ -342,8 +343,8 @@ var MemDbPersisters;
          * @param callback - the callback to handle the result
          */
         MemDbLocalStorageAdapter.prototype.saveDatabase = function (dbname, dbstring, callback) {
-            if (localStorageAvailable()) {
-                localStorage.setItem(dbname, dbstring);
+            if (MemDbPersisters.localStorage != null) {
+                MemDbPersisters.localStorage.setItem(dbname, dbstring);
                 callback(null);
             }
             else {
@@ -353,14 +354,6 @@ var MemDbPersisters;
         return MemDbLocalStorageAdapter;
     }());
     MemDbPersisters.MemDbLocalStorageAdapter = MemDbLocalStorageAdapter;
-    function localStorageAvailable() {
-        try {
-            return ("localStorage" in window && window.localStorage !== null);
-        }
-        catch (e) {
-            return false;
-        }
-    }
     function copyProps(src, dest) {
         for (var prop in src) {
             dest[prop] = src[prop];

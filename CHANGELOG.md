@@ -4,7 +4,16 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.2](N/A) - 2018-11-23
+### [0.24.3](N/A) - 2018-12-29
+#### Changed
+* Update to TypeScript 3.2 and fix compile errors
+* Update dev and @types/ dependencies
+* Remove `tsconfig.json lib "dom"` and cleanup code to not rely on browser globals
+* Exposed `MemDbPersisters.localStorage` to allow for custom implementations
+
+
+--------
+### [0.24.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/47af07fb2d812e162eb53cbff146fe4bc95048c3) - 2018-11-23
 #### Changed
 * Update dependency `ts-mortar@0.15.9` (fix for `Functions.lazy()` when initializer returns null)
 

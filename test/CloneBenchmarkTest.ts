@@ -6,6 +6,8 @@ import chai = require("chai");
 import InMemDbImpl = require("../db-collections/InMemDbImpl");
 import M = require("./TestModels");
 
+declare var window: any;
+
 var asr = chai.assert;
 
 
@@ -175,7 +177,7 @@ function now() {
         var hrTime = process.hrtime();
         return hrTime[0] * 1000 + hrTime[1] / 1000000;
     }
-    else if (window) {
+    else if (typeof window !== "undefined") {
         return window.performance.now();
     }
     return Date.now();

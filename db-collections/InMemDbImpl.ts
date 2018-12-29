@@ -8,6 +8,8 @@ import PermissionedDataPersister = require("../persisters/PermissionedDataPersis
 import Collection = require("./Collection");
 import EventEmitter = require("./TsEventEmitter");
 
+declare var window: any;
+declare var document: any;
 
 interface InMemDbCloneFunc {
     (obj: any, cloneDeep?: boolean | ((obj: any) => any)): any;

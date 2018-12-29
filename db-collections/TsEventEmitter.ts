@@ -20,7 +20,7 @@ class EventEmitter<T extends { [eventName: string]: any[] }> implements TsEventE
     public on(eventName: keyof T, listener: (...args: any[]) => void): (...args: any[]) => void {
         var event = this.events[eventName];
         if (event == null) {
-            event = this.events[eventName] = [];
+            event = this.events[eventName] = <any>[];
         }
         event.push(listener);
         return listener;

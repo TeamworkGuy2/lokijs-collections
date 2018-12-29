@@ -923,13 +923,13 @@ class Collection<T> implements MemDbCollection<T> {
     }
 
 
-    public max<K extends keyof T>(field: K) {
-        return Math.max.apply(null, this.extract(field));
+    public max<K extends keyof T>(field: K): T[K] {
+        return <any>Math.max.apply(null, <any[]>this.extract(field));
     }
 
 
     public min<K extends keyof T>(field: K): T[K] {
-        return Math.min.apply(null, this.extract(field));
+        return <any>Math.min.apply(null, <any[]>this.extract(field));
     }
 
 

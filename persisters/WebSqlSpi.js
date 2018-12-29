@@ -119,7 +119,7 @@ var WebSqlUtil;
                 version = "";
             }
             if (!estimatedSize) {
-                if (window.navigator.userAgent.match(/(iPad|iPhone);.*CPU.*OS 7_0/i)) {
+                if (typeof window !== "undefined" && window.navigator.userAgent.match(/(iPad|iPhone);.*CPU.*OS 7_0/i)) {
                     estimatedSize = 5 * 1024 * 1024;
                 }
                 else {
@@ -128,7 +128,7 @@ var WebSqlUtil;
             }
             var dfd = util.defer();
             try {
-                if (!window.openDatabase) {
+                if (typeof window === "undefined" || !window.openDatabase) {
                     util._rejectError(dfd, "WebSQL not implemented");
                 }
                 else {
@@ -473,12 +473,12 @@ var WebSqlUtil;
         };
         WebSqlDatabase.prototype.execSqlStatements = function (xactMethod, sqlStatements, rsCallback, xactMethodType) {
             var start = new Date().getTime();
-            if (!window["startQueriesTime"]) {
+            if (typeof window !== "undefined" && !window["startQueriesTime"]) {
                 window["startQueriesTime"] = start;
             }
             var util = this.util;
-            var isArray = util._isArray(sqlStatements);
-            var sqls = (isArray ? sqlStatements : [sqlStatements]);
+            var isAry = util._isArray(sqlStatements);
+            var sqls = (isAry ? sqlStatements : [sqlStatements]);
             var results = [];
             var pipeReturn = util.pipe(xactMethod(function (xact) {
                 for (var i = 0; i < sqls.length; i++) {
@@ -498,7 +498,7 @@ var WebSqlUtil;
                     }
                 }
             }), function () {
-                return isArray ? results : results[0];
+                return isAry ? results : results[0];
             }, function (err) {
                 err.sql = sqls;
                 return err;
@@ -507,7 +507,9 @@ var WebSqlUtil;
                 pipeReturn.done(function () {
                     var end = new Date().getTime();
                     var time = end - start;
-                    window["endQueriesTime"] = end;
+                    if (typeof window !== "undefined") {
+                        window["endQueriesTime"] = end;
+                    }
                     util.log(util.DEBUG, "websql finish args: ", xactMethodType, sqls.length, sqls);
                     util.log(util.DEBUG, "websql runtime: ", time);
                 });
@@ -530,11 +532,12 @@ var WebSqlUtil;
         function DbUtils(settings) {
             var _this = this;
             this.trace = null;
+            this._isArray = Array.isArray || (function (obj) { return _this._toString(obj) === "[object Array]"; });
             this.NONE = DbUtils.logLevels.NONE;
             this.ERROR = DbUtils.logLevels.ERROR;
             this.DEBUG = DbUtils.logLevels.DEBUG;
             this.verbosity = this.NONE;
-            this.timingLogging = (localStorage.getItem("LogWebsql"));
+            this.timingLogging = (settings.logTiming || (typeof window !== "undefined" && !!window.localStorage.getItem("LogWebsql")));
             if (!this._isFunction(settings.defer)) {
                 throw new Error("no 'defer' promise function option provided to WebSql adapter");
             }
@@ -545,17 +548,6 @@ var WebSqlUtil;
             if (typeof settings.logVerbosity !== "undefined") {
                 this.verbosity = settings.logVerbosity;
             }
-            this._isArray = Array.isArray || (function (obj) { return _this._toString(obj) === "[object Array]"; });
-            this._isArray = this._isArray.bind(this);
-            this._toString = this._toString.bind(this);
-            this._isString = this._isString.bind(this);
-            this._isDatabase = this._isDatabase.bind(this);
-            this._isFunction = this._isFunction.bind(this);
-            this._isPromise = this._isPromise.bind(this);
-            this.pipe = this.pipe.bind(this);
-            this.log = this.log.bind(this);
-            this.setConsole = this.setConsole.bind(this);
-            this._rejectError = this._rejectError.bind(this);
         }
         // Internal Functions
         DbUtils.prototype._toString = function (obj) { return Object.prototype.toString.call(obj); };

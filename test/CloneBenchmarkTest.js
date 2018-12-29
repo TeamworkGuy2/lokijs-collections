@@ -151,7 +151,7 @@ function now() {
         var hrTime = process.hrtime();
         return hrTime[0] * 1000 + hrTime[1] / 1000000;
     }
-    else if (window) {
+    else if (typeof window !== "undefined") {
         return window.performance.now();
     }
     return Date.now();

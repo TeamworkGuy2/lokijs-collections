@@ -1,6 +1,8 @@
 ﻿/// <reference types="websql" />
 import Q = require("q");
 
+declare var window: any;
+
 /*! websql.js | MIT license | Stepan Riha | http://bitbucket.org/nonplus/websql-js
  * websql.js may be freely distributed under the MIT license.
  * converted to TypeScript at 2017-11-04 by TeamworkGuy2
@@ -168,7 +170,7 @@ module WebSqlUtil {
             if (!displayName) { displayName = name; }
             if (!version) { version = ""; }
             if (!estimatedSize) {
-                if (window.navigator.userAgent.match(/(iPad|iPhone);.*CPU.*OS 7_0/i)) {
+                if (typeof window !== "undefined" && window.navigator.userAgent.match(/(iPad|iPhone);.*CPU.*OS 7_0/i)) {
                     estimatedSize = 5 * 1024 * 1024;
                 }
                 else {
@@ -178,7 +180,7 @@ module WebSqlUtil {
 
             var dfd: SimpleDeferred<WebSqlDatabase> = util.defer();
             try {
-                if (!window.openDatabase) {
+                if (typeof window === "undefined" || !window.openDatabase) {
                     util._rejectError(dfd, "WebSQL not implemented");
                 }
                 else {
@@ -554,13 +556,13 @@ module WebSqlUtil {
         execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined, xactMethodType: SqlStatementType): Q.Promise<SQLResultSet[] | U[] | SQLResultSet | U>;
         execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined, xactMethodType: SqlStatementType): Q.Promise<SQLResultSet[] | U[] | SQLResultSet | U> {
             var start = new Date().getTime();
-            if (!(<any>window)["startQueriesTime"]) {
+            if (typeof window !== "undefined" && !(<any>window)["startQueriesTime"]) {
                 (<any>window)["startQueriesTime"] = start;
             }
 
             var util = this.util;
-            var isArray = util._isArray(sqlStatements);
-            var sqls = <SqlQuery[]>(isArray ? sqlStatements : [sqlStatements]);
+            var isAry = util._isArray(sqlStatements);
+            var sqls = <SqlQuery[]>(isAry ? sqlStatements : [sqlStatements]);
             var results: (SQLResultSet | U)[] = [];
 
             var pipeReturn = util.pipe(<Q.IPromise<T>>xactMethod(function (xact: SQLTransaction) {
@@ -581,7 +583,7 @@ module WebSqlUtil {
                     }
                 }
             }), function () {
-                return isArray ? <SQLResultSet[] | U[]>results : results[0];
+                return isAry ? <SQLResultSet[] | U[]>results : results[0];
             }, function (err: any) {
                 err.sql = sqls;
                 return err;
@@ -591,7 +593,9 @@ module WebSqlUtil {
                 pipeReturn.done(function () {
                     var end = new Date().getTime();
                     var time = <number>end - <number>start;
-                    (<any>window)["endQueriesTime"] = end;
+                    if (typeof window !== "undefined") {
+                        (<any>window)["endQueriesTime"] = end;
+                    }
 
                     util.log(util.DEBUG, "websql finish args: ", xactMethodType, sqls.length, sqls);
                     util.log(util.DEBUG, "websql runtime: ", time);
@@ -616,6 +620,7 @@ module WebSqlUtil {
         defer: () => SimpleDeferred<any>;
         trace?: Trace;
         logVerbosity?: number;
+        logTiming?: boolean;
     }
 
 
@@ -649,7 +654,7 @@ module WebSqlUtil {
         // Create a deferred object
         defer: <T = any>() => SimpleDeferred<T>;
 
-        _isArray: (obj: any) => obj is any[];
+        _isArray: (obj: any) => obj is any[] = Array.isArray || ((obj: any): obj is any[] => this._toString(obj) === "[object Array]");
 
 
         /** Sets `websql` configuration:
@@ -663,7 +668,7 @@ module WebSqlUtil {
             this.ERROR = DbUtils.logLevels.ERROR;
             this.DEBUG = DbUtils.logLevels.DEBUG;
             this.verbosity = this.NONE;
-            this.timingLogging = (localStorage.getItem("LogWebsql"));
+            this.timingLogging = (settings.logTiming || (typeof window !== "undefined" && !!window.localStorage.getItem("LogWebsql")));
 
             if (!this._isFunction(settings.defer)) {
                 throw new Error("no 'defer' promise function option provided to WebSql adapter");
@@ -675,18 +680,6 @@ module WebSqlUtil {
             if (typeof settings.logVerbosity !== "undefined") {
                 this.verbosity = settings.logVerbosity;
             }
-
-            this._isArray = Array.isArray || ((obj: any): obj is any[] => this._toString(obj) === "[object Array]");
-            this._isArray = this._isArray.bind(this);
-            this._toString = this._toString.bind(this);
-            this._isString = this._isString.bind(this);
-            this._isDatabase = this._isDatabase.bind(this);
-            this._isFunction = this._isFunction.bind(this);
-            this._isPromise = this._isPromise.bind(this);
-            this.pipe = this.pipe.bind(this);
-            this.log = this.log.bind(this);
-            this.setConsole = this.setConsole.bind(this);
-            this._rejectError = this._rejectError.bind(this);
         }
 
 

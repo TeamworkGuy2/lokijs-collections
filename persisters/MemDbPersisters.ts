@@ -1,4 +1,5 @@
-﻿
+﻿declare var window: { localStorage: any };
+
 /**-----------------+
  | PERSISTENCE      |
  -------------------*
@@ -19,6 +20,9 @@ module MemDbPersisters {
         autosaveInterval?: number;
         createDynamicView?: (coll: MemDbCollection<any>, dv: MemDbDynamicView<any>) => MemDbDynamicView<any>;
     }
+
+
+    export var localStorage = (typeof window !== "undefined" && "localStorage" in window && window.localStorage !== null ? window.localStorage : null);
 
 
     export class DbPersister {
@@ -418,7 +422,7 @@ module MemDbPersisters {
          * @param callback - the callback to handle the result
          */
         public loadDatabase(dbname: string, callback: (obj: any) => void) {
-            if (localStorageAvailable()) {
+            if (localStorage != null) {
                 callback(localStorage.getItem(dbname));
             } else {
                 callback(new Error("localStorage is not available"));
@@ -432,7 +436,7 @@ module MemDbPersisters {
          * @param callback - the callback to handle the result
          */
         public saveDatabase(dbname: string, dbstring: string, callback: (obj: any) => void) {
-            if (localStorageAvailable()) {
+            if (localStorage != null) {
                 localStorage.setItem(dbname, dbstring);
                 callback(null);
             } else {
@@ -442,15 +446,6 @@ module MemDbPersisters {
 
     }
 
-
-
-    function localStorageAvailable() {
-        try {
-            return ("localStorage" in window && window.localStorage !== null);
-        } catch (e) {
-            return false;
-        }
-    }
 
 
     function copyProps(src: object, dest: object) {
