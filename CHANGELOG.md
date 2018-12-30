@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.3](N/A) - 2018-12-29
+### [0.24.4](N/A) - 2018-12-29
+#### Changed
+* Update `ts-code-generator` dependency
+
+
+--------
+### [0.24.3](https://github.com/TeamworkGuy2/lokijs-collections/commit/4c444f08204e4855ebcf0f4ea377912b5502cada) - 2018-12-29
 #### Changed
 * Update to TypeScript 3.2 and fix compile errors
 * Update dev and @types/ dependencies
