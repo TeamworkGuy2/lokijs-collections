@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.4](N/A) - 2018-12-29
+### [0.24.5](N/A) - 2018-3-14
+#### Changed
+* Update dependency `ts-mortar@0.16.0` (fix for `Strings.isDigit()`, removal of `Objects.getProps()` and `Strings.endsWith()`, and several other changes)
+
+
+--------
+### [0.24.4](https://github.com/TeamworkGuy2/lokijs-collections/commit/471d0519b9ce2cf67c01a40e111ae8ea9c2352dc) - 2018-12-29
 #### Changed
 * Update `ts-code-generator` dependency
 
