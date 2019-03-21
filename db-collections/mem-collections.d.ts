@@ -1,8 +1,8 @@
 ﻿/// <reference types="q" />
 /// <reference path="../../ts-event-handlers-lite/events.d.ts" />
-/// <reference path="../../ts-code-generator/code-types/ast-types.d.ts" />
-/// <reference path="../../ts-code-generator/code-types/model-types.d.ts" />
-/// <reference path="../../ts-code-generator/code-types/utils.d.ts" />
+/// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/ast-types.d.ts" />
+/// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/model-types.d.ts" />
+/// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/utils.d.ts" />
 /// <reference path="../change-trackers/collection-changes.d.ts" />
 
 interface ObjectConstructor {

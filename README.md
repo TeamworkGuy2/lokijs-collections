@@ -21,7 +21,7 @@ You can use defaults for the rest of the settings, most of them work fine
 ```ts
 var InMemDbImpl = require("lokijs-collections/db-collections/InMemDbImpl");
 var DummyDataPersister = require("lokijs-collections/test/DummyDataPersister");
-var DtoPropertyConverter = require("ts-code-generator/code-types/DtoPropertyConverter");
+var DtoPropertyConverter = require("@twg2/ts-twg2-ast-codegen/code-types/DtoPropertyConverter");
 
 var databaseName = "...";
 

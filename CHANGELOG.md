@@ -4,14 +4,20 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.6](N/A) - 2018-3-20
+### [0.24.7](N/A) - 2019-3-21
+#### Fixed
+* `ts-code-generator` import/reference paths not being updated to `@twg2/ts-twg-ast-codegen`
+
+
+--------
+### [0.24.6](https://github.com/TeamworkGuy2/lokijs-collections/commit/aecb6eb65b113ef113424521ce3bbec4a01183e3) - 2019-3-20
 #### Changed
 * Switch `ts-mortar` and `ts-promises` dependencies from github to npm
 * Switched dependency `ts-code-generator@0.20.2` to same npm project with new name `@twg2/ts-twg-ast-codegen@0.21.0`
 
 
 --------
-### [0.24.5](https://github.com/TeamworkGuy2/lokijs-collections/commit/74a73f58d87a2302e88b41d3c3718c1a3a7f7ebe) - 2018-3-14
+### [0.24.5](https://github.com/TeamworkGuy2/lokijs-collections/commit/74a73f58d87a2302e88b41d3c3718c1a3a7f7ebe) - 2019-3-14
 #### Changed
 * Update dependency `ts-mortar@0.16.0` (fix for `Strings.isDigit()`, removal of `Objects.getProps()` and `Strings.endsWith()`, and several other changes)
 
