@@ -370,7 +370,11 @@ var InMemDbImpl = /** @class */ (function () {
         }
         // search by primary key
         if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[queryProps[0]] != null) {
-            var itm = collection.by(queryProps[0], query[queryProps[0]]);
+            var queryValue = query[queryProps[0]];
+            if (queryValue == null) {
+                return null;
+            }
+            var itm = collection.by(queryProps[0], queryValue);
             if (throwIfLess && itm == null) {
                 throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found 0 results");
             }
@@ -479,8 +483,8 @@ var DbChanges = /** @class */ (function () {
      * collection and creates a single array for the entire database. If an array of names
      * of collections is passed then only the included collections will be tracked.
      *
-     * @param {array} optional array of collection names. No arg means all collections are processed.
-     * @returns {array} array of changes
+     * @param collectionNames optional array of collection names. null returns changes for all collections.
+     * @returns array of changes
      * @see private method createChange() in Collection
      */
     DbChanges.prototype.generateChangesNotification = function (collectionNames) {
@@ -493,7 +497,8 @@ var DbChanges = /** @class */ (function () {
         return changes;
     };
     /** stringify changes for network transmission
-     * @returns {string} string representation of the changes
+     * @param collectionNames optional array of collection names. null returns serialized changes for all collections.
+     * @returns string representation of the changes
      */
     DbChanges.prototype.serializeChanges = function (collectionNames) {
         return JSON.stringify(this.generateChangesNotification(collectionNames));

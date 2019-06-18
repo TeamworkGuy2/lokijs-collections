@@ -61,7 +61,7 @@ class Collection<T> implements MemDbCollection<T> {
 
         // in autosave scenarios we will use collection level dirty flags to determine whether save is needed.
         // currently, if any collection is dirty we will autosave the whole database if autosave is configured.
-        // defaulting to true since this is called from addCollection and adding a collection should trigger save
+        // defaulting to true since this is called from addCollection() and adding a collection should trigger save
         this.dirty = true;
 
         // private holders for cached data
@@ -229,30 +229,6 @@ class Collection<T> implements MemDbCollection<T> {
     }
 
 
-    public byExample(template: any): { $and: any[] } {
-        var obj, query: any[] = [];
-        for (var k in template) {
-            if (!template.hasOwnProperty(k)) continue;
-            query.push((
-                obj = <any>{},
-                obj[k] = template[k],
-                obj
-            ));
-        }
-        return { "$and": query };
-    }
-
-
-    public findObject(template: any) {
-        return this.findOne(this.byExample(template));
-    }
-
-
-    public findObjects(template: any) {
-        return this.find(this.byExample(template));
-    }
-
-
     /*----------------------------+
     | INDEXING                    |
     +----------------------------*/
@@ -381,9 +357,11 @@ class Collection<T> implements MemDbCollection<T> {
     public removeDynamicView(name: string) {
         for (var idx = 0; idx < this.dynamicViews.length; idx++) {
             if (this.dynamicViews[idx].name === name) {
-                this.dynamicViews.splice(idx, 1);
+                var dvs = this.dynamicViews.splice(idx, 1);
+                return dvs[0];
             }
         }
+        return null;
     }
 
 
@@ -401,17 +379,16 @@ class Collection<T> implements MemDbCollection<T> {
      * and apply the updatefunc to those elements iteratively
      */
     public findAndUpdate(filterFunc: (obj: T) => boolean, updateFunc: (obj: T) => T): void {
-        var results = this.where(filterFunc),
-            i = 0,
-            obj: T & MemDbObj;
+        var results = this.where(filterFunc);
         try {
-            for (i; i < results.length; i++) {
-                obj = <T & MemDbObj>updateFunc(results[i]);
+            for (var i = 0; i < results.length; i++) {
+                var obj = <T & MemDbObj>updateFunc(results[i]);
                 this.update(obj);
             }
         } catch (err) {
             this.rollback();
-            console.error(err.message);
+            this.events.emit("error", err);
+            throw err;
         }
     }
 
@@ -424,7 +401,7 @@ class Collection<T> implements MemDbCollection<T> {
     public insert(doc: T[]): T[];
     public insert(doc: T | T[]): T | T[] {
         if (!doc) {
-            var error = new Error("Object cannot be null");
+            var error = new Error("Parameter 'doc' cannot be null");
             this.events.emit("error", error);
             throw error;
         }
@@ -528,12 +505,10 @@ class Collection<T> implements MemDbCollection<T> {
             this.commit();
             this.dirty = true; // for autosave scenarios
             this.events.emit("update", doc);
-
         } catch (err) {
             this.rollback();
-            console.error(err.message);
             this.events.emit("error", err);
-            throw (err); // re-throw error so user does not think it succeeded
+            throw err; // re-throw error so user does not think it succeeded
         }
     }
 
@@ -545,7 +520,7 @@ class Collection<T> implements MemDbCollection<T> {
 
         // if parameter isn't object exit with throw
         if (typeof obj !== "object") {
-            throw new Error("Object being added must be an object");
+            throw new Error("Parameter 'obj' being added must be an object");
         }
 
         // try adding object to collection
@@ -593,8 +568,8 @@ class Collection<T> implements MemDbCollection<T> {
             return obj;
         } catch (err) {
             this.rollback();
-            console.error(err.message);
-            return null;
+            this.events.emit("error", err);
+            throw err;
         }
     }
 
@@ -628,7 +603,7 @@ class Collection<T> implements MemDbCollection<T> {
         }
 
         if (typeof doc !== "object") {
-            throw new Error("Parameter is not an object");
+            throw new TypeError("Parameter 'doc' is not an object");
         }
         if (Array.isArray(doc)) {
             for (var k = 0, len = doc.length; k < len; k++) {
@@ -637,7 +612,7 @@ class Collection<T> implements MemDbCollection<T> {
             return null;
         }
 
-        if (!doc.hasOwnProperty("$loki")) {
+        if (!(<any>doc).hasOwnProperty("$loki")) {
             throw new Error("Object is not a document stored in the collection");
         }
 
@@ -673,12 +648,10 @@ class Collection<T> implements MemDbCollection<T> {
             delete item.$loki;
             delete item.meta;
             return item;
-
         } catch (err) {
             this.rollback();
-            console.error(err.message);
             this.events.emit("error", err);
-            return null;
+            throw err;
         }
     }
 
@@ -701,7 +674,7 @@ class Collection<T> implements MemDbCollection<T> {
             mid = Math.floor(min + (max - min) / 2);
 
         if (isNaN(id)) {
-            throw new Error("Passed id is not an integer");
+            throw new TypeError("Parameter 'id' is not an integer: " + id);
         }
 
         while (data[min] < data[max]) {
@@ -743,7 +716,7 @@ class Collection<T> implements MemDbCollection<T> {
      * on a collection.
      */
     public chain(): Resultset<T> {
-        return <Resultset<T>><any>Resultset.from<T>(this, null, null);
+        return Resultset.from<T>(this, null, null);
     }
 
 
@@ -754,7 +727,8 @@ class Collection<T> implements MemDbCollection<T> {
         var res: T & MemDbObj = Resultset.from<T>(this, query, null, true);
         if (Array.isArray(res) && res.length === 0) {
             return null;
-        } else {
+        }
+        else {
             return res;
         }
     }
@@ -768,19 +742,19 @@ class Collection<T> implements MemDbCollection<T> {
             query = "getAll";
         }
         // find logic moved into Resultset class
-        var resSet: (T & MemDbObj)[] = Resultset.from<T>(this, query, null);
+        var resSet = Resultset.from<T>(this, query, null);
         return resSet;
     }
 
 
-    /** Find object by unindexed field by property equal to value,
-     * simply iterates and returns the first element matching the query
+    /** Find object by unindexed property equal to the specified value.
+     * Simply iterates and returns the first element matching the query
      */
     public findOneUnindexed(prop: string, value: any): (T & MemDbObj) | null {
-        var i = this.data.length;
-        while (i--) {
-            if ((<any>this.data[i])[prop] === value) {
-                return this.data[i];
+        var ary = this.data;
+        for (var i = 0, len = ary.length; i < len; i++) {
+            if ((<any>ary[i])[prop] === value) {
+                return ary[i];
             }
         }
         return null;
@@ -838,13 +812,14 @@ class Collection<T> implements MemDbCollection<T> {
 
 
     // async executor. This is only to enable callbacks at the end of the execution.
-    public async(fun: () => void, callback: () => void) {
+    public async(func: () => void, callback: () => void) {
         setTimeout(function () {
-            if (typeof fun === "function") {
-                fun();
+            if (typeof func === "function") {
+                func();
                 callback();
-            } else {
-                throw new Error("Argument passed for async execution is not a function");
+            }
+            else {
+                throw new TypeError("Parameter 'func' is not a function");
             }
         }, 0);
     }
@@ -853,11 +828,11 @@ class Collection<T> implements MemDbCollection<T> {
     /** Create view function - filter
      */
     public where(): Resultset<T>;
-    public where(fun: (obj: T) => boolean): (T & MemDbObj)[];
-    public where(fun?: (obj: T) => boolean): (T & MemDbObj)[] | Resultset<T>;
-    public where(fun?: (obj: T) => boolean): (T & MemDbObj)[] | Resultset<T> {
+    public where(func: (obj: T) => boolean): (T & MemDbObj)[];
+    public where(func?: (obj: T) => boolean): (T & MemDbObj)[] | Resultset<T>;
+    public where(func?: (obj: T) => boolean): (T & MemDbObj)[] | Resultset<T> {
         // find logic moved into Resultset class
-        var resSet = Resultset.from<T>(this, null, fun);
+        var resSet = Resultset.from<T>(this, null, func);
         return resSet;
     }
 
@@ -973,7 +948,8 @@ class Collection<T> implements MemDbCollection<T> {
                     min = this.data[i][field];
                     result.index = this.data[i].$loki;
                 }
-            } else {
+            }
+            else {
                 min = this.data[i][field];
                 result.index = this.data[i].$loki;
             }
@@ -1017,7 +993,8 @@ class Collection<T> implements MemDbCollection<T> {
                 if (max < dict[prop]) {
                     mode = prop;
                 }
-            } else {
+            }
+            else {
                 mode = prop;
                 max = dict[prop];
             }
@@ -1057,7 +1034,8 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
         var field = <keyof E>this.field;
         if (this.keyMap[<any>obj[field]]) {
             throw new Error("Duplicate key for property " + field + ": " + obj[field]);
-        } else {
+        }
+        else {
             this.keyMap[<any>obj[field]] = obj;
             this.lokiMap[obj.$loki] = obj[field];
         }
@@ -1078,7 +1056,8 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
             this.set(obj);
             // make the old key fail bool test, while avoiding the use of delete (mem-leak prone)
             this.keyMap[<string>old] = undefined;
-        } else {
+        }
+        else {
             this.keyMap[<any>obj[field]] = obj;
         }
     }
@@ -1178,8 +1157,7 @@ function standardDeviation(values: any[]) {
     var avg = average(values);
     var squareDiffs = values.map(function (value) {
         var diff = value - avg;
-        var sqrDiff = diff * diff;
-        return sqrDiff;
+        return diff * diff;
     });
 
     var avgSquareDiff = average(squareDiffs);

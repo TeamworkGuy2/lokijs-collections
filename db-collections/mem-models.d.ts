@@ -8,7 +8,6 @@ interface DtoFuncs<E> {
 }
 
 
-
 /** All functions retrival, querying, and conversion of items from a local collection to/from a server collection
  * @since 2016-3-11
  */
@@ -20,7 +19,6 @@ interface DtoAllFuncs<E, S> extends DtoFuncs<E> {
 }
 
 
-
 /** A DataCollection containing syncable DTOs
  * @template E the type of data stored in this collection
  * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
@@ -30,7 +28,6 @@ interface DtoCollection<E extends K, K, S> extends DataCollection<E, K> {
     /** Get data model helper functions associated with this collection/data model */
     getDataModelFuncs(): DtoAllFuncs<E, S>;
 }
-
 
 
 /** Represents meta-data about the items in a collection
@@ -46,16 +43,15 @@ interface DataCollectionModel<E> {
 }
 
 
-
 /** ModelDefinitions - defines a set of data model meta-definitions
  */
 interface ModelDefinitions {
     /** model names in the order they should be read/generated */
     modelNames: string[];
 
-    /** Add a data model to this set of definitions, the data model is split into two pieces:
-     * a model (containing the properties)
-     * and a set of functions for working with that model (functions for copying, converting to/from service DTOs, etc.)
+    /** Add a data model to this set of definitions, the data model consists of two parts:
+     *   - A model (containing the properties)
+     *   - A set of functions for working with that model (functions for copying, converting to/from service DTOs, etc.)
      */
     addModel<U, W>(modelName: string, model: DtoModel, modelFuncs?: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DtoAllFuncs<U, W> };
 
@@ -75,40 +71,22 @@ interface ModelDefinitions {
 }
 
 
-
 /** ModelKeys - helper for ModelDefinitions
  * For managing the primary and auto-generated keys from data models
  */
 interface ModelKeys {
 
     /** add missing IDs that should be auto-generated
-     * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
+     * @param autoGenKeys in the format { name: "...", largestKey: 45678 }
      */
     addGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc: any): void;
 
     /** track auto-generated IDs
-     * @param autoGenKeys: in the format { name: "...", largestKey: 45678 }
+     * @param autoGenKeys in the format { name: "...", largestKey: 45678 }
      */
     trackGeneratedIds(autoGenKeys: { name: string; largestKey: number }[], doc: any): void;
 
     /** Given a query object, check its validity based on these constraints
      */
     validateQuery(collectionName: string, query: any, obj: any): any;
-
-
-    /** Constrains the value of a field
-     */
-    //interface Constraint {
-    //    public static NON_NULL: Constraint;
-    //    public static UNIQUE: Constraint;
-    //}
-
-
-    /** How to handle auto generated fields (i.e. primary keys)
-     */
-    //interface Generated {
-    //    public static AUTO_GENERATE: Generated;
-    //    public static PRESERVE_EXISTING: Generated;
-    //
-    //}
 }

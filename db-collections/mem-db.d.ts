@@ -132,16 +132,16 @@ interface MemDbChanges {
     /** takes all the changes stored in each
      *   collection and creates a single array for the entire database. If an array of names
      *   of collections is passed then only the included collections will be tracked.
-     * @param optional array of collection names. No arg means all collections are processed.
+     * @param collectionNames optional array of collection names. No arg means all collections are processed.
      * @returns array of changes
      * @see private method createChange() in Collection
      */
-    generateChangesNotification(arrayOfCollectionNames?: string[]): MemDbCollectionChange[];
+    generateChangesNotification(collectionNames?: string[]): MemDbCollectionChange[];
 
     /** stringify changes for network transmission
-     * @returns {string} string representation of the changes
+     * @returns string representation of the changes
      */
-    serializeChanges(collectionNamesArray?: string[]): string;
+    serializeChanges(collectionNames?: string[]): string;
 
     /** clears all the changes in all collections. */
     clearChanges(): void;
@@ -159,7 +159,7 @@ interface TsEventEmitter<T extends { [eventName: string]: any[] }> {
     events: T;
 
     /** adds a listener to the queue of callbacks associated to an event
-     * @returns {int} the index of the callback in the array of listeners for a particular event
+     * @returns the index of the callback in the array of listeners for a particular event
      */
     on(eventName: keyof T, listener: (...args: any[]) => void): (...args: any[]) => void;
 
@@ -169,8 +169,8 @@ interface TsEventEmitter<T extends { [eventName: string]: any[] }> {
     /** emits a particular event
      * with the option of passing optional parameters which are going to be processed by the callback
      * provided signatures match (i.e. if passing emit(event, arg0, arg1) the listener should take two parameters)
-     * @param {string} eventName - the name of the event
-     * @param {object} data - optional object passed with the event
+     * @param eventName - the name of the event
+     * @param data - optional object passed with the event
      */
     emit(eventName: keyof T, data?: any): void;
 }
@@ -212,11 +212,15 @@ interface DataPersister {
 declare module DataPersister {
 
     interface CollectionRawStats {
+        /** The number of objects in the collection */
         size: number;
-        dataSizeBytes: number;
+        /** The total size in bytes of all the objects in the collection */
+        dataSizeBytes: number | null;
     }
 
-    /** Information about a set of collections */
+
+    /** Information about a set of collections
+     */
     interface CollectionData {
         collections: {
             [index: string]: CollectionRawStats;
@@ -237,10 +241,46 @@ declare module DataPersister {
         dataColumnName?: string;
         /** (currently unsupported) whether to decompress stringified object data */
         decompress?: boolean;
+        /** whether 'WriteOptions.groupByKey' or 'WriteOptions.maxObjectsPerChunk' were provided when the collection was 'persist()'ed */
+        isChunks?: boolean;
+    }
+
+
+    /** Most basic fields needed to persist and restore a full 'DataCollection'
+     */
+    export interface SimpleDataCollection {
+        name: string;
+        data: any[];
+        dirty?: boolean;
+    }
+
+
+    export interface SimpleDeferred<T> {
+        promise: Q.Promise<T>;
+        resolve(value?: Q.IWhenable<T>): void;
+        reject(reason: any): void;
+    }
+
+
+    export interface DbLogger {
+        log(...args: any[]): any;
+        error?(...args: any[]): any;
+        text?(...args: any[]): any;
+    }
+
+
+    export interface UtilConfig {
+        defer<T = any>(): SimpleDeferred<T>;
+        whenAll<T = any>(promises: ArrayLike<PromiseLike<T>>): Q.Promise<T[]>;
+        trace?: DbLogger;
+        verbosity?: number;
+        logTimings?: boolean;
     }
 
 
     export interface WriteOptions {
+        /** whether to auto-generate the 'keyColumn' */
+        keyAutoGenerate?: boolean;
         /** property name of data model primary key, or a function which takes an object and returns a primary key string */
         keyGetter?: string | ((obj: any) => string);
         /** name of the persistent key column to store value from 'keyGetter', or null to not include key column */
@@ -260,10 +300,10 @@ declare module DataPersister {
 
     export interface Factory {
         /**
-         * @param dbInst: the in-memory database that the persister pulls data from
-         * @param getCollections: returns a list of data collections that contain the data to persist/restore to
-         * @param saveItemTransformation: a conversion function to pass items from getDataCollections() through before persisting them
-         * @param restoreItemTransformation: a conversion function to pass items through
+         * @param dbInst the in-memory database that the persister pulls data from
+         * @param getCollections returns a list of data collections that contain the data to persist/restore to
+         * @param saveItemTransformation a conversion function to pass items from getDataCollections() through before persisting them
+         * @param restoreItemTransformation a conversion function to pass items through
          * after restoring them and before storing them in getDataCollections()
          */
         (dbInst: InMemDb, getCollections: () => MemDbCollection<any>[],
@@ -283,8 +323,8 @@ interface MemDbOps {
     $lt: (a: any, b: any) => boolean;
     $lte: (a: any, b: any) => boolean;
     $ne: (a: any, b: any) => boolean;
-    $regex: (a: string, b: RegExp) => boolean;
-    $in: (a: any, b: { indexOf: (value: any) => number }) => boolean;
+    $regex: (a: string, b: { test(string: string): boolean }) => boolean;
+    $in: (a: any, b: { indexOf(value: any): number }) => boolean;
     $containsAny: (a: any, b: any[] | any) => boolean;
     $contains: (a: any, b: any[] | any) => boolean;
 }
@@ -380,9 +420,12 @@ interface MemDbCollectionOptions<T> {
 interface MemDbObj {
     $loki: number;
     meta: {
-        created: number; // timestamp
-        revision: number; // number that gets incremented each time the object is updated
-        updated?: number; // timestamp
+        /** timestamp */
+        created: number;
+        /** number that gets incremented each time the object is updated */
+        revision: number;
+        /** timestamp */
+        updated?: number;
     };
 }
 

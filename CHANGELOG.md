@@ -4,7 +4,33 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.24.7](N/A) - 2019-3-21
+### [0.25.0](N/A) - 2019-4-?
+#### Added
+* Alpha quality `IndexedDbPersister` and `IndexedDbSpi` - unit test development started, still needs a lot of testing and some fixes
+
+#### Changed
+* `WebSqlSpi.WebSqlDatabase` flattened into just `WebSqlSpi` (`DbUtils` moved to `DbUtil`) 
+* `WebSqlPersister.restore()` `defaultOptions` parameter no longer defaults `dataColumnName` to `WebSqlPersister.defaultDataColumnName` and `maxObjectsPerChunk` no longer defaults to `WebSqlPersister.MAX_OBJECTS_PER_PERSIST_RECORD`
+* `WebSqlSpi.execSqlStatements()` `xactMethodType moved from last parameter position to second parameter
+* `WebSqlPersister`
+  * `tablesToNotClear` and `tablesToNotLoad` fields changed from static to instance and added to constructor parameters
+  * `addCollectionRecords()` `options.maxObjectsPerChunk` no longer defaults to 1000, specify a value
+* `DataPersister.Trace` renamed `DataPersister.DbLogger`
+* Moved `WebsqlSpi.DbUtils` into its own file `DbUtil`
+* Removed unnecessary try-catch-rethrow from `Resultset.where()`
+* Changed some `Collection` catch blocks to log errors to `this.events.emit('error', ...)` instead of the `console`
+* Update to TypeScript 3.5 and fix compile errors
+
+#### Removed
+* `MemDbCollection` and `Collection` `byExample()`, `findObject()`, and `findObjects()` use `DataCollection.data()` and `where()` instead
+
+#### Fixed
+* Fixed `Collection.lookup()` returning a method when passing `null` for the key
+* Fixed `WebSqlPersister.createInsertStatements()` to always run `itemSaveConverter` on data rows being persisted regardless of other config options
+
+
+--------
+### [0.24.7](https://github.com/TeamworkGuy2/lokijs-collections/commit/ded1287120ad5e5c8061ceb883539f2bd3db9430) - 2019-3-21
 #### Fixed
 * `ts-code-generator` import/reference paths not being updated to `@twg2/ts-twg-ast-codegen`
 

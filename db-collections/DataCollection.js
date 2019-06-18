@@ -5,7 +5,7 @@ var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 /** DataCollection class
  * Represents an in-memory, synchronous, data collection with unique keys.
- * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
+ * Provides a collection API (add, remove, update/set) to make it easy to work with data from an 'InMemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter

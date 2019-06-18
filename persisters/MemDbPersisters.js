@@ -301,7 +301,7 @@ var MemDbPersisters;
                 encoding: "utf8"
             }, function readFileCallback(err, data) {
                 if (err) {
-                    callback(new Error(err));
+                    callback(err);
                 }
                 else {
                     callback(data);

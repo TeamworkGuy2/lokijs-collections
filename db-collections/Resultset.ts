@@ -17,10 +17,10 @@ class Resultset<T> implements MemDbResultset<T> {
 
 
     /**
-     * @param collection - The collection which this Resultset will query against.
-     * @param queryObj - Optional mongo-style query object to initialize resultset with.
-     * @param queryFunc - Optional javascript filter function to initialize resultset with.
-     * @param firstOnly - Optional boolean used by collection.findOne().
+     * @param collection The collection which this Resultset will query against.
+     * @param queryObj Optional mongo-style query object to initialize resultset with.
+     * @param queryFunc Optional javascript filter function to initialize resultset with.
+     * @param firstOnly Optional boolean used by collection.findOne().
      */
     private constructor(collection: MemDbCollection<T>, queryObj?: MemDbQuery | null, queryFunc?: ((obj: T) => boolean) | null) {
         // retain reference to collection we are querying against
@@ -45,7 +45,7 @@ class Resultset<T> implements MemDbResultset<T> {
     /** Allows you to limit the number of documents passed to next chain operation.
      *   A resultset copy() is made to avoid altering original resultset.
      *
-     * @param qty - The number of documents to return.
+     * @param qty The number of documents to return.
      * @returns Returns a copy of the resultset, limited by qty, for subsequent chain ops.
      */
     public limit(qty: number) {
@@ -64,7 +64,7 @@ class Resultset<T> implements MemDbResultset<T> {
 
     /** Used for skipping 'pos' number of documents in the resultset.
      *
-     * @param pos - Number of documents to skip; all preceding documents are filtered out.
+     * @param pos Number of documents to skip; all preceding documents are filtered out.
      * @returns Returns a copy of the resultset, containing docs starting at 'pos' for subsequent chain ops.
      */
     public offset(pos: number) {
@@ -106,10 +106,10 @@ class Resultset<T> implements MemDbResultset<T> {
      *     if (obj1.name < obj2.name) return -1;
      *   });
      *
-     * @param comparefun - A javascript compare function used for sorting.
+     * @param compareFunc An Array.sort() style compare function used for sorting.
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
-    public sort(comparefun: (a: any, b: any) => number) {
+    public sort(compareFunc: (a: any, b: any) => number) {
         // if this is chained resultset with no filters applied, just we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
             this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
@@ -119,7 +119,7 @@ class Resultset<T> implements MemDbResultset<T> {
         this.filteredrows.sort(function comparer(a, b) {
             var obj1 = coll.data[a];
             var obj2 = coll.data[b];
-            return comparefun(obj1, obj2);
+            return compareFunc(obj1, obj2);
         });
 
         return this;
@@ -128,8 +128,8 @@ class Resultset<T> implements MemDbResultset<T> {
 
     /** Simpler, loose evaluation for user to sort based on a property name. (chainable)
      *
-     * @param propname - name of property to sort by.
-     * @param isdesc - (Optional) If true, the property will be sorted in descending order
+     * @param propname name of property to sort by.
+     * @param isdesc (Optional) If true, the property will be sorted in descending order
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
     public simplesort(propname: keyof T & string, isdesc?: boolean) {
@@ -155,13 +155,13 @@ class Resultset<T> implements MemDbResultset<T> {
 
     /** helper method for compoundsort(), performing individual object comparisons
      *
-     * @param properties - array of property names, in order, by which to evaluate sort order
-     * @param obj1 - first object to compare
-     * @param obj2 - second object to compare
+     * @param props array of property names, in order, by which to evaluate sort order
+     * @param obj1 first object to compare
+     * @param obj2 second object to compare
      * @returns 0, -1, or 1 to designate if identical (sortwise) or which should be first
      */
-    public compoundeval(properties: (keyof T | [keyof T, boolean])[], obj1: T & MemDbObj, obj2: T & MemDbObj): number {
-        var propCount = properties.length;
+    public compoundeval(props: (keyof T | [keyof T, boolean])[], obj1: T & MemDbObj, obj2: T & MemDbObj): -1 | 0 | 1 {
+        var propCount = props.length;
 
         if (propCount === 0) {
             throw new Error("Invalid call to compoundeval, need at least one property");
@@ -169,7 +169,7 @@ class Resultset<T> implements MemDbResultset<T> {
 
         // decode property, whether just a string property name or subarray [propname, isdesc]
         var isdesc = false;
-        var firstProp = properties[0];
+        var firstProp = props[0];
         if (typeof firstProp !== "string" && Array.isArray(firstProp)) {
             isdesc = firstProp[1];
             firstProp = firstProp[0];
@@ -179,7 +179,7 @@ class Resultset<T> implements MemDbResultset<T> {
             if (propCount === 1) {
                 return 0;
             } else {
-                return this.compoundeval(properties.slice(1), obj1, obj2);
+                return this.compoundeval(props.slice(1), obj1, obj2);
             }
         }
 
@@ -191,7 +191,7 @@ class Resultset<T> implements MemDbResultset<T> {
      *   Example : rs.compoundsort(['age', 'name']); to sort by age and then name (both ascending)
      *   Example : rs.compoundsort(['age', ['name', true]); to sort by age (ascending) and then by name (descending)
      *
-     * @param properties - array of property names or subarray of [propertyname, isdesc] used evaluate sort order
+     * @param properties array of property names or subarray of [propertyname, isdesc] used evaluate sort order
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
     public compoundsort(properties: (keyof T | [keyof T, boolean])[]) {
@@ -211,12 +211,12 @@ class Resultset<T> implements MemDbResultset<T> {
     }
 
 
-    /** oversee the operation of OR'ed query expressions.
+    /** Oversee OR'ing query expressions.
      *   OR'ed expression evaluation runs each expression individually against the full collection,
      *   and finally does a set OR on each expression's results.
      *   Each evaluation can utilize a binary index to prevent multiple linear array scans.
      *
-     * @param expressionArray - array of expressions
+     * @param expressionArray array of expressions
      * @returns this resultset for further chain ops.
      */
     public findOr(expressionArray: MemDbQuery[]) {
@@ -270,17 +270,17 @@ class Resultset<T> implements MemDbResultset<T> {
     }
 
 
-    /** oversee the operation of AND'ed query expressions.
+    /** Oversee AND'ing query expressions.
      *   AND'ed expression evaluation runs each expression progressively against the full collection,
      *   internally utilizing existing chained resultset functionality.
      *   Only the first filter can utilize a binary index.
      *
-     * @param expressionArray - array of expressions
+     * @param expressionArray array of expressions
      * @returns this resultset for further chain ops.
      */
     public findAnd(expressionArray: MemDbQuery[]) {
-        // we have already implementing method chaining in this (our Resultset class)
-        // so lets just progressively apply user supplied and filters
+        // we have already implementing chaining in this Resultset class
+        // so we can just progressively apply user supplied filters
         for (var i = 0; i < expressionArray.length; i++) {
             this.find(expressionArray[i]);
         }
@@ -291,8 +291,8 @@ class Resultset<T> implements MemDbResultset<T> {
 
     /** Used for querying via a mongo-style query object.
      *
-     * @param query - A mongo-style query object used for filtering current results.
-     * @param firstOnly - (Optional) Used by collection.findOne()
+     * @param query A mongo-style query object used for filtering current results.
+     * @param firstOnly (Optional) Used by collection.findOne()
      * @returns this resultset for further chain ops.
      */
     public find(query: MemDbQuery | null | undefined): Resultset<T>;
@@ -309,7 +309,7 @@ class Resultset<T> implements MemDbResultset<T> {
         }
 
         if (this.collection.data === null) {
-            throw new TypeError("cannot query null collection data");
+            throw new TypeError("cannot query collection with null data");
         }
 
         var queryObj = query || "getAll",
@@ -371,7 +371,7 @@ class Resultset<T> implements MemDbResultset<T> {
                         return this;
                     }
                     else {
-                        // our $and operation internally chains filters
+                        // the $and operation internally chains filters
                         result = this.collection.chain().findAnd(queryVal).data();
 
                         // if this was coll.findOne() return first object or empty array if null
@@ -457,9 +457,9 @@ class Resultset<T> implements MemDbResultset<T> {
 
         // the comparison function
         var op = <keyof MemDbOps>operator;
-        var fun = LokiOps[op];
+        var fun = <(a: any, b: any) => boolean>LokiOps[op];
 
-        // Query executed differently depending on :
+        // Query executed differently depending on:
         //    - whether it is chained or not
         //    - whether the property being queried has an index defined
         //    - if chained, we handle first pass differently for initial filteredrows[] population
@@ -576,61 +576,59 @@ class Resultset<T> implements MemDbResultset<T> {
 
     /** Used for filtering via a javascript filter function.
      *
-     * @param fun - A javascript function used for filtering current results by.
+     * @param searchFunc A javascript function used for filtering current results by.
      * @returns this resultset for further chain ops.
      */
     public where(searchFunc: (obj: T) => boolean): this {
-        try {
-            // if not a chained query then run directly against data[] and return object []
-            if (!this.searchIsChained) {
-                var result: (T & MemDbObj)[] = [];
-                var i = this.collection.data.length;
+        var collData = this.collection.data;
 
-                while (i--) {
-                    if (searchFunc(this.collection.data[i]) === true) {
-                        result.push(this.collection.data[i]);
+        // if not a chained query then run directly against data[] and return object[]
+        if (!this.searchIsChained) {
+            var result: (T & MemDbObj)[] = [];
+            var i = collData.length;
+
+            while (i--) {
+                if (searchFunc(collData[i]) === true) {
+                    result.push(collData[i]);
+                }
+            }
+
+            // not a chained query so returning result as data[]
+            return <any>result;
+        }
+        // else chained query, so run against filteredrows
+        else {
+            // If the filteredrows[] is already initialized, use it
+            if (this.filterInitialized) {
+                var rows: number[] = [];
+                var j = this.filteredrows.length;
+
+                while (j--) {
+                    if (searchFunc(collData[this.filteredrows[j]]) === true) {
+                        rows.push(this.filteredrows[j]);
                     }
                 }
 
-                // not a chained query so returning result as data[]
-                return <any>result;
+                this.filteredrows = rows;
+
+                return this;
             }
-            // else chained query, so run against filteredrows
+            // otherwise this is initial chained op, work against data, push into filteredrows[]
             else {
-                // If the filteredrows[] is already initialized, use it
-                if (this.filterInitialized) {
-                    var rows: number[] = [];
-                    var j = this.filteredrows.length;
+                var idxs: number[] = [];
+                var k = collData.length;
 
-                    while (j--) {
-                        if (searchFunc(this.collection.data[this.filteredrows[j]]) === true) {
-                            rows.push(this.filteredrows[j]);
-                        }
+                while (k--) {
+                    if (searchFunc(collData[k]) === true) {
+                        idxs.push(k);
                     }
-
-                    this.filteredrows = rows;
-
-                    return this;
                 }
-                // otherwise this is initial chained op, work against data, push into filteredrows[]
-                else {
-                    var idxs: number[] = [];
-                    var k = this.collection.data.length;
 
-                    while (k--) {
-                        if (searchFunc(this.collection.data[k]) === true) {
-                            idxs.push(k);
-                        }
-                    }
+                this.filteredrows = idxs;
+                this.filterInitialized = true;
 
-                    this.filteredrows = idxs;
-                    this.filterInitialized = true;
-
-                    return this;
-                }
+                return this;
             }
-        } catch (err) {
-            throw err;
         }
     }
 
@@ -654,12 +652,10 @@ class Resultset<T> implements MemDbResultset<T> {
         }
 
         var data = this.collection.data,
-            fr = this.filteredrows;
-
-        var i,
+            fr = this.filteredrows,
             len = this.filteredrows.length;
 
-        for (i = 0; i < len; i++) {
+        for (var i = 0; i < len; i++) {
             result.push(data[fr[i]]);
         }
         return result;
@@ -668,12 +664,12 @@ class Resultset<T> implements MemDbResultset<T> {
 
     /** used to run an update operation on all documents currently in the resultset.
      *
-     * @param updateFunc - User supplied updateFunction(obj) will be executed for each document object.
+     * @param updateFunc User supplied updateFunction(obj) will be executed for each document object.
      * @returns this resultset for further chain ops.
      */
     public update<U>(updateFunc: (obj: T) => U): Resultset<U> {
         if (typeof updateFunc !== "function") {
-            throw new Error("Argument is not a function");
+            throw new Error("Argument 'updateFunc' is not a function");
         }
 
         // if this is chained resultset with no filters applied, we need to populate filteredrows first
@@ -735,9 +731,9 @@ class Resultset<T> implements MemDbResultset<T> {
      *   this is used for collection.find() and first find filter of resultset/dynview
      *   slightly different than get() binary search in that get() hones in on 1 value,
      *   but we have to hone in on many (range)
-     * @param op - operation, such as $eq
-     * @param prop - name of property to calculate range for
-     * @param val - value to use for range calculation.
+     * @param op operation, such as $eq
+     * @param prop name of property to calculate range for
+     * @param val value to use for range calculation.
      * @returns [start, end] index array positions
      */
     public calculateRange(op: keyof MemDbOps, prop: keyof T, val: any): [number, number] {
@@ -864,9 +860,9 @@ class Resultset<T> implements MemDbResultset<T> {
 
     public static from<S>(collection: MemDbCollection<S>): Resultset<S>;
     public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery                                                                                               ): (S & MemDbObj)[];
-    public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery,                     queryFunc: null | undefined,    firstOnly: true                          ): (S & MemDbObj);
+    public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery,                     queryFunc: null | undefined,  firstOnly: true                            ): (S & MemDbObj);
     public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery,                     queryFunc?: null | undefined                                             ): (S & MemDbObj)[];
-    public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery,                     queryFunc: null | undefined, firstOnly: false                            ): (S & MemDbObj)[];
+    public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery,                     queryFunc: null | undefined,  firstOnly: false                           ): (S & MemDbObj)[];
     public static from<S>(collection: MemDbCollection<S>, queryObj: MemDbQuery,                     queryFunc?: null | undefined, firstOnly?: boolean                        ): (S & MemDbObj) | Resultset<S>;
     public static from<S>(collection: MemDbCollection<S>, queryObj?: null | undefined,              queryFunc?: null | undefined                                             ): Resultset<S>;
     public static from<S>(collection: MemDbCollection<S>, queryObj: null | undefined,               queryFunc: (obj: S) => boolean                                           ): (S & MemDbObj)[];
@@ -961,7 +957,7 @@ function containsCheckFn(a: any, b: any): (c: any) => boolean {
             return a.hasOwnProperty(curr);
         };
     } else {
-        throw new Error("'a' must be an array, string, or non-null object: " + a);
+        throw new Error("Argument 'a' must be an array, string, or non-null object: " + a);
     }
 }
 
@@ -991,22 +987,22 @@ var LokiOps = {
         return a !== b;
     },
 
-    $regex: function (a: any, b: any) {
-        return b.test(a);
+    $regex: function (a: any, b: { test(string: string): boolean }) {
+        return <boolean>b.test(a);
     },
 
-    $in: function (a: any, b: any) {
+    $in: function (a: any, b: { indexOf(value: any): number }) {
         return b.indexOf(a) > -1;
     },
 
-    $contains: function (a: any, b: any) {
+    $contains: function (a: any, b: any | any[]) {
         if (!Array.isArray(b)) {
             b = [b];
         }
 
         var checkFn = containsCheckFn(a, b);
 
-        return b.reduce(function (prev: any, curr: any) {
+        return (<any[]>b).reduce(function (prev: boolean, curr: any) {
             if (!prev) {
                 return prev;
             }
@@ -1014,14 +1010,14 @@ var LokiOps = {
         }, true);
     },
 
-    $containsAny: function (a: any, b: any) {
+    $containsAny: function (a: any, b: any | any[]) {
         if (!Array.isArray(b)) {
             b = [b];
         }
 
         var checkFn = containsCheckFn(a, b);
 
-        return b.reduce(function (prev: any, curr: any) {
+        return (<any[]>b).reduce(function (prev: boolean, curr: any) {
             if (prev) {
                 return prev;
             }

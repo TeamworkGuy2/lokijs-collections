@@ -98,12 +98,6 @@ interface MemDbCollection<E> {
     getChanges: () => MemDbCollectionChange[];
     flushChanges: () => void;
 
-    byExample(template: any): { $and: any[] };
-
-    findObject(template: any): (E & MemDbObj) | null;
-
-    findObjects(template: any): (E & MemDbObj)[];
-
 
     /*----------------------------+
     | INDEXING                    |
@@ -130,17 +124,17 @@ interface MemDbCollection<E> {
     /** Each collection maintains a list of DynamicViews associated with it */
     addDynamicView(dv: MemDbDynamicView<E>): MemDbDynamicView<E>;
 
-    removeDynamicView(name: string): void;
+    removeDynamicView(name: string): MemDbDynamicView<E> | null;
 
     getDynamicView(name: string): MemDbDynamicView<E> | null;
 
     /** find and update: pass a filtering function to select elements to be updated
      * and apply the updatefunctino to those elements iteratively
      */
-    findAndUpdate(filterFunction: (obj: E) => boolean, updateFunction: (obj: E) => E): void;
+    findAndUpdate(filterFunc: (obj: E) => boolean, updateFunc: (obj: E) => E): void;
 
     /** insert document method - ensure objects have id and objType properties
-     * @param {object} the document to be inserted (or an array of objects)
+     * @param doc the document to be inserted (or an array of objects)
      * @returns document or documents (if passed an array of objects)
      */
     insert(doc: E): E;
@@ -205,11 +199,11 @@ interface MemDbCollection<E> {
     rollback(): void;
 
     // async executor. This is only to enable callbacks at the end of the execution.
-    async(fun: () => void, callback: () => void): void;
+    async(func: () => void, callback: () => void): void;
 
     /** Create view function - filter */
     where(): MemDbResultset<E>;
-    where(fun: (obj: E) => boolean): (E & MemDbObj)[];
+    where(func: (obj: E) => boolean): (E & MemDbObj)[];
 
 
     /* -------- STAGING API -------- */
@@ -436,19 +430,19 @@ interface MemDbResultset<E> {
 
     /** Allows you to limit the number of documents passed to next chain operation.
      *   A resultset copy() is made to avoid altering original resultset.
-     * @param {int} qty - The number of documents to return.
-     * @returns {Resultset} Returns a copy of the resultset, limited by qty, for subsequent chain ops.
+     * @param qty The number of documents to return.
+     * @returns Returns a copy of the resultset, limited by qty, for subsequent chain ops.
      */
     limit(qty: number): MemDbResultset<E>;
 
     /** Used for skipping 'pos' number of documents in the resultset.
-     * @param {int} pos - Number of documents to skip; all preceding documents are filtered out.
-     * @returns {Resultset} Returns a copy of the resultset, containing docs starting at 'pos' for subsequent chain ops.
+     * @param pos Number of documents to skip; all preceding documents are filtered out.
+     * @returns Returns a copy of the resultset, containing docs starting at 'pos' for subsequent chain ops.
      */
     offset(pos: number): MemDbResultset<E>;
 
     /** To support reuse of resultset in branched query situations.
-     * @returns {Resultset} Returns a copy of the resultset (set) but the underlying document references will be the same.
+     * @returns Returns a copy of the resultset (set) but the underlying document references will be the same.
      */
     copy(): MemDbResultset<E>;
 
@@ -462,31 +456,31 @@ interface MemDbResultset<E> {
      *       if (obj1.name > obj2.name) return 1;
      *       if (obj1.name < obj2.name) return -1;
      *     });
-     * @param {function} comparefun - A javascript compare function used for sorting.
-     * @returns {Resultset} Reference to this resultset, sorted, for future chain operations.
+     * @param compareFunc A javascript compare function used for sorting.
+     * @returns Reference to this resultset, sorted, for future chain operations.
      */
-    sort(comparefun: (a: E, b: E) => number): MemDbResultset<E>;
+    sort(compareFunc: (a: E, b: E) => number): MemDbResultset<E>;
 
     /** Simpler, loose evaluation for user to sort based on a property name. (chainable)
-     * @param {string} propname - name of property to sort by.
-     * @param {bool} isdesc - (Optional) If true, the property will be sorted in descending order
-     * @returns {Resultset} Reference to this resultset, sorted, for future chain operations.
+     * @param propname name of property to sort by.
+     * @param isdesc (Optional) If true, the property will be sorted in descending order
+     * @returns Reference to this resultset, sorted, for future chain operations.
      */
     simplesort(propname: keyof E & string, isdesc?: boolean): MemDbResultset<E>;
 
     /** helper method for compoundsort(), performing individual object comparisons
-     * @param {array} properties - array of property names, in order, by which to evaluate sort order
-     * @param {object} obj1 - first object to compare
-     * @param {object} obj2 - second object to compare
-     * @returns {integer} 0, -1, or 1 to designate if identical (sortwise) or which should be first
+     * @param properties array of property names, in order, by which to evaluate sort order
+     * @param obj1 first object to compare
+     * @param obj2 second object to compare
+     * @returns 0, -1, or 1 to designate if identical (sortwise) or which should be first
      */
-    compoundeval(properties: (keyof E | [keyof E, boolean])[], obj1: E & MemDbObj, obj2: E & MemDbObj): number;
+    compoundeval(properties: (keyof E | [keyof E, boolean])[], obj1: E & MemDbObj, obj2: E & MemDbObj): -1 | 0 | 1;
 
     /** Allows sorting a resultset based on multiple columns.
      *   Example : rs.compoundsort(['age', 'name']); to sort by age and then name (both ascending)
      *   Example : rs.compoundsort(['age', ['name', true]); to sort by age (ascending) and then by name (descending)
-     * @param {array} properties - array of property names or subarray of [propertyname, isdesc] used evaluate sort order
-     * @returns {Resultset} Reference to this resultset, sorted, for future chain operations.
+     * @param properties array of property names or subarray of [propertyname, isdesc] used evaluate sort order
+     * @returns Reference to this resultset, sorted, for future chain operations.
      */
     compoundsort(properties: (keyof E | [keyof E, boolean])[]): MemDbResultset<E>;
 
@@ -494,8 +488,8 @@ interface MemDbResultset<E> {
      *   OR'ed expression evaluation runs each expression individually against the full collection,
      *   and finally does a set OR on each expression's results.
      *   Each evaluation can utilize a binary index to prevent multiple linear array scans.
-     * @param {array} expressionArray - array of expressions
-     * @returns {Resultset} this resultset for further chain ops.
+     * @param expressionArray array of expressions
+     * @returns this resultset for further chain ops.
      */
     findOr(expressionArray: MemDbQuery[]): MemDbResultset<E>;
 
@@ -503,39 +497,39 @@ interface MemDbResultset<E> {
      *   AND'ed expression evaluation runs each expression progressively against the full collection,
      *   internally utilizing existing chained resultset functionality.
      *   Only the first filter can utilize a binary index.
-     * @param {array} expressionArray - array of expressions
-     * @returns {Resultset} this resultset for further chain ops.
+     * @param expressionArray array of expressions
+     * @returns this resultset for further chain ops.
      */
     findAnd(expressionArray: MemDbQuery[]): MemDbResultset<E>;
 
     /** Used for querying via a mongo-style query object.
-     * @param {object} query - A mongo-style query object used for filtering current results.
-     * @param {boolean} firstOnly - (Optional) Used by collection.findOne()
-     * @returns {Resultset} this resultset for further chain ops.
+     * @param query A mongo-style query object used for filtering current results.
+     * @param firstOnly (Optional) Used by collection.findOne()
+     * @returns this resultset for further chain ops.
      */
     find(query: MemDbQuery | null | undefined): MemDbResultset<E>;
     find(query: MemDbQuery | null | undefined, firstOnly: true): E & MemDbObj;
     find(query: MemDbQuery | null | undefined, firstOnly?: boolean): (E & MemDbObj) | MemDbResultset<E>;
 
     /** Used for filtering via a javascript filter function.
-     * @param {function} searchFunc - A javascript function used for filtering current results by.
-     * @returns {Resultset} this resultset for further chain ops.
+     * @param searchFunc A javascript function used for filtering current results by.
+     * @returns this resultset for further chain ops.
      */
     where(searchFunc: (obj: E) => boolean): MemDbResultset<E>;
 
     /** Terminates the chain and returns array of filtered documents
-     * @returns {array} Array of documents in the resultset
+     * @returns Array of documents in the resultset
      */
     data(): (E & MemDbObj)[];
 
     /** used to run an update operation on all documents currently in the resultset.
-    * @param {function} updateFunc - User supplied updateFunction(obj) will be executed for each document object.
-    * @returns {Resultset} this resultset for further chain ops.
-    */
+     * @param updateFunc User supplied updateFunction(obj) will be executed for each document object.
+     * @returns this resultset for further chain ops.
+     */
     update<U>(updateFunc: (obj: E) => U): MemDbResultset<U>;
 
     /** removes all document objects which are currently in resultset from collection (as well as resultset)
-     * @returns {Resultset} this (empty) resultset for further chain ops.
+     * @returns this (empty) resultset for further chain ops.
      */
     remove(): MemDbResultset<E>;
 
@@ -584,15 +578,15 @@ interface MemDbDynamicView<E> {
      *   This will clear out and reapply filterPipeline ops, recreating the view.
      *   Since where filters do not persist correctly, this method allows
      *   restoring the view to state where user can re-apply those where filters.
-     * @param {Object} options - (Optional) allows specification of 'removeWhereFilters' option
-     * @returns {DynamicView} This dynamic view for further chained ops.
+     * @param options (Optional) allows specification of 'removeWhereFilters' option
+     * @returns This dynamic view for further chained ops.
      */
     rematerialize(options?: { removeWhereFilters?: boolean; }): MemDbDynamicView<E>;
 
     /** Makes a copy of the internal resultset for branched queries.
      *   Unlike this dynamic view, the branched resultset will not be 'live' updated,
      *   so your branched query should be immediately resolved and not held for future evaluation.
-     * @returns {Resultset} A copy of the internal resultset for branched queries.
+     * @returns A copy of the internal resultset for branched queries.
      */
     branchResultset(): MemDbResultset<E>;
 
@@ -600,15 +594,15 @@ interface MemDbDynamicView<E> {
     toJSON(): MemDbDynamicView<E>;
 
     /** Used to apply a sort to the dynamic view
-     * @param {function} comparefun - a javascript compare function used for sorting
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @param compareFunc a javascript compare function used for sorting
+     * @returns this DynamicView object, for further chain ops.
      */
-    applySort(comparefun: ((a: E, b: E) => number) | null): MemDbDynamicView<E>;
+    applySort(compareFunc: ((a: E, b: E) => number) | null): MemDbDynamicView<E>;
 
     /** Used to specify a property used for view translation.
-     * @param {string} propname - Name of property by which to sort.
-     * @param {boolean} isdesc - (Optional) If true, the sort will be in descending order.
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @param propname Name of property by which to sort.
+     * @param isdesc (Optional) If true, the sort will be in descending order.
+     * @returns this DynamicView object, for further chain ops.
      */
     applySimpleSort(propname: keyof E & string, isdesc?: boolean): MemDbDynamicView<E>;
 
@@ -616,40 +610,40 @@ interface MemDbDynamicView<E> {
      *   Example: dv.applySortCriteria(['age', 'name']); to sort by age and then name (both ascending)
      *   Example: dv.applySortCriteria(['age', ['name', true]); to sort by age (ascending) and then by name (descending)
      *   Example: dv.applySortCriteria(['age', true], ['name', true]); to sort by age (descending) and then by name (descending)
-     * @param {array} properties - array of property names or subarray of [propertyname, isdesc] used evaluate sort order
-     * @returns {DynamicView} Reference to this DynamicView, sorted, for future chain operations.
+     * @param properties array of property names or subarray of [propertyname, isdesc] used evaluate sort order
+     * @returns Reference to this DynamicView, sorted, for future chain operations.
      */
     applySortCriteria(criteria: [keyof E, boolean][] | null): MemDbDynamicView<E>;
 
     /** marks the beginning of a transaction.
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @returns this DynamicView object, for further chain ops.
      */
     startTransaction(): MemDbDynamicView<E>;
 
     /** commits a transaction.
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @returns this DynamicView object, for further chain ops.
      */
     commit(): MemDbDynamicView<E>;
 
     /** rolls back a transaction.
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @returns this DynamicView object, for further chain ops.
      */
     rollback(): MemDbDynamicView<E>;
 
     /** Adds a mongo-style query option to the DynamicView filter pipeline
-     * @param {object} query - A mongo-style query object to apply to pipeline
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @param query - A mongo-style query object to apply to pipeline
+     * @returns this DynamicView object, for further chain ops.
      */
     applyFind(query: MemDbQuery): MemDbDynamicView<E>;
 
     /** Adds a javascript filter function to the DynamicView filter pipeline
-     * @param {function} fun - A javascript filter function to apply to pipeline
-     * @returns {DynamicView} this DynamicView object, for further chain ops.
+     * @param fun A javascript filter function to apply to pipeline
+     * @returns this DynamicView object, for further chain ops.
      */
     applyWhere(fun: (obj: E) => boolean): MemDbDynamicView<E>;
 
     /** resolves and pending filtering and sorting, then returns document array as result.
-     * @returns {array} An array of documents representing the current DynamicView contents.
+     * @returns An array of documents representing the current DynamicView contents.
      */
     data(): E[];
 
@@ -661,7 +655,7 @@ interface MemDbDynamicView<E> {
 
     /** internal method for (re)evaluating document inclusion.
      *   Called by : collection.insert() and collection.update().
-     * @param {int} objIndex - index of document to (re)run through filter pipeline.
+     * @param objIndex - index of document to (re)run through filter pipeline.
      */
     evaluateDocument(objIndex: number): void;
 

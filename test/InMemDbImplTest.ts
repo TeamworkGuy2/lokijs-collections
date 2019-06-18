@@ -3,7 +3,6 @@
 import chai = require("chai");
 import Arrays = require("ts-mortar/utils/Arrays");
 import Objects = require("ts-mortar/utils/Objects");
-import Collection = require("../db-collections/Collection");
 import InMemDbImpl = require("../db-collections/InMemDbImpl");
 import DataCollection = require("../db-collections/DataCollection");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -15,17 +14,20 @@ var asr = chai.assert;
 
 function rebuildDb() {
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if",
-        metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap),
-        function createCollectionSettingsFunc(collectionName: string) {
-            var settings = {
-            };
+    var dbInst = new InMemDbImpl("mem-collections-test",
+        { readAllow: true, writeAllow: true, compressLocalStores: false },
+        "for-in-if",
+        metaDataCollName,
+        false,
+        ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap),
+        function createCollectionSettings(collectionName: string) {
+            var settings = {};
             if (collectionName === "coll_b") {
                 (<any>settings)["unique"] = ["userId"];
             }
             return settings;
         },
-        function modelKeysFunc(obj, coll, dataModel) {
+        function modelKeys(obj, coll, dataModel) {
             var keys = Object.keys(obj);
             Arrays.fastRemove(keys, "$loki");
             Arrays.fastRemove(keys, "meta");
@@ -155,9 +157,14 @@ suite("InMemDbImpl", function LokiDbImplTest() {
         var res5 = collB.lookup(M.itemB3.userId);
         asr.equal(res5, M.itemB3);
 
+        // if not exists
+        asr.deepEqual(collB.find({ userId: "null" }).data(), []);
+        asr.equal(collB.lookup(<any>null, false), null);
+        // throw if not exists for single() and lookup()
         asr.throws(() => collB.single({ userId: "null" }));
         asr.throws(() => collB.lookup("null"));
-        asr.isTrue(collB.lookup("null", false) == null);
+        // unless throws flag is false
+        asr.equal(collB.lookup("null", false), null);
 
         var res6 = collB.single({ userId: M.itemB3.userId });
         asr.equal(res6, M.itemB3);

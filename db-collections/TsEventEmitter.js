@@ -36,9 +36,10 @@ var EventEmitter = /** @class */ (function () {
         if (!eventName || !this.events[eventName]) {
             throw new Error("No event " + eventName + " defined");
         }
-        this.events[eventName].forEach(function (listener) {
-            listener(data);
-        });
+        var ls = this.events[eventName];
+        for (var i = 0, cnt = ls.length; i < cnt; i++) {
+            ls[i](data);
+        }
     };
     return EventEmitter;
 }());

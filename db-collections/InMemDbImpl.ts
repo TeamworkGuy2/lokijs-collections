@@ -11,7 +11,7 @@ import EventEmitter = require("./TsEventEmitter");
 declare var window: any;
 declare var document: any;
 
-interface InMemDbCloneFunc {
+interface CloneFunc {
     (obj: any, cloneDeep?: boolean | ((obj: any) => any)): any;
 }
 
@@ -33,7 +33,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
     private modelDefinitions: ModelDefinitions;
     private modelKeys: ModelKeys;
     private getCreateCollectionSettings: ((collectionName: string) => MemDbCollectionOptions<any> | null) | null; // ({ unique?: string[]; exact?: string[] } & LokiCollectionOptions & { [name: string]: any; })
-    private cloneFunc: InMemDbCloneFunc;
+    private cloneFunc: CloneFunc;
     private getModelObjKeys: <T>(obj: T, collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>) => (keyof T & string)[];
 
 
@@ -68,7 +68,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataCollectionName = metaDataCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = <InMemDbCloneFunc>(cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
+        this.cloneFunc = <CloneFunc>(cloneType === "for-in-if" ? InMemDbImpl.cloneForInIf :
             (cloneType === "keys-for-if" ? InMemDbImpl.cloneKeysForIf :
                 (cloneType === "keys-excluding-for" ? InMemDbImpl.cloneKeysExcludingFor :
                     (cloneType === "clone-delete" ? InMemDbImpl.cloneCloneDelete : null))));
@@ -495,7 +495,13 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
 
         // search by primary key
         if (queryProps != null && queryProps.length === 1 && collection.constraints.unique[<keyof T>queryProps[0]] != null) {
-            var itm = collection.by(<keyof T>queryProps[0], query[queryProps[0]]);
+            var queryValue = query[queryProps[0]];
+
+            if (queryValue == null) {
+                return null;
+            }
+
+            var itm = collection.by(<keyof T>queryProps[0], queryValue);
 
             if (throwIfLess && itm == null) {
                 throw new Error("could not find " + (max == 1 ? (min == 1 ? "unique " : "atleast one ") : min + "-" + max) + " matching value from '" + collection.name + "' for query: " + JSON.stringify(query) + ", found 0 results");
@@ -520,7 +526,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
             for (var prop in query) {
                 var localQuery: StringMap<any> = {};
                 localQuery[prop] = query[prop];
-                results = <any>results.find(localQuery, firstOnly);
+                results = <MemDbResultset<S>>results.find(localQuery, firstOnly);
             }
         }
         else {
@@ -528,7 +534,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
                 var propI = queryProps[i];
                 var localQuery: StringMap<any> = {};
                 localQuery[propI] = query[propI];
-                results = <any>results.find(localQuery, firstOnly);
+                results = <MemDbResultset<S>>results.find(localQuery, firstOnly);
             }
         }
         return results;
@@ -612,7 +618,7 @@ class InMemDbImpl implements InMemDb, MemDbCollectionSet {
     }
 
 
-    static cloneDeepWithoutMetaData(obj: any, cloneDeep: (obj: any) => any = Objects.cloneDeep, type: InMemDbCloneFunc): any {
+    static cloneDeepWithoutMetaData(obj: any, cloneDeep: (obj: any) => any = Objects.cloneDeep, type: CloneFunc): any {
         return type(obj, cloneDeep);
     }
 
@@ -638,8 +644,8 @@ class DbChanges implements MemDbChanges {
      * collection and creates a single array for the entire database. If an array of names
      * of collections is passed then only the included collections will be tracked.
      *
-     * @param {array} optional array of collection names. No arg means all collections are processed.
-     * @returns {array} array of changes
+     * @param collectionNames optional array of collection names. null returns changes for all collections.
+     * @returns array of changes
      * @see private method createChange() in Collection
      */
     public generateChangesNotification(collectionNames: string[] | null | undefined) {
@@ -655,7 +661,8 @@ class DbChanges implements MemDbChanges {
 
 
     /** stringify changes for network transmission
-     * @returns {string} string representation of the changes
+     * @param collectionNames optional array of collection names. null returns serialized changes for all collections.
+     * @returns string representation of the changes
      */
     public serializeChanges(collectionNames: string[] | null | undefined) {
         return JSON.stringify(this.generateChangesNotification(collectionNames));

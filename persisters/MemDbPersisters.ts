@@ -383,12 +383,12 @@ module MemDbPersisters {
          * @param dbname - the filename of the database to load
          * @param callback - the callback to handle the result
          */
-        public loadDatabase(dbname: string, callback: (dataOrError: any) => void) {
+        public loadDatabase(dbname: string, callback: (dataOrError: string | Error) => void) {
             this.fs.readFile(dbname, {
                 encoding: "utf8"
-            }, function readFileCallback(err: any, data: any) {
+            }, function readFileCallback(err: Error, data: string) {
                 if (err) {
-                    callback(new Error(err));
+                    callback(err);
                 } else {
                     callback(data);
                 }

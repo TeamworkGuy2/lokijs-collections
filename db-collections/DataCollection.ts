@@ -5,7 +5,7 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 
 /** DataCollection class
  * Represents an in-memory, synchronous, data collection with unique keys.
- * Provides a collection like (add, remove, update/set) API to make it easy to work with data from an 'InMemDb' instance.
+ * Provides a collection API (add, remove, update/set) to make it easy to work with data from an 'InMemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
@@ -15,14 +15,14 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
  */
 class DataCollection<E extends K, K> implements _DataCollection<E, K> {
-    /** The underlying lokijs collection */
+    /** The underlying data collection */
     public readonly collection: MemDbCollection<E>;
-    private collectionName: string;
-    private dbInst: InMemDb;
+    private readonly collectionName: string;
+    private readonly dbInst: InMemDb;
+    private readonly dataModel: DataCollectionModel<E>;
+    private readonly dataModelFuncs: DtoFuncs<E>;
     private changes: ChangeTrackers.ChangeTracker | null;
     private eventHandler: ListenerList<Changes.CollectionChange, Changes.ChangeListener> | null;
-    private dataModel: DataCollectionModel<E>;
-    private dataModelFuncs: DtoFuncs<E>;
 
 
     /** Create a new document collection backed by a provided 'InMemDb' instance.

@@ -109,11 +109,11 @@ var DynamicView = /** @class */ (function () {
     };
     /** applySort() - Used to apply a sort to the dynamic view
      *
-     * @param comparefun - a javascript compare function used for sorting
+     * @param compareFunc - a javascript compare function used for sorting
      * @returns this DynamicView object, for further chain ops.
      */
-    DynamicView.prototype.applySort = function (comparefun) {
-        this.sortFunction = comparefun;
+    DynamicView.prototype.applySort = function (compareFunc) {
+        this.sortFunction = compareFunc;
         this.sortCriteria = null;
         this.queueSortPhase();
         return this;

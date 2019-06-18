@@ -48,9 +48,10 @@ class EventEmitter<T extends { [eventName: string]: any[] }> implements TsEventE
             throw new Error("No event " + eventName + " defined");
         }
 
-        this.events[eventName].forEach(function (listener) {
-            listener(data);
-        });
+        var ls = this.events[eventName];
+        for (var i = 0, cnt = ls.length; i < cnt; i++) {
+            ls[i](data);
+        }
     }
 
 }

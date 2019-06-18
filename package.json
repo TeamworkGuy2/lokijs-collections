@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.24.7",
+  "version": "0.25.0",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
@@ -13,20 +13,28 @@
     "q": "~1.5.1",
     "@twg2/ts-twg-ast-codegen": "~0.21.0",
     "ts-event-handlers-lite": "~0.2.7",
-    "ts-mortar": "~0.16.1"
+    "ts-mortar": "~0.18.0",
+    "ts-promises": "~0.5.0"
   },
   "devDependencies": {
+    "@types/browser-pack": "~6.0.4",
     "@types/chai": "~4.1.7",
+    "@types/deps-sort": "~2.0.0",
     "@types/mocha": "~5.2.5",
+    "@types/module-deps": "~6.1.0",
     "@types/node": "~10.12.18",
     "@types/q": "~1.5.1",
     "@types/websql": "~0.0.27",
+    "browser-pack": "^6.1.0",
     "chai": "~4.2.0",
+    "deps-sort": "^2.0.0",
     "mocha": "~5.2.0",
-    "typescript": "~3.2.2"
+    "module-deps": "^6.2.0",
+    "ts-bundlify": "*",
+    "typescript": "~3.5.2"
   },
   "scripts": {
-    "test": "mocha -u tdd --recursive",
-    "tsc": "tsc"
+    "test": "node node_modules/mocha/bin/_mocha -u tdd --recursive ./test/**/*Test.js",
+    "tsc": "node node_modules/typescript/bin/tsc"
   }
 }

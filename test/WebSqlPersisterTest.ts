@@ -14,7 +14,7 @@ function buildPersister() {
         error: <any[][]>[],
         text: <any[][]>[],
     }
-    var trace: WebSqlSpi.Trace = {
+    var trace: DataPersister.DbLogger = {
         log: (...args: any[]) => logs.log.push(args),
         error: (...args: any[]) => logs.error.push(args),
         text: (...args: any[]) => logs.text.push(args),
@@ -40,8 +40,12 @@ function buildPersister() {
     var metaCnt = 0;
     var insertCnt = 0;
 
-    //var sqlInst = WebSqlSpi.newWebSqlDbInst("test-persister", null, null, null, { trace: trace, logVerbosity: WebSqlSpi.DbUtils.logLevels.ERROR });
+    //var sqlInst = WebSqlSpi.newWebSqlDb("test-persister", null, null, null, { trace: trace, logVerbosity: WebSqlSpi.DbUtils.logLevels.ERROR });
     var sqlInst: WebSqlPersister.WebSqlSpi = {
+        util: {
+            defer: Q.defer,
+            whenAll: Q.when
+        },
         executeQueries: (sqls) => {
             queries.push(sqls);
             for (var i = 0; i < sqls.length; i++) {
@@ -76,14 +80,16 @@ function buildPersister() {
 
     var storageErrors: any[] = [];
 
-    var persister = new WebSqlPersister.WebSqlAdapter(sqlInst,
+    var persister = new WebSqlPersister(sqlInst,
         trace,
         () => origColls,
         (collName, data) => { var col = newColls[origColls.findIndex((c) => c.name === collName)]; col.data = data; return col; },
         (itm) => { delete itm["meta"]; return itm; },
         null,
         (itm) => { itm["meta"] = metaCnt++; return itm; },
-        (err) => storageErrors.push(err)
+        (err) => storageErrors.push(err),
+        [],
+        []
     );
 
     return {
@@ -108,7 +114,7 @@ suite("WebSqlPersister", function WebSqlPersisterTest() {
         collB.dirty = true;
 
         // persist collections
-        pr.persister.persist(null, (collName) => {
+        pr.persister.persist({ dataColumnName: "myColumnName", maxObjectsPerChunk: 5 }, (collName) => {
             var res: DataPersister.WriteOptions;
             if (collName == "collA") {
                 res = {
@@ -126,7 +132,7 @@ suite("WebSqlPersister", function WebSqlPersisterTest() {
             // compare queries produced by persist() to expectation
             asr.equal(pr.queries.length, 2);
             asr.deepEqual(pr.queries[0], [
-                { sql: "CREATE TABLE IF NOT EXISTS collA (" + WebSqlPersister.WebSqlAdapter.defaultDataColumnName + " blob)", args: [] },
+                { sql: "CREATE TABLE IF NOT EXISTS collA (" + "myColumnName" + " blob)", args: [] },
                 { sql: "INSERT INTO collA VALUES(?)", args: [[JSON.stringify(collA.data)]] }
             ]);
             asr.deepEqual(pr.queries[1], [

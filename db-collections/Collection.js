@@ -32,7 +32,7 @@ var Collection = /** @class */ (function () {
         this.objType = name;
         // in autosave scenarios we will use collection level dirty flags to determine whether save is needed.
         // currently, if any collection is dirty we will autosave the whole database if autosave is configured.
-        // defaulting to true since this is called from addCollection and adding a collection should trigger save
+        // defaulting to true since this is called from addCollection() and adding a collection should trigger save
         this.dirty = true;
         // private holders for cached data
         this.cachedIndex = null;
@@ -170,23 +170,6 @@ var Collection = /** @class */ (function () {
         // for de-serialization purposes
         this.flushChanges();
     }
-    Collection.prototype.byExample = function (template) {
-        var obj, query = [];
-        for (var k in template) {
-            if (!template.hasOwnProperty(k))
-                continue;
-            query.push((obj = {},
-                obj[k] = template[k],
-                obj));
-        }
-        return { "$and": query };
-    };
-    Collection.prototype.findObject = function (template) {
-        return this.findOne(this.byExample(template));
-    };
-    Collection.prototype.findObjects = function (template) {
-        return this.find(this.byExample(template));
-    };
     /*----------------------------+
     | INDEXING                    |
     +----------------------------*/
@@ -288,9 +271,11 @@ var Collection = /** @class */ (function () {
     Collection.prototype.removeDynamicView = function (name) {
         for (var idx = 0; idx < this.dynamicViews.length; idx++) {
             if (this.dynamicViews[idx].name === name) {
-                this.dynamicViews.splice(idx, 1);
+                var dvs = this.dynamicViews.splice(idx, 1);
+                return dvs[0];
             }
         }
+        return null;
     };
     Collection.prototype.getDynamicView = function (name) {
         for (var idx = 0; idx < this.dynamicViews.length; idx++) {
@@ -304,21 +289,22 @@ var Collection = /** @class */ (function () {
      * and apply the updatefunc to those elements iteratively
      */
     Collection.prototype.findAndUpdate = function (filterFunc, updateFunc) {
-        var results = this.where(filterFunc), i = 0, obj;
+        var results = this.where(filterFunc);
         try {
-            for (i; i < results.length; i++) {
-                obj = updateFunc(results[i]);
+            for (var i = 0; i < results.length; i++) {
+                var obj = updateFunc(results[i]);
                 this.update(obj);
             }
         }
         catch (err) {
             this.rollback();
-            console.error(err.message);
+            this.events.emit("error", err);
+            throw err;
         }
     };
     Collection.prototype.insert = function (doc) {
         if (!doc) {
-            var error = new Error("Object cannot be null");
+            var error = new Error("Parameter 'doc' cannot be null");
             this.events.emit("error", error);
             throw error;
         }
@@ -410,9 +396,8 @@ var Collection = /** @class */ (function () {
         }
         catch (err) {
             this.rollback();
-            console.error(err.message);
             this.events.emit("error", err);
-            throw (err); // re-throw error so user does not think it succeeded
+            throw err; // re-throw error so user does not think it succeeded
         }
     };
     /** Add object to collection
@@ -421,7 +406,7 @@ var Collection = /** @class */ (function () {
         var dvlen = this.dynamicViews.length;
         // if parameter isn't object exit with throw
         if (typeof obj !== "object") {
-            throw new Error("Object being added must be an object");
+            throw new Error("Parameter 'obj' being added must be an object");
         }
         // try adding object to collection
         var binaryIdxs = Object.keys(this.binaryIndices);
@@ -460,8 +445,8 @@ var Collection = /** @class */ (function () {
         }
         catch (err) {
             this.rollback();
-            console.error(err.message);
-            return null;
+            this.events.emit("error", err);
+            throw err;
         }
     };
     Collection.prototype.removeWhere = function (query) {
@@ -486,7 +471,7 @@ var Collection = /** @class */ (function () {
             doc = this.get(doc);
         }
         if (typeof doc !== "object") {
-            throw new Error("Parameter is not an object");
+            throw new TypeError("Parameter 'doc' is not an object");
         }
         if (Array.isArray(doc)) {
             for (var k = 0, len = doc.length; k < len; k++) {
@@ -528,15 +513,14 @@ var Collection = /** @class */ (function () {
         }
         catch (err) {
             this.rollback();
-            console.error(err.message);
             this.events.emit("error", err);
-            return null;
+            throw err;
         }
     };
     Collection.prototype.get = function (id, returnPos) {
         var retpos = returnPos || false, data = this.idIndex, max = data.length - 1, min = 0, mid = Math.floor(min + (max - min) / 2);
         if (isNaN(id)) {
-            throw new Error("Passed id is not an integer");
+            throw new TypeError("Parameter 'id' is not an integer: " + id);
         }
         while (data[min] < data[max]) {
             mid = Math.floor((min + max) / 2);
@@ -594,14 +578,14 @@ var Collection = /** @class */ (function () {
         var resSet = Resultset.from(this, query, null);
         return resSet;
     };
-    /** Find object by unindexed field by property equal to value,
-     * simply iterates and returns the first element matching the query
+    /** Find object by unindexed property equal to the specified value.
+     * Simply iterates and returns the first element matching the query
      */
     Collection.prototype.findOneUnindexed = function (prop, value) {
-        var i = this.data.length;
-        while (i--) {
-            if (this.data[i][prop] === value) {
-                return this.data[i];
+        var ary = this.data;
+        for (var i = 0, len = ary.length; i < len; i++) {
+            if (ary[i][prop] === value) {
+                return ary[i];
             }
         }
         return null;
@@ -647,20 +631,20 @@ var Collection = /** @class */ (function () {
         }
     };
     // async executor. This is only to enable callbacks at the end of the execution.
-    Collection.prototype.async = function (fun, callback) {
+    Collection.prototype.async = function (func, callback) {
         setTimeout(function () {
-            if (typeof fun === "function") {
-                fun();
+            if (typeof func === "function") {
+                func();
                 callback();
             }
             else {
-                throw new Error("Argument passed for async execution is not a function");
+                throw new TypeError("Parameter 'func' is not a function");
             }
         }, 0);
     };
-    Collection.prototype.where = function (fun) {
+    Collection.prototype.where = function (func) {
         // find logic moved into Resultset class
-        var resSet = Resultset.from(this, null, fun);
+        var resSet = Resultset.from(this, null, func);
         return resSet;
     };
     /** create a stage and/or retrieve it
@@ -910,8 +894,7 @@ function standardDeviation(values) {
     var avg = average(values);
     var squareDiffs = values.map(function (value) {
         var diff = value - avg;
-        var sqrDiff = diff * diff;
-        return sqrDiff;
+        return diff * diff;
     });
     var avgSquareDiff = average(squareDiffs);
     var stdDev = Math.sqrt(avgSquareDiff);

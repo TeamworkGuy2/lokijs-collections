@@ -13,13 +13,13 @@ var M = require("./TestModels");
 var asr = chai.assert;
 function rebuildDb() {
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createCollectionSettingsFunc(collectionName) {
+    var dbInst = new InMemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createCollectionSettings(collectionName) {
         var settings = {};
         if (collectionName === "coll_b") {
             settings["unique"] = ["userId"];
         }
         return settings;
-    }, function modelKeysFunc(obj, coll, dataModel) {
+    }, function modelKeys(obj, coll, dataModel) {
         var keys = Object.keys(obj);
         Arrays.fastRemove(keys, "$loki");
         Arrays.fastRemove(keys, "meta");
@@ -110,9 +110,14 @@ suite("InMemDbImpl", function LokiDbImplTest() {
         asr.equal(res4, M.itemB2);
         var res5 = collB.lookup(M.itemB3.userId);
         asr.equal(res5, M.itemB3);
+        // if not exists
+        asr.deepEqual(collB.find({ userId: "null" }).data(), []);
+        asr.equal(collB.lookup(null, false), null);
+        // throw if not exists for single() and lookup()
         asr.throws(function () { return collB.single({ userId: "null" }); });
         asr.throws(function () { return collB.lookup("null"); });
-        asr.isTrue(collB.lookup("null", false) == null);
+        // unless throws flag is false
+        asr.equal(collB.lookup("null", false), null);
         var res6 = collB.single({ userId: M.itemB3.userId });
         asr.equal(res6, M.itemB3);
         asr.throws(function () { return collB.single({ userId: { $in: [M.itemB1.userId, M.itemB2.userId] } }); });

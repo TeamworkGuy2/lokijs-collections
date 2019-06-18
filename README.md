@@ -20,7 +20,7 @@ You can use defaults for the rest of the settings, most of them work fine
 ### 1. Example - Creating an in-memory database instance:
 ```ts
 var InMemDbImpl = require("lokijs-collections/db-collections/InMemDbImpl");
-var DummyDataPersister = require("lokijs-collections/test/DummyDataPersister");
+var ModelDefinitionsSet = require("lokijs-collections/data-models/ModelDefinitionsSet");
 var DtoPropertyConverter = require("@twg2/ts-twg2-ast-codegen/code-types/DtoPropertyConverter");
 
 var databaseName = "...";
@@ -34,7 +34,7 @@ var dataModels = {
             "props": { type: "string[]" },
         })
     },
-	collection_2_name: {
+    collection_2_name: {
         properties: DtoPropertyConverter.parseAndConvertTemplateMap({
             "userId": { type: "string" },
             "note": { type: "string" },
@@ -60,8 +60,12 @@ var dbInst = new InMemDbImpl(databaseName,
 
 --------
 ### 2. Example - Creating a WebSQL database persister:
-__Note:__ the `WebSqlPersister.WebSqlAdapter` constructor has several parameters which are highly customizable, please read the class and constructor documentation for details.
+__Note:__ the `WebSqlPersister` constructor has several parameters which are highly customizable, please read the class and constructor documentation for details.
 ```ts
+var DbUtil = require("lokijs-collections/persisters/DbUtil");
+var WebSqlSpi = require("lokijs-collections/persisters/WebSqlSpi");
+var WebSqlPersister = require("lokijs-collections/persisters/WebSqlPersister");
+
 // log to console or other error logger
 var trace: WebSqlSpi.Trace = {
     log: (...args: any[]) => ...,
@@ -69,10 +73,10 @@ var trace: WebSqlSpi.Trace = {
     text: (...args: any[]) => ...,
 };
 
-var sqlInst = WebSqlSpi.newWebSqlDbInst("persistent-websql-database", null, null, null,
-    { trace: trace, logVerbosity: WebSqlSpi.DbUtils.logLevels.ERROR });
+var sqlInst = WebSqlSpi.newWebSqlDb("persistent-websql-database", null, null, null,
+    { trace: trace, logVerbosity: DbUtil.logLevels.ERROR });
 
-var persister = new WebSqlPersister.WebSqlAdapter(sqlInst,
+var persister = new WebSqlPersister(sqlInst,
     trace,
     () => dbInst.listCollections(),
     (collName, data) => {
@@ -83,12 +87,14 @@ var persister = new WebSqlPersister.WebSqlAdapter(sqlInst,
     (itm) => InMemDbImpl.cloneCloneDelete(itm, true),
     null,
     null,
-    (err) => trace.error("storage error", err)
+    (err) => trace.error("storage error", err),
+    [],
+    []
 );
 ```
 
-You now have a working in-memory database using TypeScript.
-Checkout the 'test/' directory for some examples of how to use it.
+You now have a working in-memory database using TypeScript. You can skip Example #2 if you do not wish to persist the in-memory database between page/application reloads.
+Checkout the 'test/' directory for usage examples.
 
 
 --------
@@ -112,3 +118,4 @@ Includes:
 
 ### persisters/
 'DataPersister' implementations and helper classes for persisting and restoring in-memory databases.
+Currently provides a WebSQL persister with an alpha level IndexedDB persister.

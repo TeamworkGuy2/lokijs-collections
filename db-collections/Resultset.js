@@ -11,10 +11,10 @@ var Collection = require("./Collection");
  */
 var Resultset = /** @class */ (function () {
     /**
-     * @param collection - The collection which this Resultset will query against.
-     * @param queryObj - Optional mongo-style query object to initialize resultset with.
-     * @param queryFunc - Optional javascript filter function to initialize resultset with.
-     * @param firstOnly - Optional boolean used by collection.findOne().
+     * @param collection The collection which this Resultset will query against.
+     * @param queryObj Optional mongo-style query object to initialize resultset with.
+     * @param queryFunc Optional javascript filter function to initialize resultset with.
+     * @param firstOnly Optional boolean used by collection.findOne().
      */
     function Resultset(collection, queryObj, queryFunc) {
         // add branch() as alias of copy()
@@ -36,7 +36,7 @@ var Resultset = /** @class */ (function () {
     /** Allows you to limit the number of documents passed to next chain operation.
      *   A resultset copy() is made to avoid altering original resultset.
      *
-     * @param qty - The number of documents to return.
+     * @param qty The number of documents to return.
      * @returns Returns a copy of the resultset, limited by qty, for subsequent chain ops.
      */
     Resultset.prototype.limit = function (qty) {
@@ -50,7 +50,7 @@ var Resultset = /** @class */ (function () {
     };
     /** Used for skipping 'pos' number of documents in the resultset.
      *
-     * @param pos - Number of documents to skip; all preceding documents are filtered out.
+     * @param pos Number of documents to skip; all preceding documents are filtered out.
      * @returns Returns a copy of the resultset, containing docs starting at 'pos' for subsequent chain ops.
      */
     Resultset.prototype.offset = function (pos) {
@@ -80,10 +80,10 @@ var Resultset = /** @class */ (function () {
      *     if (obj1.name < obj2.name) return -1;
      *   });
      *
-     * @param comparefun - A javascript compare function used for sorting.
+     * @param compareFunc An Array.sort() style compare function used for sorting.
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
-    Resultset.prototype.sort = function (comparefun) {
+    Resultset.prototype.sort = function (compareFunc) {
         // if this is chained resultset with no filters applied, just we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
             this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
@@ -92,14 +92,14 @@ var Resultset = /** @class */ (function () {
         this.filteredrows.sort(function comparer(a, b) {
             var obj1 = coll.data[a];
             var obj2 = coll.data[b];
-            return comparefun(obj1, obj2);
+            return compareFunc(obj1, obj2);
         });
         return this;
     };
     /** Simpler, loose evaluation for user to sort based on a property name. (chainable)
      *
-     * @param propname - name of property to sort by.
-     * @param isdesc - (Optional) If true, the property will be sorted in descending order
+     * @param propname name of property to sort by.
+     * @param isdesc (Optional) If true, the property will be sorted in descending order
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
     Resultset.prototype.simplesort = function (propname, isdesc) {
@@ -120,19 +120,19 @@ var Resultset = /** @class */ (function () {
     };
     /** helper method for compoundsort(), performing individual object comparisons
      *
-     * @param properties - array of property names, in order, by which to evaluate sort order
-     * @param obj1 - first object to compare
-     * @param obj2 - second object to compare
+     * @param props array of property names, in order, by which to evaluate sort order
+     * @param obj1 first object to compare
+     * @param obj2 second object to compare
      * @returns 0, -1, or 1 to designate if identical (sortwise) or which should be first
      */
-    Resultset.prototype.compoundeval = function (properties, obj1, obj2) {
-        var propCount = properties.length;
+    Resultset.prototype.compoundeval = function (props, obj1, obj2) {
+        var propCount = props.length;
         if (propCount === 0) {
             throw new Error("Invalid call to compoundeval, need at least one property");
         }
         // decode property, whether just a string property name or subarray [propname, isdesc]
         var isdesc = false;
-        var firstProp = properties[0];
+        var firstProp = props[0];
         if (typeof firstProp !== "string" && Array.isArray(firstProp)) {
             isdesc = firstProp[1];
             firstProp = firstProp[0];
@@ -142,7 +142,7 @@ var Resultset = /** @class */ (function () {
                 return 0;
             }
             else {
-                return this.compoundeval(properties.slice(1), obj1, obj2);
+                return this.compoundeval(props.slice(1), obj1, obj2);
             }
         }
         return sortHelper(obj1[firstProp], obj2[firstProp], isdesc);
@@ -151,7 +151,7 @@ var Resultset = /** @class */ (function () {
      *   Example : rs.compoundsort(['age', 'name']); to sort by age and then name (both ascending)
      *   Example : rs.compoundsort(['age', ['name', true]); to sort by age (ascending) and then by name (descending)
      *
-     * @param properties - array of property names or subarray of [propertyname, isdesc] used evaluate sort order
+     * @param properties array of property names or subarray of [propertyname, isdesc] used evaluate sort order
      * @returns Reference to this resultset, sorted, for future chain operations.
      */
     Resultset.prototype.compoundsort = function (properties) {
@@ -167,12 +167,12 @@ var Resultset = /** @class */ (function () {
         });
         return this;
     };
-    /** oversee the operation of OR'ed query expressions.
+    /** Oversee OR'ing query expressions.
      *   OR'ed expression evaluation runs each expression individually against the full collection,
      *   and finally does a set OR on each expression's results.
      *   Each evaluation can utilize a binary index to prevent multiple linear array scans.
      *
-     * @param expressionArray - array of expressions
+     * @param expressionArray array of expressions
      * @returns this resultset for further chain ops.
      */
     Resultset.prototype.findOr = function (expressionArray) {
@@ -215,17 +215,17 @@ var Resultset = /** @class */ (function () {
         // possibly sort indexes
         return this;
     };
-    /** oversee the operation of AND'ed query expressions.
+    /** Oversee AND'ing query expressions.
      *   AND'ed expression evaluation runs each expression progressively against the full collection,
      *   internally utilizing existing chained resultset functionality.
      *   Only the first filter can utilize a binary index.
      *
-     * @param expressionArray - array of expressions
+     * @param expressionArray array of expressions
      * @returns this resultset for further chain ops.
      */
     Resultset.prototype.findAnd = function (expressionArray) {
-        // we have already implementing method chaining in this (our Resultset class)
-        // so lets just progressively apply user supplied and filters
+        // we have already implementing chaining in this Resultset class
+        // so we can just progressively apply user supplied filters
         for (var i = 0; i < expressionArray.length; i++) {
             this.find(expressionArray[i]);
         }
@@ -241,7 +241,7 @@ var Resultset = /** @class */ (function () {
             return [];
         }
         if (this.collection.data === null) {
-            throw new TypeError("cannot query null collection data");
+            throw new TypeError("cannot query collection with null data");
         }
         var queryObj = query || "getAll", property = null, value, operator = null, p, result = [], index = null, 
         // collection data
@@ -287,7 +287,7 @@ var Resultset = /** @class */ (function () {
                         return this;
                     }
                     else {
-                        // our $and operation internally chains filters
+                        // the $and operation internally chains filters
                         result = this.collection.chain().findAnd(queryVal).data();
                         // if this was coll.findOne() return first object or empty array if null
                         // since this is invoked from a constructor we can't return null, so we will
@@ -362,7 +362,7 @@ var Resultset = /** @class */ (function () {
         // the comparison function
         var op = operator;
         var fun = LokiOps[op];
-        // Query executed differently depending on :
+        // Query executed differently depending on:
         //    - whether it is chained or not
         //    - whether the property being queried has an index defined
         //    - if chained, we handle first pass differently for initial filteredrows[] population
@@ -465,54 +465,50 @@ var Resultset = /** @class */ (function () {
     };
     /** Used for filtering via a javascript filter function.
      *
-     * @param fun - A javascript function used for filtering current results by.
+     * @param searchFunc A javascript function used for filtering current results by.
      * @returns this resultset for further chain ops.
      */
     Resultset.prototype.where = function (searchFunc) {
-        try {
-            // if not a chained query then run directly against data[] and return object []
-            if (!this.searchIsChained) {
-                var result = [];
-                var i = this.collection.data.length;
-                while (i--) {
-                    if (searchFunc(this.collection.data[i]) === true) {
-                        result.push(this.collection.data[i]);
-                    }
-                }
-                // not a chained query so returning result as data[]
-                return result;
-            }
-            // else chained query, so run against filteredrows
-            else {
-                // If the filteredrows[] is already initialized, use it
-                if (this.filterInitialized) {
-                    var rows = [];
-                    var j = this.filteredrows.length;
-                    while (j--) {
-                        if (searchFunc(this.collection.data[this.filteredrows[j]]) === true) {
-                            rows.push(this.filteredrows[j]);
-                        }
-                    }
-                    this.filteredrows = rows;
-                    return this;
-                }
-                // otherwise this is initial chained op, work against data, push into filteredrows[]
-                else {
-                    var idxs = [];
-                    var k = this.collection.data.length;
-                    while (k--) {
-                        if (searchFunc(this.collection.data[k]) === true) {
-                            idxs.push(k);
-                        }
-                    }
-                    this.filteredrows = idxs;
-                    this.filterInitialized = true;
-                    return this;
+        var collData = this.collection.data;
+        // if not a chained query then run directly against data[] and return object[]
+        if (!this.searchIsChained) {
+            var result = [];
+            var i = collData.length;
+            while (i--) {
+                if (searchFunc(collData[i]) === true) {
+                    result.push(collData[i]);
                 }
             }
+            // not a chained query so returning result as data[]
+            return result;
         }
-        catch (err) {
-            throw err;
+        // else chained query, so run against filteredrows
+        else {
+            // If the filteredrows[] is already initialized, use it
+            if (this.filterInitialized) {
+                var rows = [];
+                var j = this.filteredrows.length;
+                while (j--) {
+                    if (searchFunc(collData[this.filteredrows[j]]) === true) {
+                        rows.push(this.filteredrows[j]);
+                    }
+                }
+                this.filteredrows = rows;
+                return this;
+            }
+            // otherwise this is initial chained op, work against data, push into filteredrows[]
+            else {
+                var idxs = [];
+                var k = collData.length;
+                while (k--) {
+                    if (searchFunc(collData[k]) === true) {
+                        idxs.push(k);
+                    }
+                }
+                this.filteredrows = idxs;
+                this.filterInitialized = true;
+                return this;
+            }
         }
     };
     /** Terminates the chain and returns array of filtered documents
@@ -531,21 +527,20 @@ var Resultset = /** @class */ (function () {
                 this.filterInitialized = true;
             }
         }
-        var data = this.collection.data, fr = this.filteredrows;
-        var i, len = this.filteredrows.length;
-        for (i = 0; i < len; i++) {
+        var data = this.collection.data, fr = this.filteredrows, len = this.filteredrows.length;
+        for (var i = 0; i < len; i++) {
             result.push(data[fr[i]]);
         }
         return result;
     };
     /** used to run an update operation on all documents currently in the resultset.
      *
-     * @param updateFunc - User supplied updateFunction(obj) will be executed for each document object.
+     * @param updateFunc User supplied updateFunction(obj) will be executed for each document object.
      * @returns this resultset for further chain ops.
      */
     Resultset.prototype.update = function (updateFunc) {
         if (typeof updateFunc !== "function") {
-            throw new Error("Argument is not a function");
+            throw new Error("Argument 'updateFunc' is not a function");
         }
         // if this is chained resultset with no filters applied, we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
@@ -590,9 +585,9 @@ var Resultset = /** @class */ (function () {
      *   this is used for collection.find() and first find filter of resultset/dynview
      *   slightly different than get() binary search in that get() hones in on 1 value,
      *   but we have to hone in on many (range)
-     * @param op - operation, such as $eq
-     * @param prop - name of property to calculate range for
-     * @param val - value to use for range calculation.
+     * @param op operation, such as $eq
+     * @param prop name of property to calculate range for
+     * @param val value to use for range calculation.
      * @returns [start, end] index array positions
      */
     Resultset.prototype.calculateRange = function (op, prop, val) {
@@ -782,7 +777,7 @@ function containsCheckFn(a, b) {
         };
     }
     else {
-        throw new Error("'a' must be an array, string, or non-null object: " + a);
+        throw new Error("Argument 'a' must be an array, string, or non-null object: " + a);
     }
 }
 var LokiOps = {
