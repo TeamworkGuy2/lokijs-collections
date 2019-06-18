@@ -204,14 +204,13 @@ class WebSqlSpi {
             util.rejectError(dfd, "Database not specified (db='" + this.db + "')");
             return dfd.promise;
         }
-        var webSqlFunc = this.db[webSqlFuncName];
-        if (!webSqlFunc) {
+        if (this.db[webSqlFuncName] == null) {
             util.rejectError(dfd, "Database function '" + webSqlFuncName + "' does not exist");
             return dfd.promise;
         }
 
         try {
-            webSqlFunc(function (xact) {
+            this.db[webSqlFuncName](function (xact) {
                 try {
                     xactCallback(xact);
                 } catch (exception) {

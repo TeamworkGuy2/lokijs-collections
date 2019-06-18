@@ -716,7 +716,8 @@ class Collection<T> implements MemDbCollection<T> {
      * on a collection.
      */
     public chain(): Resultset<T> {
-        return Resultset.from<T>(this, null, null);
+        // TODO <any> cast fix for TS 3.2 vs 3.5 when imported into another project
+        return <any>Resultset.from<T>(this, null, null);
     }
 
 

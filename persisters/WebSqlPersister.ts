@@ -355,7 +355,8 @@ class WebSqlPersister implements DataPersister {
         var itemCount = 0;
         var jsonSize = 0;
 
-        if (keyGetter == null) {
+        // records by chunks
+        if (keyGetter == null && chunkSize > 0) {
             sql = "INSERT INTO " + collName + " VALUES(?)";
 
             for (var i = 0, sz = resItems.length; i < sz; i += chunkSize) {
@@ -369,6 +370,7 @@ class WebSqlPersister implements DataPersister {
                 sqlArgs.push([jsonData]);
             }
         }
+        // records by group-by
         else if (keyGetter != null && groupByKey != null) {
             sql = "INSERT INTO " + collName + (keyColumn != null ? " VALUES(?,?)" : " VALUES(?)");
 
@@ -397,7 +399,8 @@ class WebSqlPersister implements DataPersister {
                 sqlArgs.push(keyColumn != null ? [key, jsonData] : [jsonData]);
             }
         }
-        else {
+        // records by key
+        else if (keyGetter != null) {
             sql = "INSERT INTO " + collName + (keyColumn != null ? " VALUES(?,?)" : " VALUES(?)");
 
             if (typeof keyGetter === "string") {
@@ -420,6 +423,9 @@ class WebSqlPersister implements DataPersister {
                     sqlArgs.push(keyColumn != null ? [key, jsonData] : [jsonData]);
                 }
             }
+        }
+        else {
+            throw new Error("unsupported persist options combination: keyGetter=" + keyGetter + ", keyColumn=" + keyColumn + ", groupByKey=" + groupByKey + ", chunkSize=" + chunkSize);
         }
         return { sql, args: sqlArgs, itemCount, jsonSize };
     }

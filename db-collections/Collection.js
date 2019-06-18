@@ -553,6 +553,7 @@ var Collection = /** @class */ (function () {
      * on a collection.
      */
     Collection.prototype.chain = function () {
+        // TODO <any> cast fix for TS 3.2 vs 3.5 when imported into another project
         return Resultset.from(this, null, null);
     };
     /** Find one object by index property, by property equal to value
