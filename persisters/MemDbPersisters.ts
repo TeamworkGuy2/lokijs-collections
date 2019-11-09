@@ -67,7 +67,7 @@ module MemDbPersisters {
          * @param callback - (Optional) user supplied async callback / error handler
          */
         public loadDatabase(db: InMemDb, options?: { createDynamicView?: (coll: MemDbCollection<any>, dv: MemDbDynamicView<any>) => MemDbDynamicView<any> }, callback?: (err: string | Error | null) => void) {
-            var cbFunc = callback || function (err) {
+            var cbFunc = callback || function (err: string | Error | null) {
                 if (err) {
                     throw err;
                 }
@@ -176,7 +176,7 @@ module MemDbPersisters {
          */
         public saveDatabase(callback?: (err: any) => void) {
             var self = this;
-            var cbFunc = callback || function (err) {
+            var cbFunc = callback || function (err: any) {
                 if (err) {
                     throw err;
                 }

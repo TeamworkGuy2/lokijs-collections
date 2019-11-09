@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
@@ -11,18 +11,18 @@
   },
   "dependencies": {
     "q": "~1.5.1",
-    "@twg2/ts-twg-ast-codegen": "~0.21.0",
-    "ts-event-handlers-lite": "~0.2.7",
-    "ts-mortar": "~0.18.0",
-    "ts-promises": "~0.5.0"
+    "@twg2/ts-twg-ast-codegen": "~0.21.2",
+    "ts-event-handlers-lite": "~0.2.9",
+    "ts-mortar": "~0.19.0",
+    "ts-promises": "~0.5.2"
   },
   "devDependencies": {
     "@types/browser-pack": "~6.0.4",
-    "@types/chai": "~4.1.7",
+    "@types/chai": "~4.2.4",
     "@types/deps-sort": "~2.0.0",
-    "@types/mocha": "~5.2.5",
+    "@types/mocha": "~5.2.7",
     "@types/module-deps": "~6.1.0",
-    "@types/node": "~10.12.18",
+    "@types/node": "~12.12.0",
     "@types/q": "~1.5.1",
     "@types/websql": "~0.0.27",
     "browser-pack": "^6.1.0",
@@ -31,7 +31,7 @@
     "mocha": "~5.2.0",
     "module-deps": "^6.2.0",
     "ts-bundlify": "*",
-    "typescript": "~3.5.2"
+    "typescript": "~3.7.2"
   },
   "scripts": {
     "test": "node node_modules/mocha/bin/_mocha -u tdd --recursive ./test/**/*Test.js",

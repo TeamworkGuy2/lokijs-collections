@@ -4,6 +4,12 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
+### [0.25.2](N/A) - 2019-11-08
+#### Changed
+* Updated to TypeScript 3.7
+
+
+--------
 ### [0.25.1](N/A) - 2019-06-18
 #### Fixed
 * Fix `WebSqlPersister` to throw an error instead of infinitely looping when trying to persist with a `maxObjectsPerChunk` of zero or null
