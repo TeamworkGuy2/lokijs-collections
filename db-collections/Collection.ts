@@ -16,8 +16,6 @@ class Collection<T> implements MemDbCollection<T> {
         'update': any[];
         'pre-insert': any[];
         'pre-update': any[];
-        'close': any[];
-        'flushbuffer': any[];
         'error': any[];
         'delete': any[];
         'warning': any[];
@@ -28,9 +26,8 @@ class Collection<T> implements MemDbCollection<T> {
     cachedIndex: number[] | null;
     cachedBinaryIndex: { [P in keyof T]: MemDbCollectionIndex } | null;
     cachedData: (T & MemDbObj)[] | null;
-    objType: string;
     maxId: number;
-    changes: { name: string; operation: string/*'I', 'U', 'R'*/; obj: any }[];
+    changes: MemDbCollectionChange[];
     transactional: boolean;
     cloneObjects: boolean;
     disableChangesApi: boolean;
@@ -41,8 +38,8 @@ class Collection<T> implements MemDbCollection<T> {
 
 
     /**
-     * @param name - collection name
-     * @param options - configuration object
+     * @param name collection name
+     * @param options configuration object
      */
     constructor(name: string, options?: MemDbCollectionOptions<T> | null) {
         // the name of the collection
@@ -56,10 +53,7 @@ class Collection<T> implements MemDbCollection<T> {
             exact: <any>{}
         };
 
-        // the object type of the collection
-        this.objType = name;
-
-        // in autosave scenarios we will use collection level dirty flags to determine whether save is needed.
+        // in autosave scenarios use collection level dirty flags to determine whether save is needed.
         // currently, if any collection is dirty we will autosave the whole database if autosave is configured.
         // defaulting to true since this is called from addCollection() and adding a collection should trigger save
         this.dirty = true;
@@ -98,7 +92,6 @@ class Collection<T> implements MemDbCollection<T> {
         // disable track changes
         this.disableChangesApi = options.disableChangesApi != null ? options.disableChangesApi : true;
 
-
         // currentMaxId - change manually at your own peril!
         this.maxId = 0;
 
@@ -110,8 +103,6 @@ class Collection<T> implements MemDbCollection<T> {
             "update": [],
             "pre-insert": [],
             "pre-update": [],
-            "close": [],
-            "flushbuffer": [],
             "error": [],
             "delete": [],
             "warning": []
@@ -140,7 +131,7 @@ class Collection<T> implements MemDbCollection<T> {
         /** This method creates a clone of the current status of an object and associates operation and collection name,
          * so the parent db can aggregate and generate a changes object for the entire db
          */
-        function createChange(name: string, op: string, obj: any) {
+        function createChange(name: string, op: ("I" | "U" | "R"), obj: any) {
             self.changes.push({
                 name: name,
                 operation: op,
@@ -148,7 +139,7 @@ class Collection<T> implements MemDbCollection<T> {
             });
         }
 
-        this.getChanges = function () {
+        this.getChanges = function getChanges() {
             return self.changes;
         };
 
@@ -183,29 +174,22 @@ class Collection<T> implements MemDbCollection<T> {
 
         function insertMetaWithChange(obj: any) {
             insertMeta(obj);
-            createChange(self.name, 'I', obj);
+            createChange(self.name, "I", obj);
         }
 
         function updateMetaWithChange(obj: any) {
             updateMeta(obj);
-            createChange(self.name, 'U', obj);
+            createChange(self.name, "U", obj);
         }
-
 
         /* assign correct handler based on ChangesAPI flag */
-        var insertHandler: (obj: any) => void,
-            updateHandler: (obj: any) => void;
-
-        function setHandlers() {
-            insertHandler = self.disableChangesApi ? insertMeta : insertMetaWithChange;
-            updateHandler = self.disableChangesApi ? updateMeta : updateMetaWithChange;
-        }
-
-        setHandlers();
+        var insertHandler: (obj: any) => void = self.disableChangesApi ? insertMeta : insertMetaWithChange;
+        var updateHandler: (obj: any) => void = self.disableChangesApi ? updateMeta : updateMetaWithChange;
 
         this.setChangesApi = function setChangesApi(enabled: boolean) {
             self.disableChangesApi = !enabled;
-            setHandlers();
+            insertHandler = self.disableChangesApi ? insertMeta : insertMetaWithChange;
+            updateHandler = self.disableChangesApi ? updateMeta : updateMetaWithChange;
         };
 
         // built-in events
@@ -219,7 +203,7 @@ class Collection<T> implements MemDbCollection<T> {
 
         this.events.on("delete", function deleteCallback(obj) {
             if (!self.disableChangesApi) {
-                createChange(self.name, 'R', obj);
+                createChange(self.name, "R", obj);
             }
         });
 
@@ -235,32 +219,25 @@ class Collection<T> implements MemDbCollection<T> {
 
     /** Ensure binary index on a certain field
      */
-    public ensureIndex(prop: keyof T & string, force?: boolean) {
-        // optional parameter to force rebuild whether flagged as dirty or not
-        if (force === undefined) {
-            force = false;
-        }
-
+    public ensureIndex(prop: keyof T & string, force: boolean = false) {
         if (prop == null) {
             throw new Error("Attempting to set index without an associated property");
         }
 
+        var index = this.binaryIndices[prop];
+
         if (this.binaryIndices.hasOwnProperty(prop) && !force) {
-            if (!this.binaryIndices[prop].dirty) return;
+            if (!index.dirty) return;
         }
 
-        this.binaryIndices[prop] = {
-            "name": prop,
-            "dirty": true,
-            "values": []
+        index = this.binaryIndices[prop] = {
+            name: prop,
+            dirty: true,
+            values: []
         };
 
-        var index = this.binaryIndices[prop],
-            len = this.data.length,
-            i = 0;
-
         // initialize index values
-        for (i; i < len; i++) {
+        for (var i = 0, len = this.data.length; i < len; i++) {
             index.values.push(i);
         }
 
@@ -287,11 +264,10 @@ class Collection<T> implements MemDbCollection<T> {
     public ensureUniqueIndex(field: keyof T & string) {
         var index = this.constraints.unique[field];
         if (!index) {
-            this.constraints.unique[field] = new UniqueIndex(field);
+            index = this.constraints.unique[field] = new UniqueIndex(field);
         }
-        var self = this;
         this.data.forEach(function (obj) {
-            self.constraints.unique[field].set(obj);
+            index.set(obj);
         });
     }
 
@@ -393,7 +369,7 @@ class Collection<T> implements MemDbCollection<T> {
     }
 
 
-    /** insert document method - ensure objects have id and objType properties
+    /** insert document method - ensure objects have id and meta properties
      * @param the document to be inserted (or an array of objects)
      * @returns document or documents (if passed an array of objects)
      */
@@ -516,8 +492,6 @@ class Collection<T> implements MemDbCollection<T> {
     /** Add object to collection
      */
     public add(obj: T & MemDbObj) {
-        var dvlen = this.dynamicViews.length;
-
         // if parameter isn't object exit with throw
         if (typeof obj !== "object") {
             throw new Error("Parameter 'obj' being added must be an object");
@@ -554,8 +528,8 @@ class Collection<T> implements MemDbCollection<T> {
                 self.constraints.unique[key].set(obj);
             });
 
-            // now that we can efficiently determine the data[] position of newly added document,
-            // submit it for all registered DynamicViews to evaluate for inclusion/exclusion
+            // submit the newly added document to all registered DynamicViews to evaluate for inclusion/exclusion
+            var dvlen = this.dynamicViews.length;
             for (var i = 0; i < dvlen; i++) {
                 this.dynamicViews[i].evaluateDocument(this.data.length - 1);
             }
@@ -667,8 +641,7 @@ class Collection<T> implements MemDbCollection<T> {
     public get(id: number, returnPos?: boolean): (T & MemDbObj) | [T & MemDbObj, number];
     public get(id: number, returnPos?: boolean): (T & MemDbObj) | [T & MemDbObj, number] {
 
-        var retpos = returnPos || false,
-            data = this.idIndex,
+        var data = this.idIndex,
             max = data.length - 1,
             min = 0,
             mid = Math.floor(min + (max - min) / 2);
@@ -688,7 +661,7 @@ class Collection<T> implements MemDbCollection<T> {
         }
 
         if (max === min && data[min] === id) {
-            if (retpos) {
+            if (returnPos) {
                 return [this.data[min], min];
             }
             return this.data[min];
@@ -979,12 +952,12 @@ class Collection<T> implements MemDbCollection<T> {
 
     public mode<K extends keyof T>(field: K) {
         var dict: { [value: string]: number } = {},
-            data = this.extract(field);
-        data.forEach(<(obj: any) => void>function (obj: string | number) {
-            if (dict[obj]) {
-                dict[obj] += 1;
+            values = <(string | number)[]><any[]>this.extract(field);
+        values.forEach(function (v) {
+            if (dict[v]) {
+                dict[v] += 1;
             } else {
-                dict[obj] = 1;
+                dict[v] = 1;
             }
         });
         var max: number | undefined,
@@ -1023,16 +996,16 @@ class Collection<T> implements MemDbCollection<T> {
 class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
     keyMap: { [key: string]: E | undefined } = {};
     lokiMap: { [id: number]: any } = {};
-    field: string;
+    field: keyof E;
 
-    constructor(uniqueField: string) {
+    constructor(uniqueField: keyof E) {
         this.field = uniqueField;
         this.keyMap = {};
         this.lokiMap = {};
     }
 
     public set(obj: E) {
-        var field = <keyof E>this.field;
+        var field = this.field;
         if (this.keyMap[<any>obj[field]]) {
             throw new Error("Duplicate key for property " + field + ": " + obj[field]);
         }
@@ -1051,7 +1024,7 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
     }
 
     public update(obj: E) {
-        var field = <keyof E>this.field;
+        var field = this.field;
         if (this.lokiMap[obj.$loki] !== obj[field]) {
             var old = this.lokiMap[obj.$loki];
             this.set(obj);

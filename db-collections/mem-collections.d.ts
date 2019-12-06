@@ -5,11 +5,6 @@
 /// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/utils.d.ts" />
 /// <reference path="../change-trackers/collection-changes.d.ts" />
 
-interface ObjectConstructor {
-    keys(o: null | undefined): never;
-}
-
-
 /* mem-collection interfaces - Data storage/retrieval interface, specifically for storing/retrieving strongly typed data models
  */
 
@@ -39,14 +34,12 @@ interface ResultSetLike<E> {
 }
 
 
-
 /** A lokijs MongoDB style query based on a data model */
 type PartialModelRecord<E, T> = {
     [P in keyof E]?: T | E[P];
 };
 
 type MemDbQueryLike<E, K> = PartialModelRecord<E, {[Y in keyof MemDbOps]?: any }>;
-
 
 
 /** Collection class that handles documents of same type
@@ -67,8 +60,6 @@ interface MemDbCollection<E> {
         'update': any[];
         'pre-insert': any[];
         'pre-update': any[];
-        'close': any[];
-        'flushbuffer': any[];
         'error': any[];
         'delete': any[];
         'warning': any[];
@@ -83,12 +74,10 @@ interface MemDbCollection<E> {
     cachedIndex: number[] | null;
     cachedBinaryIndex: {[P in keyof E]: MemDbCollectionIndex } | null;
     cachedData: (E & MemDbObj)[] | null;
-    // the object type of the collection
-    objType: string;
     // currentMaxId - change manually at your own peril!
     maxId: number;
     // changes are tracked by collection and aggregated by the db
-    changes: { name: string; operation: string/*'I', 'U', 'R'*/; obj: any }[];
+    changes: MemDbCollectionChange[];
     // options
     transactional: boolean;
     cloneObjects: boolean;
@@ -133,7 +122,7 @@ interface MemDbCollection<E> {
      */
     findAndUpdate(filterFunc: (obj: E) => boolean, updateFunc: (obj: E) => E): void;
 
-    /** insert document method - ensure objects have id and objType properties
+    /** insert document method - ensure objects have id and meta properties
      * @param doc the document to be inserted (or an array of objects)
      * @returns document or documents (if passed an array of objects)
      */
@@ -187,7 +176,7 @@ interface MemDbCollection<E> {
     findOneUnindexed(prop: string, value: any): (E & MemDbObj) | null;
 
 
-    /** Transaction methods */
+    /** -------- Transaction methods -------- */
 
     /** start the transation */
     startTransaction(): void;
@@ -248,10 +237,9 @@ interface MemDbCollection<E> {
 }
 
 
-
 /** DataCollection class
  * Represents an in-mem, synchronous, data collection with unique keys.
- * Provides a collection like API (with add, remove, update/set functions) to make it easy to work with data from an 'InMemDb' instance.
+ * Provides a collection like API (with add, remove, update/set functions) to make it easy to work with data from a 'MemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
@@ -408,8 +396,7 @@ interface DataCollection<E extends K, K> {
 interface _DataCollection<E extends K, K> extends DataCollection<E, K> { }
 
 
-
-/** Resultset class allowing chainable queries.  Intended to be instanced internally.
+/** Resultset allows for chainable queries.  Intended to be instanced internally.
  * Collection.find(), Collection.where(), and Collection.chain() instantiate this.
  * Example:
  *   mycollection.chain()
@@ -539,7 +526,6 @@ interface MemDbResultset<E> {
      */
     map<U>(mapFun: (currentValue: E, index: number, array: E[]) => U): MemDbResultset<U>;
 }
-
 
 
 /** DynamicView class is a versatile 'live' view class which can have filters and sorts applied.

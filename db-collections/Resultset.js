@@ -243,7 +243,7 @@ var Resultset = /** @class */ (function () {
         if (this.collection.data === null) {
             throw new TypeError("cannot query collection with null data");
         }
-        var queryObj = query || "getAll", property = null, value, operator = null, p, result = [], index = null, 
+        var queryObj = query || "getAll", property = null, value, operator = null, result = [], index = null, 
         // collection data
         dt, ix, 
         // collection data length
@@ -252,7 +252,7 @@ var Resultset = /** @class */ (function () {
         firstOnly = firstOnly || false;
         // if passed in empty object {}, interpret as 'getAll'
         // more performant than object.keys
-        for (p in queryObj) {
+        for (var p in queryObj) {
             emptyQO = false;
             break;
         }
@@ -264,7 +264,7 @@ var Resultset = /** @class */ (function () {
             // chained queries can just do coll.chain().data() but let's
             // be versatile and allow this also coll.chain().find().data()
             if (this.searchIsChained) {
-                this.filteredrows = Object.keys(this.collection.data).map(_parseFloat);
+                this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
                 return this;
             }
             // not chained, so return collection data array
@@ -272,7 +272,7 @@ var Resultset = /** @class */ (function () {
                 return this.collection.data;
             }
         }
-        for (p in queryObj) {
+        for (var p in queryObj) {
             if (queryObj.hasOwnProperty(p)) {
                 property = p;
                 var queryVal = queryObj[p];
@@ -339,12 +339,17 @@ var Resultset = /** @class */ (function () {
                 break;
             }
         }
+        if (operator == null) {
+            throw new Error("cannot find() without operator, query: " + query);
+        }
+        if (!(operator in LokiOps)) {
+            throw new Error("unknown find() query operator '" + operator + "' in query: " + query);
+        }
         // for regex ops, precompile
         if (operator === "$regex")
             value = new RegExp(value);
-        // if an index exists for the property being queried against, use it
-        // for now only enabling for non-chained query (who's set of docs matches index)
-        // or chained queries where it is the first filter applied and prop is indexed
+        // if an index exists for the property being queried, use it for non-chained queries
+        // (who's set of docs matches index) or chained queries where it is the first filter applied and prop is indexed
         if ((!this.searchIsChained || (this.searchIsChained && !this.filterInitialized)) &&
             operator !== "$ne" && operator !== "$regex" && operator !== "$contains" && operator !== "$containsAny" && operator !== "$in" && this.collection.binaryIndices.hasOwnProperty(property)) {
             // this is where lazy index rebuilding will take place
@@ -352,12 +357,6 @@ var Resultset = /** @class */ (function () {
             // ensureIndex() will only rebuild if flagged as dirty since we are not passing force=true
             this.collection.ensureIndex(property);
             index = this.collection.binaryIndices[property];
-        }
-        if (operator == null) {
-            throw new Error("cannot find() without operator, query: " + query);
-        }
-        if (!(operator in LokiOps)) {
-            throw new Error("unknown find() query operator '" + operator + "' in query: " + query);
         }
         // the comparison function
         var op = operator;
@@ -516,7 +515,6 @@ var Resultset = /** @class */ (function () {
      * @returns Array of documents in the resultset
      */
     Resultset.prototype.data = function () {
-        var result = [];
         // if this is chained resultset with no filters applied, just return collection.data
         if (this.searchIsChained && !this.filterInitialized) {
             if (this.filteredrows.length === 0) {
@@ -527,7 +525,7 @@ var Resultset = /** @class */ (function () {
                 this.filterInitialized = true;
             }
         }
-        var data = this.collection.data, fr = this.filteredrows, len = this.filteredrows.length;
+        var data = this.collection.data, fr = this.filteredrows, len = this.filteredrows.length, result = [];
         for (var i = 0; i < len; i++) {
             result.push(data[fr[i]]);
         }
@@ -539,9 +537,6 @@ var Resultset = /** @class */ (function () {
      * @returns this resultset for further chain ops.
      */
     Resultset.prototype.update = function (updateFunc) {
-        if (typeof updateFunc !== "function") {
-            throw new Error("Argument 'updateFunc' is not a function");
-        }
         // if this is chained resultset with no filters applied, we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
             this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
@@ -563,7 +558,7 @@ var Resultset = /** @class */ (function () {
     Resultset.prototype.remove = function () {
         // if this is chained resultset with no filters applied, we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
-            this.filteredrows = Object.keys(this.collection.data).map(_parseFloat);
+            this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
         }
         var len = this.filteredrows.length;
         for (var idx = 0; idx < len; idx++) {
@@ -574,7 +569,7 @@ var Resultset = /** @class */ (function () {
     };
     Resultset.prototype.map = function (mapFun) {
         var data = this.data().map(mapFun);
-        //return return a new resultset with no filters
+        // return a new resultset with no filters
         this.collection = new Collection("mappedData");
         this.collection.insert(data);
         this.filteredrows = [];
@@ -708,9 +703,6 @@ var Resultset = /** @class */ (function () {
     };
     return Resultset;
 }());
-function _parseFloat(num) {
-    return parseFloat(num);
-}
 function _parseInt(num) {
     return parseInt(num);
 }
@@ -760,7 +752,7 @@ function sortHelper(prop1, prop2, desc) {
         return gtHelper(prop1, prop2) ? 1 : -1;
     }
 }
-function containsCheckFn(a, b) {
+function containsCheckFn(a) {
     if (Array.isArray(a)) {
         return function (curr) {
             return a.indexOf(curr) !== -1;
@@ -810,7 +802,7 @@ var LokiOps = {
         if (!Array.isArray(b)) {
             b = [b];
         }
-        var checkFn = containsCheckFn(a, b);
+        var checkFn = containsCheckFn(a);
         return b.reduce(function (prev, curr) {
             if (!prev) {
                 return prev;
@@ -822,7 +814,7 @@ var LokiOps = {
         if (!Array.isArray(b)) {
             b = [b];
         }
-        var checkFn = containsCheckFn(a, b);
+        var checkFn = containsCheckFn(a);
         return b.reduce(function (prev, curr) {
             if (prev) {
                 return prev;

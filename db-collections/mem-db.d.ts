@@ -35,14 +35,13 @@ interface MemDbCollectionSet {
 }
 
 
-
 /** An in-memory database interface, containing:
  * - data collections (i.e. tables)
  * - data collection management, including clearing or deleting a data collection
  * - model definitions (i.e. table schemas/meta-data)
  * - functions for all the basic CRUD operations, such as find(), add(), update(), updateWhere(), remove(), and removeWhere()
  */
-interface InMemDb extends MemDbCollectionSet, MemDbCollectionProxy {
+interface MemDb extends MemDbCollectionSet, MemDbCollectionProxy {
     name: string;
     collections: MemDbCollection<any>[];
     databaseVersion: number;
@@ -72,10 +71,7 @@ interface InMemDb extends MemDbCollectionSet, MemDbCollectionProxy {
     getModelDefinitions(): ModelDefinitions;
 
     getModelKeys(): ModelKeys;
-
-    createDataPersister(dataPersisterFactory: DataPersister.Factory, permissioned?: boolean): DataPersister;
 }
-
 
 
 /** Add, Remove, Update operations for collections
@@ -120,7 +116,6 @@ interface MemDbCollectionProxy {
 }
 
 
-
 /**-------------------------+
 | Changes API               |
 +---------------------------*
@@ -146,7 +141,6 @@ interface MemDbChanges {
     /** clears all the changes in all collections. */
     clearChanges(): void;
 }
-
 
 
 /** TsEventEmitter is a minimalist version of EventEmitter. It enables any
@@ -176,9 +170,8 @@ interface TsEventEmitter<T extends { [eventName: string]: any[] }> {
 }
 
 
-
-/* Adapter interface for persisting/restoring in in-memory database to/from long-term* storage, (*longer than browser session or program lifetime)
- * Data persist read/write interface for InMemDb
+/* Adapter interface for persisting/restoring an in-memory database to/from long-term* storage, (*longer than browser session or program lifetime)
+ * Data persist read/write interface for MemDb
  */
 interface DataPersister {
 
@@ -303,16 +296,15 @@ declare module DataPersister {
          * @param dbInst the in-memory database that the persister pulls data from
          * @param getCollections returns a list of data collections that contain the data to persist/restore to
          * @param saveItemTransformation a conversion function to pass items from getDataCollections() through before persisting them
-         * @param restoreItemTransformation a conversion function to pass items through
-         * after restoring them and before storing them in getDataCollections()
+         * @param restoreItemTransformation a conversion function to pass items through after restoring them and
+         * before storing them in getDataCollections()
          */
-        (dbInst: InMemDb, getCollections: () => MemDbCollection<any>[],
+        (dbInst: MemDb, getCollections: () => MemDbCollection<any>[],
             getSaveItemTransformFunc?: (collName: string) => ((item: any) => any) | null,
             getRestoreItemTransformFunc?: (collName: string) => ((item: any) => any) | null): DataPersister;
     }
 
 }
-
 
 
 interface MemDbOps {
@@ -330,9 +322,8 @@ interface MemDbOps {
 }
 
 
-
 interface MemDbUniqueIndex<E> {
-    field: string;
+    field: keyof E;
     keyMap: { [id: string]: E | undefined };
     lokiMap: { [id: number]: any }; // 'field' map
 
@@ -348,7 +339,6 @@ interface MemDbUniqueIndex<E> {
 
     clear(): void;
 }
-
 
 
 interface MemDbExactIndex<E> {
@@ -369,18 +359,15 @@ interface MemDbExactIndex<E> {
 }
 
 
-
 interface ReadWritePermission {
     readAllow: boolean;
     writeAllow: boolean;
 }
 
 
-
 interface StorageFormatSettings {
     compressLocalStores: boolean;
 }
-
 
 
 interface MemDbPersistenceInterface {
@@ -389,13 +376,11 @@ interface MemDbPersistenceInterface {
 }
 
 
-
 interface MemDbCollectionChange {
     name: string;
-    operation: string/*'I', 'U', 'R'*/;
+    operation: ("I"/*Insert*/ | "U"/*Update*/ | "R"/*Remove*/);
     obj: any;
 }
-
 
 
 interface MemDbCollectionIndex {
@@ -403,7 +388,6 @@ interface MemDbCollectionIndex {
     dirty: boolean;
     values: number[];
 }
-
 
 
 interface MemDbCollectionOptions<T> {
@@ -414,7 +398,6 @@ interface MemDbCollectionOptions<T> {
     exact?: (keyof T & string)[];
     unique?: (keyof T & string)[];
 }
-
 
 
 interface MemDbObj {
@@ -428,7 +411,6 @@ interface MemDbObj {
         updated?: number;
     };
 }
-
 
 
 interface MemDbQuery {

@@ -4,9 +4,19 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.25.2](N/A) - 2019-11-08
+### [0.26.0](N/A) - 2019-12-06
 #### Changed
-* Updated to TypeScript 3.7
+* Renamed interface `InMemDb` -> `MemDb`
+* Renamed `InMemDbImpl.ts` -> `MemDbImpl.ts`
+
+#### Removed
+* `MemDb.createDataPersister()`, callers can access the appropriate classes and create persisters matching their needs
+
+
+--------
+### [0.25.2](https://github.com/TeamworkGuy2/lokijs-collections/commit/c8dedc33bd5832cd2ddb727b2d724b241c24cbe4) - 2019-11-08
+#### Changed
+* Updated to TypeScript 3.7 and other dependencies
 
 
 --------

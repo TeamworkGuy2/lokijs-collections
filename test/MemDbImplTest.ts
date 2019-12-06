@@ -3,7 +3,7 @@
 import chai = require("chai");
 import Arrays = require("ts-mortar/utils/Arrays");
 import Objects = require("ts-mortar/utils/Objects");
-import InMemDbImpl = require("../db-collections/InMemDbImpl");
+import MemDbImpl = require("../db-collections/MemDbImpl");
 import DataCollection = require("../db-collections/DataCollection");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
@@ -14,7 +14,7 @@ var asr = chai.assert;
 
 function rebuildDb() {
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("mem-collections-test",
+    var dbInst = new MemDbImpl("mem-collections-test",
         { readAllow: true, writeAllow: true, compressLocalStores: false },
         "for-in-if",
         metaDataCollName,
@@ -49,8 +49,8 @@ function rebuildDb() {
 }
 
 
-function createPersister(dbInst: InMemDb) {
-    return new DummyDataPersister(() => dbInst.listCollections(), InMemDbImpl.cloneForInIf, null);
+function createPersister(dbInst: MemDb) {
+    return new DummyDataPersister(() => dbInst.listCollections(), MemDbImpl.cloneForInIf, null);
 }
 
 
@@ -61,9 +61,9 @@ function createSorter<T extends string>(prop: T) {
 }
 
 
-suite("InMemDbImpl", function LokiDbImplTest() {
+suite("MemDbImpl", function MemDbImplTest() {
 
-    test("new InMemDbImpl()", function newLokiDbImplTest() {
+    test("new MemDbImpl()", function newMemDbImplTest() {
         M.rebuildItems();
         var db = rebuildDb();
 

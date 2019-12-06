@@ -8,10 +8,19 @@ var CollectionsBrowserTestBase;
 (function (CollectionsBrowserTestBase) {
     // testing:
     /*
-var idb = null; createIndexedDbPersister(1).then((i) => idb = i);
-idb.addCollection("book", [memDb.createBook("1984", "George Orwell", 1949), memDb.createBook("Mere Christianity", "C.S. Lewis", 1952), memDb.createBook("Desiring God", "John Piper", 1986), memDb.createBook("Don't Waste Your Life", "John Piper", 2003)]); idb.getDataCollections()[1].dirty = true;
+     * load test/tmp/index.html in a browser, then run these commands:
+var idb = null; createIndexedDbPersister(1).then((i) => { idb = i; var db = idb.persistenceInterface.db; db.onabort = db.onclose = db.onerror = function closing() { console.error.apply(console, arguments); }; });
+idb.addCollection("book", [
+  memDb.createBook("1984", "George Orwell", 1949),
+  memDb.createBook("Mere Christianity", "C.S. Lewis", 1952),
+  memDb.createBook("Desiring God", "John Piper", 1986),
+  memDb.createBook("Don't Waste Your Life", "John Piper", 2003),
+  memDb.createBook("The Culture Code", "Daniel Coyle", 2016)
+]);
+idb.getDataCollections()[1].dirty = true;
 var rs = null; idb.persist({ maxObjectsPerChunk: 3, keyAutoGenerate: true }).then(r => console.log("persist done!", rs = r), (err) => console.error(err));
 var rt = null; idb.restore(null, (name) => ({ isChunks: true })).then(r => console.log("restore done!", rt = r), (err) => console.error(err));
+idb.persistenceInterface.db.close();
     */
     var colls = [{
             name: "books",
@@ -73,7 +82,7 @@ var rt = null; idb.restore(null, (name) => ({ isChunks: true })).then(r => conso
                     coll.dirty = false;
                 }
                 return coll;
-            }, null /*(itm) => InMemDbImpl.cloneCloneDelete(itm, true)*/, null, function (storageError) {
+            }, null /*(itm) => MemDbImpl.cloneCloneDelete(itm, true)*/, null, function (storageError) {
                 console.error("storage error, is quota full!?", storageError.sqlError.message);
             }, null, null);
         });
@@ -93,7 +102,7 @@ var rt = null; idb.restore(null, (name) => ({ isChunks: true })).then(r => conso
                     coll.dirty = false;
                 }
                 return coll;
-            }, null /*(itm) => InMemDbImpl.cloneCloneDelete(itm, true)*/, function (k, v) { return (k !== "$loki" && k !== "meta" ? v : undefined); }, null, function (storageError) {
+            }, null /*(itm) => MemDbImpl.cloneCloneDelete(itm, true)*/, function (k, v) { return (k !== "$loki" && k !== "meta" ? v : undefined); }, null, function (storageError) {
                 console.error("storage error, is quota full!?", storageError.sqlError.message);
             }, null, null);
         });

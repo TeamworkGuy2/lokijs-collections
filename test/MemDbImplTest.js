@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var chai = require("chai");
 var Arrays = require("ts-mortar/utils/Arrays");
 var Objects = require("ts-mortar/utils/Objects");
-var InMemDbImpl = require("../db-collections/InMemDbImpl");
+var MemDbImpl = require("../db-collections/MemDbImpl");
 var DataCollection = require("../db-collections/DataCollection");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 var DummyDataPersister = require("./DummyDataPersister");
@@ -13,7 +13,7 @@ var M = require("./TestModels");
 var asr = chai.assert;
 function rebuildDb() {
     var metaDataCollName = "collection_meta_data";
-    var dbInst = new InMemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createCollectionSettings(collectionName) {
+    var dbInst = new MemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createCollectionSettings(collectionName) {
         var settings = {};
         if (collectionName === "coll_b") {
             settings["unique"] = ["userId"];
@@ -37,15 +37,15 @@ function rebuildDb() {
     };
 }
 function createPersister(dbInst) {
-    return new DummyDataPersister(function () { return dbInst.listCollections(); }, InMemDbImpl.cloneForInIf, null);
+    return new DummyDataPersister(function () { return dbInst.listCollections(); }, MemDbImpl.cloneForInIf, null);
 }
 function createSorter(prop) {
     return function sorter(a, b) {
         return a[prop] > b[prop] ? 1 : (a[prop] == b[prop] ? 0 : -1);
     };
 }
-suite("InMemDbImpl", function LokiDbImplTest() {
-    test("new InMemDbImpl()", function newLokiDbImplTest() {
+suite("MemDbImpl", function MemDbImplTest() {
+    test("new MemDbImpl()", function newMemDbImplTest() {
         M.rebuildItems();
         var db = rebuildDb();
         asr.deepEqual(db.dbInst.listCollections().map(function (c) { return c.name; }), ["coll_a", "coll_b"]);

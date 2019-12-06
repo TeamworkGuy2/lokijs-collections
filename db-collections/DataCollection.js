@@ -5,7 +5,7 @@ var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 /** DataCollection class
  * Represents an in-memory, synchronous, data collection with unique keys.
- * Provides a collection API (add, remove, update/set) to make it easy to work with data from an 'InMemDb' instance.
+ * Provides a collection API (add, remove, update/set) to make it easy to work with data from a 'MemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
@@ -15,21 +15,21 @@ var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
  * @template K the primary keys/required fields, this is a sub-set of required fields from type 'E'
  */
 var DataCollection = /** @class */ (function () {
-    /** Create a new document collection backed by a provided 'InMemDb' instance.
-     * @param collectionName: the name of this collection
-     * @param dataModel: the data model used to determine primary key constraints, object validity, syncing behavior, etc.
-     * @param dataModelFuncs: functions used to manipulate the types of items stored in this collection,
+    /** Create a new document collection backed by a provided 'MemDb' instance.
+     * @param name the name of this collection
+     * @param dataModel the data model used to determine primary key constraints, object validity, syncing behavior, etc.
+     * @param dataModelFuncs functions used to manipulate the types of items stored in this collection,
      * currently contains a copy function for creating deep copies of objects stored in this collection
-     * @param dbInst: the 'InMemDb' containing this collection's actual data
-     * @param trackChanges: flag to initialize an event handler and change tracker for this collection or not.
+     * @param dbInst the 'MemDb' containing this collection's actual data
+     * @param trackChanges flag to initialize an event handler and change tracker for this collection or not.
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    function DataCollection(collectionName, dataModel, dataModelFuncs, dbInst, trackChanges) {
+    function DataCollection(name, dataModel, dataModelFuncs, dbInst, trackChanges) {
         if (trackChanges === void 0) { trackChanges = false; }
         this.dbInst = dbInst;
-        this.collectionName = collectionName;
-        this.collection = dbInst.getCollection(collectionName, true);
+        this.collectionName = name;
+        this.collection = dbInst.getCollection(name, true);
         this.changes = null;
         this.eventHandler = null;
         this.dataModel = dataModel || {};

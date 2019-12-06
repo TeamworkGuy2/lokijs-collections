@@ -5,7 +5,7 @@ import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 
 /** DataCollection class
  * Represents an in-memory, synchronous, data collection with unique keys.
- * Provides a collection API (add, remove, update/set) to make it easy to work with data from an 'InMemDb' instance.
+ * Provides a collection API (add, remove, update/set) to make it easy to work with data from a 'MemDb' instance.
  *
  * Note: many of the methods in this class have an optional last parameter of 'dstResultInfo?: Changes.CollectionChangeTracker',
  * if non-null, the called method passes any collection changes (added, removed, modified document info) to this parameter
@@ -18,27 +18,27 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     /** The underlying data collection */
     public readonly collection: MemDbCollection<E>;
     private readonly collectionName: string;
-    private readonly dbInst: InMemDb;
+    private readonly dbInst: MemDb;
     private readonly dataModel: DataCollectionModel<E>;
     private readonly dataModelFuncs: DtoFuncs<E>;
     private changes: ChangeTrackers.ChangeTracker | null;
     private eventHandler: ListenerList<Changes.CollectionChange, Changes.ChangeListener> | null;
 
 
-    /** Create a new document collection backed by a provided 'InMemDb' instance.
-     * @param collectionName: the name of this collection
-     * @param dataModel: the data model used to determine primary key constraints, object validity, syncing behavior, etc.
-     * @param dataModelFuncs: functions used to manipulate the types of items stored in this collection,
+    /** Create a new document collection backed by a provided 'MemDb' instance.
+     * @param name the name of this collection
+     * @param dataModel the data model used to determine primary key constraints, object validity, syncing behavior, etc.
+     * @param dataModelFuncs functions used to manipulate the types of items stored in this collection,
      * currently contains a copy function for creating deep copies of objects stored in this collection
-     * @param dbInst: the 'InMemDb' containing this collection's actual data
-     * @param trackChanges: flag to initialize an event handler and change tracker for this collection or not.
+     * @param dbInst the 'MemDb' containing this collection's actual data
+     * @param trackChanges flag to initialize an event handler and change tracker for this collection or not.
      * The event handler allows outside code to add listeners for collection changes (documents added, removed, updated),
      * and the change tracker keeps a maximum size limited FIFO queue of collection changes that have occured
      */
-    constructor(collectionName: string, dataModel: DataCollectionModel<E>, dataModelFuncs: DtoFuncs<E>, dbInst: InMemDb, trackChanges: boolean = false) {
+    constructor(name: string, dataModel: DataCollectionModel<E>, dataModelFuncs: DtoFuncs<E>, dbInst: MemDb, trackChanges: boolean = false) {
         this.dbInst = dbInst;
-        this.collectionName = collectionName;
-        this.collection = dbInst.getCollection(collectionName, true);
+        this.collectionName = name;
+        this.collection = dbInst.getCollection(name, true);
         this.changes = null;
         this.eventHandler = null;
         this.dataModel = dataModel || <any>{};
@@ -403,14 +403,14 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     }
 
 
-    public static fromDataModel<U extends V, V>(collectionName: string, dataModel: DtoModel, dbInst: InMemDb, trackChanges: boolean = false): DataCollection<U, V> {
+    public static fromDataModel<U extends V, V>(collectionName: string, dataModel: DtoModel, dbInst: MemDb, trackChanges: boolean = false): DataCollection<U, V> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef<U, V>(collectionName, dataModel, <any>null);
         var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return inst;
     }
 
 
-    public static fromDtoModel<U extends V, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: InMemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
+    public static fromDtoModel<U extends V, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: MemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
         var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return <DtoCollection<U, V, W>><any>inst;

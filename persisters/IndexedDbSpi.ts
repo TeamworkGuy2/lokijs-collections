@@ -92,7 +92,9 @@ class IndexedDbSpi {
 
     public destroyDatabase(): Q.Promise<void> {
         var dfd = this.util.defer<void>();
+
         var dbDelReq = self.indexedDB.deleteDatabase(this.db.name);
+
         wrapRequest(dbDelReq, function destroyDbSuccess(evt) {
             dfd.resolve(<void><any>null);
         }, function destroyDbError(evt) {

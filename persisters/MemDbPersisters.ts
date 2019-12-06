@@ -66,7 +66,7 @@ module MemDbPersisters {
          * @param options - not currently used (remove or allow overrides?)
          * @param callback - (Optional) user supplied async callback / error handler
          */
-        public loadDatabase(db: InMemDb, options?: { createDynamicView?: (coll: MemDbCollection<any>, dv: MemDbDynamicView<any>) => MemDbDynamicView<any> }, callback?: (err: string | Error | null) => void) {
+        public loadDatabase(db: MemDb, options?: { createDynamicView?: (coll: MemDbCollection<any>, dv: MemDbDynamicView<any>) => MemDbDynamicView<any> }, callback?: (err: string | Error | null) => void) {
             var cbFunc = callback || function (err: string | Error | null) {
                 if (err) {
                     throw err;
@@ -102,7 +102,7 @@ module MemDbPersisters {
          * @param options - configuration options to apply to MemDb db object
          * @param initialConfig - (optional) if this is a reconfig, don't pass this
          */
-        public configurePersistence(db: InMemDb, options: MemDbConfigureOptions | undefined, initialConfig?: boolean) {
+        public configurePersistence(db: MemDb, options: MemDbConfigureOptions | undefined, initialConfig?: boolean) {
             var defaultPersistence = {
                 "NODEJS": "fs",
                 "BROWSER": "localStorage",

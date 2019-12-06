@@ -439,7 +439,7 @@ module WebSqlPersister {
 
         getTables(): Q.Promise<WebSqlSpi.SqlTableInfo[]>;
 
-        executeQueries<U>(sqlStatements: WebSqlSpi.SqlQuery[]): Q.Promise<SQLResultSet[]>;
+        executeQueries(sqlStatements: WebSqlSpi.SqlQuery[]): Q.Promise<SQLResultSet[]>;
     }
 
 }

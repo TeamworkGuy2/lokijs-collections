@@ -5,8 +5,8 @@ var Resultset = require("./Resultset");
  */
 var Collection = /** @class */ (function () {
     /**
-     * @param name - collection name
-     * @param options - configuration object
+     * @param name collection name
+     * @param options configuration object
      */
     function Collection(name, options) {
         /* -------- STAGING API -------- */
@@ -28,9 +28,7 @@ var Collection = /** @class */ (function () {
             unique: {},
             exact: {}
         };
-        // the object type of the collection
-        this.objType = name;
-        // in autosave scenarios we will use collection level dirty flags to determine whether save is needed.
+        // in autosave scenarios use collection level dirty flags to determine whether save is needed.
         // currently, if any collection is dirty we will autosave the whole database if autosave is configured.
         // defaulting to true since this is called from addCollection() and adding a collection should trigger save
         this.dirty = true;
@@ -70,8 +68,6 @@ var Collection = /** @class */ (function () {
             "update": [],
             "pre-insert": [],
             "pre-update": [],
-            "close": [],
-            "flushbuffer": [],
             "error": [],
             "delete": [],
             "warning": []
@@ -104,7 +100,7 @@ var Collection = /** @class */ (function () {
                 obj: JSON.parse(JSON.stringify(obj))
             });
         }
-        this.getChanges = function () {
+        this.getChanges = function getChanges() {
             return self.changes;
         };
         // clear all the changes
@@ -137,22 +133,19 @@ var Collection = /** @class */ (function () {
         }
         function insertMetaWithChange(obj) {
             insertMeta(obj);
-            createChange(self.name, 'I', obj);
+            createChange(self.name, "I", obj);
         }
         function updateMetaWithChange(obj) {
             updateMeta(obj);
-            createChange(self.name, 'U', obj);
+            createChange(self.name, "U", obj);
         }
         /* assign correct handler based on ChangesAPI flag */
-        var insertHandler, updateHandler;
-        function setHandlers() {
-            insertHandler = self.disableChangesApi ? insertMeta : insertMetaWithChange;
-            updateHandler = self.disableChangesApi ? updateMeta : updateMetaWithChange;
-        }
-        setHandlers();
+        var insertHandler = self.disableChangesApi ? insertMeta : insertMetaWithChange;
+        var updateHandler = self.disableChangesApi ? updateMeta : updateMetaWithChange;
         this.setChangesApi = function setChangesApi(enabled) {
             self.disableChangesApi = !enabled;
-            setHandlers();
+            insertHandler = self.disableChangesApi ? insertMeta : insertMetaWithChange;
+            updateHandler = self.disableChangesApi ? updateMeta : updateMetaWithChange;
         };
         // built-in events
         this.events.on("insert", function insertCallback(obj) {
@@ -163,7 +156,7 @@ var Collection = /** @class */ (function () {
         });
         this.events.on("delete", function deleteCallback(obj) {
             if (!self.disableChangesApi) {
-                createChange(self.name, 'R', obj);
+                createChange(self.name, "R", obj);
             }
         });
         this.events.on("warning", console.warn);
@@ -176,25 +169,22 @@ var Collection = /** @class */ (function () {
     /** Ensure binary index on a certain field
      */
     Collection.prototype.ensureIndex = function (prop, force) {
-        // optional parameter to force rebuild whether flagged as dirty or not
-        if (force === undefined) {
-            force = false;
-        }
+        if (force === void 0) { force = false; }
         if (prop == null) {
             throw new Error("Attempting to set index without an associated property");
         }
+        var index = this.binaryIndices[prop];
         if (this.binaryIndices.hasOwnProperty(prop) && !force) {
-            if (!this.binaryIndices[prop].dirty)
+            if (!index.dirty)
                 return;
         }
-        this.binaryIndices[prop] = {
-            "name": prop,
-            "dirty": true,
-            "values": []
+        index = this.binaryIndices[prop] = {
+            name: prop,
+            dirty: true,
+            values: []
         };
-        var index = this.binaryIndices[prop], len = this.data.length, i = 0;
         // initialize index values
-        for (i; i < len; i++) {
+        for (var i = 0, len = this.data.length; i < len; i++) {
             index.values.push(i);
         }
         var coll = this;
@@ -219,11 +209,10 @@ var Collection = /** @class */ (function () {
     Collection.prototype.ensureUniqueIndex = function (field) {
         var index = this.constraints.unique[field];
         if (!index) {
-            this.constraints.unique[field] = new UniqueIndex(field);
+            index = this.constraints.unique[field] = new UniqueIndex(field);
         }
-        var self = this;
         this.data.forEach(function (obj) {
-            self.constraints.unique[field].set(obj);
+            index.set(obj);
         });
     };
     /** Ensure all binary indices
@@ -403,7 +392,6 @@ var Collection = /** @class */ (function () {
     /** Add object to collection
      */
     Collection.prototype.add = function (obj) {
-        var dvlen = this.dynamicViews.length;
         // if parameter isn't object exit with throw
         if (typeof obj !== "object") {
             throw new Error("Parameter 'obj' being added must be an object");
@@ -432,8 +420,8 @@ var Collection = /** @class */ (function () {
             Object.keys(this.constraints.unique).forEach(function (key) {
                 self.constraints.unique[key].set(obj);
             });
-            // now that we can efficiently determine the data[] position of newly added document,
-            // submit it for all registered DynamicViews to evaluate for inclusion/exclusion
+            // submit the newly added document to all registered DynamicViews to evaluate for inclusion/exclusion
+            var dvlen = this.dynamicViews.length;
             for (var i = 0; i < dvlen; i++) {
                 this.dynamicViews[i].evaluateDocument(this.data.length - 1);
             }
@@ -518,7 +506,7 @@ var Collection = /** @class */ (function () {
         }
     };
     Collection.prototype.get = function (id, returnPos) {
-        var retpos = returnPos || false, data = this.idIndex, max = data.length - 1, min = 0, mid = Math.floor(min + (max - min) / 2);
+        var data = this.idIndex, max = data.length - 1, min = 0, mid = Math.floor(min + (max - min) / 2);
         if (isNaN(id)) {
             throw new TypeError("Parameter 'id' is not an integer: " + id);
         }
@@ -532,7 +520,7 @@ var Collection = /** @class */ (function () {
             }
         }
         if (max === min && data[min] === id) {
-            if (retpos) {
+            if (returnPos) {
                 return [this.data[min], min];
             }
             return this.data[min];
@@ -743,13 +731,13 @@ var Collection = /** @class */ (function () {
         return standardDeviation(this.extractNumerical(field));
     };
     Collection.prototype.mode = function (field) {
-        var dict = {}, data = this.extract(field);
-        data.forEach(function (obj) {
-            if (dict[obj]) {
-                dict[obj] += 1;
+        var dict = {}, values = this.extract(field);
+        values.forEach(function (v) {
+            if (dict[v]) {
+                dict[v] += 1;
             }
             else {
-                dict[obj] = 1;
+                dict[v] = 1;
             }
         });
         var max, mode;

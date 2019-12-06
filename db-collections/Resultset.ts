@@ -316,7 +316,6 @@ class Resultset<T> implements MemDbResultset<T> {
             property: keyof T & string = <any>null,
             value,
             operator: string | null = null,
-            p: string,
             result: (T & MemDbObj)[] = [],
             index: MemDbCollectionIndex | null = null,
             // collection data
@@ -331,7 +330,7 @@ class Resultset<T> implements MemDbResultset<T> {
 
         // if passed in empty object {}, interpret as 'getAll'
         // more performant than object.keys
-        for (p in queryObj) {
+        for (var p in queryObj) {
             emptyQO = false;
             break;
         }
@@ -344,7 +343,7 @@ class Resultset<T> implements MemDbResultset<T> {
             // chained queries can just do coll.chain().data() but let's
             // be versatile and allow this also coll.chain().find().data()
             if (this.searchIsChained) {
-                this.filteredrows = Object.keys(this.collection.data).map(_parseFloat);
+                this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
                 return this;
             }
             // not chained, so return collection data array
@@ -353,7 +352,7 @@ class Resultset<T> implements MemDbResultset<T> {
             }
         }
 
-        for (p in queryObj) {
+        for (var p in queryObj) {
             if (queryObj.hasOwnProperty(p)) {
                 property = <keyof T & string>p;
                 var queryVal = (<any>queryObj)[p];
@@ -432,12 +431,18 @@ class Resultset<T> implements MemDbResultset<T> {
             }
         }
 
+        if (operator == null) {
+            throw new Error("cannot find() without operator, query: " + query);
+        }
+        if (!(operator in LokiOps)) {
+            throw new Error("unknown find() query operator '" + operator + "' in query: " + query);
+        }
+
         // for regex ops, precompile
         if (operator === "$regex") value = new RegExp(value);
 
-        // if an index exists for the property being queried against, use it
-        // for now only enabling for non-chained query (who's set of docs matches index)
-        // or chained queries where it is the first filter applied and prop is indexed
+        // if an index exists for the property being queried, use it for non-chained queries
+        // (who's set of docs matches index) or chained queries where it is the first filter applied and prop is indexed
         if ((!this.searchIsChained || (this.searchIsChained && !this.filterInitialized)) &&
             operator !== "$ne" && operator !== "$regex" && operator !== "$contains" && operator !== "$containsAny" && operator !== "$in" && this.collection.binaryIndices.hasOwnProperty(property)) {
             // this is where lazy index rebuilding will take place
@@ -446,13 +451,6 @@ class Resultset<T> implements MemDbResultset<T> {
             this.collection.ensureIndex(property);
 
             index = this.collection.binaryIndices[property];
-        }
-
-        if (operator == null) {
-            throw new Error("cannot find() without operator, query: " + query);
-        }
-        if (!(operator in LokiOps)) {
-            throw new Error("unknown find() query operator '" + operator + "' in query: " + query);
         }
 
         // the comparison function
@@ -638,8 +636,6 @@ class Resultset<T> implements MemDbResultset<T> {
      * @returns Array of documents in the resultset
      */
     public data() {
-        var result: (T & MemDbObj)[] = [];
-
         // if this is chained resultset with no filters applied, just return collection.data
         if (this.searchIsChained && !this.filterInitialized) {
             if (this.filteredrows.length === 0) {
@@ -653,7 +649,8 @@ class Resultset<T> implements MemDbResultset<T> {
 
         var data = this.collection.data,
             fr = this.filteredrows,
-            len = this.filteredrows.length;
+            len = this.filteredrows.length,
+            result: (T & MemDbObj)[] = [];
 
         for (var i = 0; i < len; i++) {
             result.push(data[fr[i]]);
@@ -668,10 +665,6 @@ class Resultset<T> implements MemDbResultset<T> {
      * @returns this resultset for further chain ops.
      */
     public update<U>(updateFunc: (obj: T) => U): Resultset<U> {
-        if (typeof updateFunc !== "function") {
-            throw new Error("Argument 'updateFunc' is not a function");
-        }
-
         // if this is chained resultset with no filters applied, we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
             this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
@@ -700,7 +693,7 @@ class Resultset<T> implements MemDbResultset<T> {
     public remove() {
         // if this is chained resultset with no filters applied, we need to populate filteredrows first
         if (this.searchIsChained && !this.filterInitialized && this.filteredrows.length === 0) {
-            this.filteredrows = Object.keys(this.collection.data).map(_parseFloat);
+            this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
         }
 
         var len = this.filteredrows.length;
@@ -717,7 +710,7 @@ class Resultset<T> implements MemDbResultset<T> {
 
     public map<U>(mapFun: (value: T, index: number, array: T[]) => U): Resultset<U> {
         var data = this.data().map(mapFun);
-        //return return a new resultset with no filters
+        // return a new resultset with no filters
         this.collection = new Collection<T>("mappedData");
         this.collection.insert(<any[]>data);
         this.filteredrows = [];
@@ -887,10 +880,6 @@ class Resultset<T> implements MemDbResultset<T> {
 
 
 
-function _parseFloat(num: any) {
-    return parseFloat(num);
-}
-
 function _parseInt(num: any) {
     return parseInt(num);
 }
@@ -943,7 +932,7 @@ function sortHelper(prop1: any, prop2: any, desc?: boolean) {
     }
 }
 
-function containsCheckFn(a: any, b: any): (c: any) => boolean {
+function containsCheckFn(a: any[] | string | object): (c: any) => boolean {
     if (Array.isArray(a)) {
         return function (curr) {
             return a.indexOf(curr) !== -1;
@@ -1000,7 +989,7 @@ var LokiOps = {
             b = [b];
         }
 
-        var checkFn = containsCheckFn(a, b);
+        var checkFn = containsCheckFn(a);
 
         return (<any[]>b).reduce(function (prev: boolean, curr: any) {
             if (!prev) {
@@ -1015,7 +1004,7 @@ var LokiOps = {
             b = [b];
         }
 
-        var checkFn = containsCheckFn(a, b);
+        var checkFn = containsCheckFn(a);
 
         return (<any[]>b).reduce(function (prev: boolean, curr: any) {
             if (prev) {
