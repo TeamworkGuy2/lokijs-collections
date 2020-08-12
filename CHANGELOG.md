@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.26.0](N/A) - 2019-12-06
+### [0.26.1](N/A) - 2020-08-12
+#### Fixed
+* Fix a bug adding items via `MemDbImpl.addOrUpdateWhere()` which affects `DataCollection` `addOrUpdateWhere()` and `addOrUpdateWhereNoModify()`, an extraneous `undefined: undefined` property was being added to the inserted item(s)
+
+
+--------
+### [0.26.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/72159ec478e8d4bdc1379e08502fc2b95465a3b4) - 2019-12-06
 #### Changed
 * Renamed interface `InMemDb` -> `MemDb`
 * Renamed `InMemDbImpl.ts` -> `MemDbImpl.ts`

@@ -290,7 +290,7 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
             var queryKeys = <(keyof T & string)[]>Object.keys(query);
             var idx = -1;
             var len = queryKeys.length;
-            while (idx++ < len) {
+            while (++idx < len) {
                 var key = queryKeys[idx];
                 (<any>obj)[key] = query[key];
             }

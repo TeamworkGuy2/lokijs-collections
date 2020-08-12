@@ -206,7 +206,7 @@ var MemDbImpl = /** @class */ (function () {
             var queryKeys = Object.keys(query);
             var idx = -1;
             var len = queryKeys.length;
-            while (idx++ < len) {
+            while (++idx < len) {
                 var key = queryKeys[idx];
                 obj[key] = query[key];
             }
