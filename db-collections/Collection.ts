@@ -619,8 +619,8 @@ class Collection<T> implements MemDbCollection<T> {
             this.commit();
             this.dirty = true; // for autosave scenarios
             this.events.emit("delete", arr[0]);
-            delete item.$loki;
-            delete item.meta;
+            delete (<any>item).$loki;
+            delete (<any>item).meta;
             return item;
         } catch (err) {
             this.rollback();

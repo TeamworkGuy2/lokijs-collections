@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.26.1](N/A) - 2020-08-12
+### [0.27.0](N/A) - 2020-09-05
+#### Change
+* Update to TypeScript 4.0
+
+
+--------
+### [0.26.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/39dfa05b09461970715add93c0a3a409fa96b814) - 2020-08-12
 #### Fixed
 * Fix a bug adding items via `MemDbImpl.addOrUpdateWhere()` which affects `DataCollection` `addOrUpdateWhere()` and `addOrUpdateWhereNoModify()`, an extraneous `undefined: undefined` property was being added to the inserted item(s)
 

@@ -13,17 +13,17 @@ var ChangeTrackers;
         }
         Object.defineProperty(CompoundCollectionChange.prototype, "added", {
             get: function () { return this.changeInfo.added; },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Object.defineProperty(CompoundCollectionChange.prototype, "modified", {
             get: function () { return this.changeInfo.modified; },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         Object.defineProperty(CompoundCollectionChange.prototype, "removed", {
             get: function () { return this.changeInfo.removed; },
-            enumerable: true,
+            enumerable: false,
             configurable: true
         });
         CompoundCollectionChange.prototype.addChangeItemsAdded = function (items) {
