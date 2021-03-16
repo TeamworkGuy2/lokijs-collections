@@ -4,7 +4,15 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.27.0](N/A) - 2020-09-05
+### [0.28.0](N/A) - 2021-03-16
+#### Change
+* Remove `Q` dependency (still used as a devDependency)
+* Update dependencies for `Q` dependency removal
+* Change all `Q.Promise` and `Q.IPromise` types to `PsPromise` (from `ts-promises` package)
+
+
+--------
+### [0.27.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/c056a94c9e5b82462791a6424813f9da0188c174) - 2020-09-05
 #### Change
 * Update to TypeScript 4.0
 

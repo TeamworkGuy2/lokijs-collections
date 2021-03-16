@@ -1,5 +1,4 @@
 ﻿/// <reference types="websql" />
-import Q = require("q");
 import DbUtil = require("./DbUtil");
 
 declare var window: any;
@@ -57,7 +56,7 @@ class WebSqlSpi {
      *         xact.executeSQL(...);
      *     }).then(function() {...});
      */
-    public changeVersion(oldVersion: number, newVersion: number, xactCallback: SQLTransactionCallback): Q.Promise<void> {
+    public changeVersion(oldVersion: number, newVersion: number, xactCallback: SQLTransactionCallback): PsPromise<void, Error> {
         var util = this.util;
         var dfd = util.defer<void>();
         if (!util.isDatabase(this.db)) {
@@ -91,7 +90,7 @@ class WebSqlSpi {
      *         }
      *     });
      */
-    public getTables(): Q.Promise<SqlTableInfo[]> {
+    public getTables(): PsPromise<SqlTableInfo[], any> {
         var sql = "SELECT name, type, sql FROM sqlite_master " +
             "WHERE type in ('table') AND name NOT LIKE '?_?_%' ESCAPE '?'";
         return this.execSqlStatements(this.readTransaction, "read", { sql }, function (rs) {
@@ -113,7 +112,7 @@ class WebSqlSpi {
      *         alert("table " + (table ? "exists" : "does not exist"));
      *     });
      */
-    public tableExists(name: string): Q.Promise<any> {
+    public tableExists(name: string): PsPromise<any, any> {
         var sql = "SELECT * FROM sqlite_master WHERE name = ?";
         return this.readRow([{ sql, args: [[name]] }], function (row) {
             return row || undefined;
@@ -127,7 +126,7 @@ class WebSqlSpi {
      *     wsdb.destroyDatabase()
      *         .then(function (wsdb) {...});
      */
-    public destroyDatabase(): Q.Promise<void> {
+    public destroyDatabase(): PsPromise<void, any> {
         return this.changeVersion(<any>this.db.version, <any>"", function (xact) {
             var sql = "SELECT name FROM sqlite_master " +
                 "WHERE type in ('table') AND name NOT LIKE '?_?_%' ESCAPE '?'";
@@ -197,7 +196,7 @@ class WebSqlSpi {
     /** Call 'webSqlFunc' method on 'db'
      * Implements common behavior for 'wsdb.transaction' and 'wsdb.readTransaction'
      */
-    public executeTransaction(webSqlFuncName: ("transaction" | "readTransaction"), xactCallback: SQLTransactionCallback): Q.Promise<void> {
+    public executeTransaction(webSqlFuncName: ("transaction" | "readTransaction"), xactCallback: SQLTransactionCallback): PsPromise<void, Error> {
         var util = this.util;
         var dfd = util.defer<void>();
         if (!util.isDatabase(this.db)) {
@@ -280,15 +279,15 @@ class WebSqlSpi {
      *         ...
      *     });
      */
-    public executeQuery(sqlStatement: SqlQuery): Q.Promise<SQLResultSet> {
+    public executeQuery(sqlStatement: SqlQuery): PsPromise<SQLResultSet, Error> {
         return this.execSqlStatements(this.transaction, "execute", sqlStatement, null);
     }
 
-    public executeQueries(sqlStatements: SqlQuery[]): Q.Promise<SQLResultSet[]> {
+    public executeQueries(sqlStatements: SqlQuery[]): PsPromise<SQLResultSet[], Error> {
         return this.execSqlStatements(this.transaction, "execute", sqlStatements, null);
     }
 
-    public execute<U>(sqlStatements: SqlQuery | SqlQuery[], rsCallback?: (rs: SQLResultSet) => U): Q.Promise<U | SQLResultSet | SQLResultSet[] | U[]> {
+    public execute<U>(sqlStatements: SqlQuery | SqlQuery[], rsCallback?: (rs: SQLResultSet) => U): PsPromise<U | SQLResultSet | SQLResultSet[] | U[], Error> {
         return this.execSqlStatements(this.transaction, "execute", sqlStatements, rsCallback);
     }
 
@@ -370,7 +369,7 @@ class WebSqlSpi {
     public readRow(sqlStatements: SqlQuery | SqlQuery[], rowCallback?: (row?: any) => void, defaultValue?: any) {
         var util = this.util;
 
-        return util.pipe(<Q.IPromise<SQLResultSet | SQLResultSet[]>>this.read(sqlStatements), function (rs: SQLResultSet | SQLResultSet[]) {
+        return util.pipe(<PsPromise<SQLResultSet | SQLResultSet[], any>>this.read(sqlStatements), function (rs: SQLResultSet | SQLResultSet[]) {
             var row: any;
             if (Array.isArray(rs) || rs.rows.length > 1) {
                 return util.rejectError(util.defer(), new Error("Query returned " + (Array.isArray(rs) ? "array of " + rs.length + " result sets" : rs.rows.length + " rows")));
@@ -400,13 +399,13 @@ class WebSqlSpi {
     /** Execute sqlStatement in the context of `xactMethod`
      * Implements common behavior for `wsdb.execute` and `wsdb.read`
      */
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery[], rsCallback: null | undefined): Q.Promise<SQLResultSet[]>;
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery[], rsCallback: (rs: SQLResultSet) => U): Q.Promise<U[]>;
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery, rsCallback: (rs: SQLResultSet) => U): Q.Promise<U>;
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery, rsCallback: null | undefined): Q.Promise<SQLResultSet>;
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery[], rsCallback: null | undefined): Q.Promise<SQLResultSet[] | SQLResultSet>;
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined): Q.Promise<SQLResultSet[] | U[] | SQLResultSet | U>;
-    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => Q.Promise<T>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined): Q.Promise<SQLResultSet[] | U[] | SQLResultSet | U> {
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery[], rsCallback: null | undefined): PsPromise<SQLResultSet[], any>;
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery[], rsCallback: (rs: SQLResultSet) => U): PsPromise<U[], any>;
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery, rsCallback: (rs: SQLResultSet) => U): PsPromise<U, any>;
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery, rsCallback: null | undefined): PsPromise<SQLResultSet, any>;
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery[], rsCallback: null | undefined): PsPromise<SQLResultSet[] | SQLResultSet, any>;
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined): PsPromise<SQLResultSet[] | U[] | SQLResultSet | U, any>;
+    execSqlStatements<T, U>(xactMethod: (callback: SQLTransactionCallback) => PsPromise<T, any>, xactMethodType: SqlStatementType, sqlStatements: SqlQuery | SqlQuery[], rsCallback: ((rs: SQLResultSet) => U) | null | undefined): PsPromise<SQLResultSet[] | U[] | SQLResultSet | U, any> {
         var start = new Date().getTime();
         if (typeof window !== "undefined" && !(<any>window)["startQueriesTime"]) {
             (<any>window)["startQueriesTime"] = start;
@@ -417,7 +416,7 @@ class WebSqlSpi {
         var sqls = <SqlQuery[]>(isAry ? sqlStatements : [sqlStatements]);
         var results: (SQLResultSet | U)[] = [];
 
-        var pipeReturn = util.pipe(<Q.IPromise<T>>xactMethod(function (xact: SQLTransaction) {
+        var pipeReturn = util.pipe(xactMethod(function (xact: SQLTransaction) {
             for (var i = 0; i < sqls.length; i++) {
                 var cmnd: SqlQuery = sqls[i];
                 var params = (typeof cmnd.args === "undefined" ? null : cmnd.args);
@@ -442,7 +441,7 @@ class WebSqlSpi {
         });
 
         if (util.logTimings) {
-            pipeReturn.done(function () {
+            pipeReturn.then(function () {
                 var end = new Date().getTime();
                 var time = <number>end - <number>start;
                 if (typeof window !== "undefined") {
@@ -469,7 +468,7 @@ class WebSqlSpi {
      *     wsdb.openDatabase("test"))
      *         .then(function(wsdb) {...});
      */
-    public static openDatabase(util: DbUtil<Database>, name: string, version?: number | null, displayName?: string | null, estimatedSize?: number | null): Q.Promise<Database> {
+    public static openDatabase(util: DbUtil<Database>, name: string, version?: number | null, displayName?: string | null, estimatedSize?: number | null): PsPromise<Database, Error> {
         util.log(util.DEBUG, "openDatabase", name, version, displayName, estimatedSize);
 
         if (!displayName) displayName = name;
@@ -505,11 +504,11 @@ class WebSqlSpi {
     }
 
 
-    public static newWebSqlDb(name: string | Database, version: number | null, displayName: string | null, estimatedSize: number | null, utilSettings: DataPersister.UtilConfig): Q.Promise<WebSqlSpi> {
+    public static newWebSqlDb(name: string | Database, version: number | null, displayName: string | null, estimatedSize: number | null, utilSettings: DataPersister.UtilConfig): PsPromise<WebSqlSpi, Error> {
         var util = new DbUtil<Database>("WebSQL", "[object Database]", utilSettings);
 
         // Create WebSQL wrapper from native Database or by opening 'name' DB
-        var pOpen: Q.Promise<Database>;
+        var pOpen: PsPromise<Database, Error>;
         if (util.isDatabase(name)) {
             var dfd = util.defer<Database>();
             dfd.resolve(name);

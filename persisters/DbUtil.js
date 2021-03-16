@@ -4,15 +4,19 @@
  */
 var DbUtil = /** @class */ (function () {
     /** DB Utility configuration:
-     * `dbTypeName` the name to show in error message (ex: 'WebSQL')
-     * `dbToStringId` the Object.prototype.toString() name of the type (ex: '[Database]' for WebSQL instances). NOTE: this should match type <T>
+     * @param dbTypeName the name to show in error message (ex: 'WebSQL')
+     * @param dbToStringId the Object.prototype.toString() name of the type (ex: '[Database]' for WebSQL instances). NOTE: this should match type <T>
+     * @param settings configuration object with the following properties:
      * `defer`: specifies the function that constructs a deferred object, such as:
+     * - Promise (native browser/node.js implementation)
      * - [`when.js`](https://github.com/cujojs/when)
      * - [`Q.js`](https://github.com/kriskowal/q)
      * - [`jQuery's Deferred`](http://api.jquery.com/category/deferred-object/)
      * - Other...
+     * `whenAll`: a Promise.all() style function for the promises returned by the 'defer' object
      * `trace`: specifies the object used for logging messages. Default is `window.console`.
-     * `logVerbosity`: specifies verbosity of logging (NONDE, ERROR or DEBUG). Default is `log.NONE`.
+     * `verbosity`: specifies verbosity of logging (NONDE, ERROR or DEBUG). Default is `log.NONE`.
+     * `logTimings`: whether to log query timings
      */
     function DbUtil(dbTypeName, dbToStringId, settings) {
         var _this = this;

@@ -1,4 +1,5 @@
 "use strict";
+/// <reference types="websql" />
 var DbUtil = require("./DbUtil");
 /*! websql.js | MIT license | Stepan Riha | http://bitbucket.org/nonplus/websql-js
  * websql.js may be freely distributed under the MIT license.
@@ -387,7 +388,7 @@ var WebSqlSpi = /** @class */ (function () {
             return err;
         });
         if (util.logTimings) {
-            pipeReturn.done(function () {
+            pipeReturn.then(function () {
                 var end = new Date().getTime();
                 var time = end - start;
                 if (typeof window !== "undefined") {

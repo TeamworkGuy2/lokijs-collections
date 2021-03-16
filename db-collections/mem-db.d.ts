@@ -176,30 +176,30 @@ interface TsEventEmitter<T extends { [eventName: string]: any[] }> {
 interface DataPersister {
 
     /** Get a list of collections in this data persister */
-    getCollectionNames(): Q.Promise<string[]>;
+    getCollectionNames(): PsPromise<string[], any>;
 
     /** Save this in-memory database to some form of persistent storage
      * Removes tables from store that don't exist in in-memory db
      */
-    persist(defaultOptions?: DataPersister.WriteOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.WriteOptions)): Q.Promise<DataPersister.PersistResult>;
+    persist(defaultOptions?: DataPersister.WriteOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.WriteOptions)): PsPromise<DataPersister.PersistResult, any>;
 
     /** Restore in-memory database from persistent store
      * All in memory tables are dropped and re-added
      */
-    restore(defaultOptions?: DataPersister.ReadOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.ReadOptions)): Q.Promise<DataPersister.RestoreResult>;
+    restore(defaultOptions?: DataPersister.ReadOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.ReadOptions)): PsPromise<DataPersister.RestoreResult, any>;
 
     /** Get all data from a specific collection */
-    getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): Q.Promise<any[]>;
+    getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): PsPromise<any[], any>;
 
     /** Add data to a specific collection */
-    addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats>;
+    addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): PsPromise<DataPersister.CollectionRawStats, any>;
 
     /** Remove all data from a specific collection */
-    clearCollections(collectionNames: string[]): Q.Promise<void>;
+    clearCollections(collectionNames: string[]): PsPromise<void, any>;
 
     /** Delete all data related this database from persistent storage
      */
-    clearPersistentDb(): Q.Promise<void>;
+    clearPersistentDb(): PsPromise<void, any>;
 }
 
 declare module DataPersister {
@@ -249,8 +249,8 @@ declare module DataPersister {
 
 
     export interface SimpleDeferred<T> {
-        promise: Q.Promise<T>;
-        resolve(value?: Q.IWhenable<T>): void;
+        promise: PsPromise<T, any>;
+        resolve(value?: T | PsPromise<T, any>): void;
         reject(reason: any): void;
     }
 
@@ -264,7 +264,7 @@ declare module DataPersister {
 
     export interface UtilConfig {
         defer<T = any>(): SimpleDeferred<T>;
-        whenAll<T = any>(promises: ArrayLike<PromiseLike<T>>): Q.Promise<T[]>;
+        whenAll<T = any>(promises: ArrayLike<PromiseLike<T>>): PsPromise<T[], any>;
         trace?: DbLogger;
         verbosity?: number;
         logTimings?: boolean;

@@ -64,7 +64,7 @@ class WebSqlPersister implements DataPersister {
     /** Persist in-memory database to disk
      * Removes tables from store that don't exist in in-memory db
      */
-    public persist(defaultOptions?: DataPersister.WriteOptions | null, getCollectionOptions?: ((collName: string) => DataPersister.WriteOptions) | null): Q.Promise<DataPersister.PersistResult> {
+    public persist(defaultOptions?: DataPersister.WriteOptions | null, getCollectionOptions?: ((collName: string) => DataPersister.WriteOptions) | null): PsPromise<DataPersister.PersistResult, any> {
         var that = this;
         var timerId = DbUtil.newTimer("persist");
         var dfd = this.persistenceInterface.util.defer<DataPersister.PersistResult>();
@@ -91,7 +91,7 @@ class WebSqlPersister implements DataPersister {
         // add new tables and remove tables that do not have collections
         this.persistenceInterface.getTables().then((tables) => {
             var tableNames = Arrays.pluck(tables, "name");
-            var promises: Promise<SQLResultSet[]>[] = [];
+            var promises: PsPromise<SQLResultSet[], any>[] = [];
 
             var colls = that.getDataCollections();
             colls.forEach((coll) => {
@@ -119,12 +119,12 @@ class WebSqlPersister implements DataPersister {
                     coll.dirty = false;
                 }
                 if (sqls.length > 0) {
-                    var collPromise = <Promise<SQLResultSet[]>><any>that.persistenceInterface.executeQueries(sqls);
+                    var collPromise = that.persistenceInterface.executeQueries(sqls);
                     promises.push(collPromise);
                 }
             });
-            return <Promise<SQLResultSet[][]>><any>that.persistenceInterface.util.whenAll(promises);
-        }).done((results) => {
+            return that.persistenceInterface.util.whenAll(<any[]>promises);
+        }).then((results) => {
             if (persistCount > 0) {
                 var timeMs = timerId.measure();
                 var totalWriteSize = Object.keys(persistData.collections).reduce((prev, collName) => prev + <number>persistData.collections[collName].dataSizeBytes, 0);
@@ -147,7 +147,7 @@ class WebSqlPersister implements DataPersister {
     /** Restore in-memory database from persistent storage.
      * All in memory tables are dropped and re-added
      */
-    public restore(defaultOptions?: DataPersister.ReadOptions | null, getCollectionOptions?: ((collName: string) => DataPersister.ReadOptions) | null): Q.Promise<DataPersister.RestoreResult> {
+    public restore(defaultOptions?: DataPersister.ReadOptions | null, getCollectionOptions?: ((collName: string) => DataPersister.ReadOptions) | null): PsPromise<DataPersister.RestoreResult, any> {
         var that = this;
         var timerId = DbUtil.newTimer("restore");
         var defaultDecompress = (defaultOptions != null && defaultOptions.decompress) || false;
@@ -162,8 +162,8 @@ class WebSqlPersister implements DataPersister {
             tableNames = Arrays.pluck(tables, "name").filter((n) => that.tablesToNotLoad.indexOf(n) === -1);
             var sqls: WebSqlSpi.SqlQuery[] = tables.filter((t) => that.tablesToNotLoad.indexOf(t.name) === -1)
                 .map((table) => ({ sql: "SELECT * FROM " + table.name, args: [] }));
-            return <Promise<SQLResultSet[]>><any>that.persistenceInterface.executeQueries(sqls);
-        }).done((results) => {
+            return that.persistenceInterface.executeQueries(sqls);
+        }).then((results) => {
             results.forEach((result, tableIndex) => {
                 var tableName = tableNames[tableIndex];
                 var docs: DataPersister.CollectionRawStats[] = [];
@@ -208,14 +208,14 @@ class WebSqlPersister implements DataPersister {
 
     /** Get a list of collection names in this data persister
      */
-    public getCollectionNames(): Q.Promise<string[]> {
+    public getCollectionNames(): PsPromise<string[], any> {
         return this.persistenceInterface.getTables().then((tbls) => tbls.map((t) => t.name));
     }
 
 
     /** Get all data from a specific collection
      */
-    public getCollectionRecords(collectionName: string, options: DataPersister.ReadOptions): Q.Promise<any[]> {
+    public getCollectionRecords(collectionName: string, options: DataPersister.ReadOptions): PsPromise<any[], any> {
         var that = this;
         var sqls: WebSqlSpi.SqlQuery[] = [{ sql: "SELECT * FROM " + collectionName, args: [] }];
 
@@ -241,7 +241,7 @@ class WebSqlPersister implements DataPersister {
 
     /** Add data to a specific collection
      */
-    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
+    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): PsPromise<DataPersister.CollectionRawStats, any> {
         var opts = DbUtil.getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlPersister.MAX_OBJECTS_PER_PERSIST_RECORD });
         var res = records.length > 0 ? this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress) : <{ sql: string; args: ObjectArray[]; itemCount: number; jsonSize: number; }><any>null;
 
@@ -258,16 +258,16 @@ class WebSqlPersister implements DataPersister {
 
     /** Remove all data from the specificed collections
      */
-    public clearCollections(collectionNames: string[]): Q.Promise<void> {
+    public clearCollections(collectionNames: string[]): PsPromise<void, any> {
         var sqls: WebSqlSpi.SqlQuery[] = collectionNames.map((collName) => ({ sql: "DELETE FROM " + collName, args: [] }));
 
-        return this.persistenceInterface.executeQueries(sqls).then((results) => <void><any>null);
+        return <PsPromise<any, any>>this.persistenceInterface.executeQueries(sqls).then((results) => <void><any>null);
     }
 
 
     /** Delete all data related this database from persistent storage
      */
-    public clearPersistentDb(): Q.Promise<void> {
+    public clearPersistentDb(): PsPromise<void, any> {
         var timerId = DbUtil.newTimer("clear");
         var dfd = this.persistenceInterface.util.defer<void>();
 
@@ -275,8 +275,8 @@ class WebSqlPersister implements DataPersister {
             var sqls: WebSqlSpi.SqlQuery[] = tables
                 .filter((t) => this.tablesToNotClear.indexOf(t.name) === -1)
                 .map((table) => ({ sql: "DROP TABLE " + table.name, args: [] }));
-            return <Promise<SQLResultSet[]>><any>this.persistenceInterface.executeQueries(sqls);
-        }).done((sqls) => {
+            return this.persistenceInterface.executeQueries(sqls);
+        }).then((sqls) => {
             var timeMs = timerId.measure();
             if (this.logger != null) this.logger.log("Data cleared", Math.floor(timeMs), "(ms)");
             dfd.resolve(<void><any>null);
@@ -437,9 +437,9 @@ module WebSqlPersister {
     export interface WebSqlSpi {
         readonly util: DataPersister.UtilConfig;
 
-        getTables(): Q.Promise<WebSqlSpi.SqlTableInfo[]>;
+        getTables(): PsPromise<WebSqlSpi.SqlTableInfo[], any>;
 
-        executeQueries(sqlStatements: WebSqlSpi.SqlQuery[]): Q.Promise<SQLResultSet[]>;
+        executeQueries(sqlStatements: WebSqlSpi.SqlQuery[]): PsPromise<SQLResultSet[], any>;
     }
 
 }

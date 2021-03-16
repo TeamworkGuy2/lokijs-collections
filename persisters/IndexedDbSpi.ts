@@ -16,7 +16,7 @@ class IndexedDbSpi {
     }
 
 
-    public getTables(): Q.Promise<string[]> {
+    public getTables(): PsPromise<string[], any> {
         var names: string[] = [];
         Array.prototype.push.apply(names, <any[]><any>this.db.objectStoreNames);
         var dfd = this.util.defer<string[]>();
@@ -25,12 +25,12 @@ class IndexedDbSpi {
     }
 
 
-    public insertMultiple(collectionInserts: IndexedDbSpi.InsertRequest[]): Q.Promise<{ inserts: IndexedDbSpi.InsertResult[]; insertErrors: IndexedDbSpi.InsertExceptions[] }> {
+    public insertMultiple(collectionInserts: IndexedDbSpi.InsertRequest[]): PsPromise<{ inserts: IndexedDbSpi.InsertResult[]; insertErrors: IndexedDbSpi.InsertExceptions[] }, any> {
         var res = {
             inserts: <IndexedDbSpi.InsertResult[]>[],
             insertErrors: <IndexedDbSpi.InsertExceptions[]>[]
         };
-        return <Q.Promise<typeof res>>IndexedDbSpi.inserts(this.db, this.util, collectionInserts, res);
+        return <PsPromise<typeof res, any>>IndexedDbSpi.inserts(this.db, this.util, collectionInserts, res);
     }
 
 
@@ -44,7 +44,7 @@ class IndexedDbSpi {
         tableDels: IndexedDbSpi.DeleteStoreRequest[] | null | undefined,
         tableAdds: IndexedDbSpi.CreateStoreRequest[] | null | undefined,
         tableInserts: IndexedDbSpi.InsertRequest[] | null | undefined
-    ): Q.Promise<IndexedDbSpi.DbChangeResults> {
+    ): PsPromise<IndexedDbSpi.DbChangeResults, any> {
         var inst = this;
         var name = this.db.name;
         var version = this.db.version;
@@ -90,7 +90,7 @@ class IndexedDbSpi {
     }
 
 
-    public destroyDatabase(): Q.Promise<void> {
+    public destroyDatabase(): PsPromise<void, any> {
         var dfd = this.util.defer<void>();
 
         var dbDelReq = self.indexedDB.deleteDatabase(this.db.name);
@@ -139,7 +139,7 @@ class IndexedDbSpi {
 
     private static inserts<R extends { inserts: IndexedDbSpi.InsertResult[]; insertErrors: IndexedDbSpi.InsertExceptions[] }>(
         db: IDBDatabase, util: DbUtil<any>, tableInserts: IndexedDbSpi.InsertRequest[] | null | undefined, res: R
-    ): Q.Promise<R> | R {
+    ): PsPromise<R, any> | R {
         if (tableInserts == null) {
             return res;
         }
@@ -202,7 +202,7 @@ class IndexedDbSpi {
     }
 
 
-    public static openDatabase(util: DbUtil<IDBDatabase>, name: string, version?: number | null, onupgradeneeded?: (this: IDBOpenDBRequest, ev: IDBVersionChangeEvent) => Q.Promise<any> | any | null | undefined): Q.Promise<IDBDatabase> {
+    public static openDatabase(util: DbUtil<IDBDatabase>, name: string, version?: number | null, onupgradeneeded?: (this: IDBOpenDBRequest, ev: IDBVersionChangeEvent) => PromiseLike<any> | any | null | undefined): PsPromise<IDBDatabase, any> {
         util.log(util.DEBUG, "openDatabase", name, version);
 
         var dfd = util.defer<IDBDatabase>();
@@ -215,7 +215,7 @@ class IndexedDbSpi {
                 var dbOpenReq = (version != null ? self.indexedDB.open(name, version) : self.indexedDB.open(name));
                 wrapRequest(dbOpenReq, function openDbSuccess(evt) {
                     if (pUpgrade != null) {
-                        pUpgrade.then((r) => dfd.resolve(dbOpenReq.result), (err) => util.rejectError(dfd, "onupgradeneeded handler failed", { exception: err }));
+                        pUpgrade.then((r) => dfd.resolve(dbOpenReq.result), (err) => <any>util.rejectError(dfd, "onupgradeneeded handler failed", { exception: err }));
                     }
                     else {
                         dfd.resolve(dbOpenReq.result);
@@ -244,7 +244,7 @@ class IndexedDbSpi {
         var util = new DbUtil<IDBDatabase>("IndexedDB", "[object IDBDatabase]", utilSettings);
 
         // Create IndexedDB wrapper from native Database or by opening 'name' DB
-        var pOpen: Q.Promise<IDBDatabase>;
+        var pOpen: PsPromise<IDBDatabase, any>;
         if (util.isDatabase(name)) {
             var dfd = util.defer<IDBDatabase>();
             dfd.resolve(name);

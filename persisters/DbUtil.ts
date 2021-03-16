@@ -23,7 +23,7 @@ class DbUtil<T> implements DataPersister.UtilConfig {
     public logTimings: any;
     // Create a deferred object
     public defer: <T = any>() => DataPersister.SimpleDeferred<T>;
-    public whenAll: <T = any>(promises: ArrayLike<PromiseLike<T>>) => Q.Promise<T[]>;
+    public whenAll: <T = any>(promises: ArrayLike<PromiseLike<T>>) => PsPromise<T[], any>;
 
     private dbTypeName: string;
 
@@ -31,15 +31,19 @@ class DbUtil<T> implements DataPersister.UtilConfig {
 
 
     /** DB Utility configuration:
-     * `dbTypeName` the name to show in error message (ex: 'WebSQL')
-     * `dbToStringId` the Object.prototype.toString() name of the type (ex: '[Database]' for WebSQL instances). NOTE: this should match type <T>
+     * @param dbTypeName the name to show in error message (ex: 'WebSQL')
+     * @param dbToStringId the Object.prototype.toString() name of the type (ex: '[Database]' for WebSQL instances). NOTE: this should match type <T>
+     * @param settings configuration object with the following properties:
      * `defer`: specifies the function that constructs a deferred object, such as:
+     * - Promise (native browser/node.js implementation)
      * - [`when.js`](https://github.com/cujojs/when)
      * - [`Q.js`](https://github.com/kriskowal/q)
      * - [`jQuery's Deferred`](http://api.jquery.com/category/deferred-object/)
      * - Other...
+     * `whenAll`: a Promise.all() style function for the promises returned by the 'defer' object
      * `trace`: specifies the object used for logging messages. Default is `window.console`.
-     * `logVerbosity`: specifies verbosity of logging (NONDE, ERROR or DEBUG). Default is `log.NONE`.
+     * `verbosity`: specifies verbosity of logging (NONDE, ERROR or DEBUG). Default is `log.NONE`.
+     * `logTimings`: whether to log query timings
      */
     constructor(dbTypeName: string, dbToStringId: string, settings: DataPersister.UtilConfig) {
         this.NONE = DbUtil.logLevels.NONE;
@@ -79,7 +83,7 @@ class DbUtil<T> implements DataPersister.UtilConfig {
      * Returns a new promise that is resolved/rejected based on the
      * values returned from the callbacks.
      */
-    public pipe<T, U, V>(p: Q.IPromise<T>, onSuccess: (arg: T) => U, onError?: (err: any) => V): Q.Promise<U> {
+    public pipe<T, U, V, V2>(p: PsPromise<T, V>, onSuccess: (arg: T) => U, onError?: (err: any) => V): PsPromise<U, V | V2> {
         var self = this;
         var dfd = this.defer<U>();
 
@@ -133,7 +137,7 @@ class DbUtil<T> implements DataPersister.UtilConfig {
     }
 
 
-    public rejectError(dfd: DataPersister.SimpleDeferred<any>, error: string | Error, options?: { exception?: any; sqlError?: SQLError; }): Q.Promise<Error> {
+    public rejectError(dfd: DataPersister.SimpleDeferred<any>, error: string | Error, options?: { exception?: any; sqlError?: SQLError; }): PsPromise<void, Error> {
         if (typeof error === "string") {
             error = new Error(error);
         }

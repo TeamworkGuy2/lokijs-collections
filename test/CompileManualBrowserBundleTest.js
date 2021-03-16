@@ -1,6 +1,6 @@
-/// <reference path="../node_modules/ts-bundlify/ts-bundlify-types.d.ts" />
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference path="../node_modules/ts-bundlify/ts-bundlify-types.d.ts" />
 var fs = require("fs");
 var chai = require("chai");
 var browserPack = require("browser-pack");

@@ -91,7 +91,7 @@ var WebSqlPersister = /** @class */ (function () {
                 }
             });
             return that.persistenceInterface.util.whenAll(promises);
-        }).done(function (results) {
+        }).then(function (results) {
             if (persistCount > 0) {
                 var timeMs = timerId.measure();
                 var totalWriteSize = Object.keys(persistData.collections).reduce(function (prev, collName) { return prev + persistData.collections[collName].dataSizeBytes; }, 0);
@@ -126,7 +126,7 @@ var WebSqlPersister = /** @class */ (function () {
             var sqls = tables.filter(function (t) { return that.tablesToNotLoad.indexOf(t.name) === -1; })
                 .map(function (table) { return ({ sql: "SELECT * FROM " + table.name, args: [] }); });
             return that.persistenceInterface.executeQueries(sqls);
-        }).done(function (results) {
+        }).then(function (results) {
             results.forEach(function (result, tableIndex) {
                 var tableName = tableNames[tableIndex];
                 var docs = [];
@@ -225,7 +225,7 @@ var WebSqlPersister = /** @class */ (function () {
                 .filter(function (t) { return _this.tablesToNotClear.indexOf(t.name) === -1; })
                 .map(function (table) { return ({ sql: "DROP TABLE " + table.name, args: [] }); });
             return _this.persistenceInterface.executeQueries(sqls);
-        }).done(function (sqls) {
+        }).then(function (sqls) {
             var timeMs = timerId.measure();
             if (_this.logger != null)
                 _this.logger.log("Data cleared", Math.floor(timeMs), "(ms)");

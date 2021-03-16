@@ -1,6 +1,4 @@
 ﻿/// <reference path="../node_modules/ts-bundlify/ts-bundlify-types.d.ts" />
-
-"use strict";
 import fs = require("fs");
 import chai = require("chai");
 import mocha = require("mocha");

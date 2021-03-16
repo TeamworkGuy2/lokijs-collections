@@ -1,5 +1,5 @@
 "use strict";
-var Q = require("q");
+var Defer = require("ts-promises/Defer");
 /** DataPersister wrapper that checks permissions before reading/writing data
  * @author TeamworkGuy2
  */
@@ -14,7 +14,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             return this.persister.getCollectionNames();
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister read permissions are denied");
             return dfd.promise;
         }
@@ -24,7 +24,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             return this.persister.persist({ compress: this.storeSettings.compressLocalStores });
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister write permissions are denied");
             return dfd.promise;
         }
@@ -34,7 +34,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             return this.persister.restore({ decompress: this.storeSettings.compressLocalStores });
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister read permissions are denied");
             return dfd.promise;
         }
@@ -44,7 +44,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             return this.persister.getCollectionRecords(collectionName, { decompress: (options != null ? options.decompress : this.storeSettings.compressLocalStores) });
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister read permissions are denied");
             return dfd.promise;
         }
@@ -57,7 +57,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             }, records, removeExisting);
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister write permissions are denied");
             return dfd.promise;
         }
@@ -67,7 +67,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             return this.persister.clearCollections(collectionNames);
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister write permissions are denied");
             return dfd.promise;
         }
@@ -77,7 +77,7 @@ var PermissionedDataPersisterAdapter = /** @class */ (function () {
             return this.persister.clearPersistentDb();
         }
         else {
-            var dfd = Q.defer();
+            var dfd = Defer.newDefer();
             dfd.reject("permission denied: data persister write permissions are denied");
             return dfd.promise;
         }

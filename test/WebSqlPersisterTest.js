@@ -73,8 +73,9 @@ function buildPersister() {
                 else if (sqlUpper.startsWith(str = "DROP TABLE ")) {
                     sqlTable = sql.substring(str.length, sql.indexOf(' ', str.length));
                     var tableIdx = tables.findIndex(function (t) { return t.name === sqlTable; });
-                    if (tableIdx < -1)
+                    if (tableIdx < -1) {
                         return Q.reject("could not group table '" + sqlTable + "' because it is not an existing collection: " + sql);
+                    }
                     tables.splice(tableIdx, 1);
                 }
             }

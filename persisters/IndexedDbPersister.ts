@@ -1,5 +1,4 @@
-﻿import Q = require("q");
-import Arrays = require("ts-mortar/utils/Arrays");
+﻿import Arrays = require("ts-mortar/utils/Arrays");
 import DbUtil = require("./DbUtil");
 import IndexedDbSpi = require("./IndexedDbSpi");
 
@@ -58,7 +57,7 @@ class IndexedDbPersister implements DataPersister {
 
     /** Get a list of collection names in this data persister
      */
-    public getCollectionNames(): Q.Promise<string[]> {
+    public getCollectionNames(): PsPromise<string[], any> {
         return this.persistenceInterface.getTables();
     }
 
@@ -66,12 +65,12 @@ class IndexedDbPersister implements DataPersister {
     /** Save this in-memory database to some form of persistent storage
      * Removes tables from store that don't exist in in-memory db
      */
-    public persist(defaultOptions?: DataPersister.WriteOptions, getCollectionOptions?: ((collName: string) => DataPersister.WriteOptions)): Q.Promise<DataPersister.PersistResult> {
+    public persist(defaultOptions?: DataPersister.WriteOptions, getCollectionOptions?: ((collName: string) => DataPersister.WriteOptions)): PsPromise<DataPersister.PersistResult, any> {
         var that = this;
         var colls = that.getDataCollections();
         var persistCount = 0;
 
-        return <Q.Promise<any>>this.persistenceInterface.getTables().then((collNames) => {
+        return <PsPromise<any, any>>this.persistenceInterface.getTables().then((collNames) => {
             var tableAdds: IndexedDbSpi.CreateStoreRequest[] = [];
             var tableDels: IndexedDbSpi.DeleteStoreRequest[] = [];
             var tableInserts: IndexedDbSpi.InsertRequest[] = [];
@@ -128,7 +127,7 @@ class IndexedDbPersister implements DataPersister {
     /** Restore in-memory database from persistent store
      * All in memory tables are dropped and re-added
      */
-    public restore(defaultOptions?: DataPersister.ReadOptions, getCollectionOptions?: ((collName: string) => DataPersister.ReadOptions)): Q.Promise<DataPersister.RestoreResult> {
+    public restore(defaultOptions?: DataPersister.ReadOptions, getCollectionOptions?: ((collName: string) => DataPersister.ReadOptions)): PsPromise<DataPersister.RestoreResult, any> {
         var that = this;
         var restoreRes: DataPersister.RestoreResult = {
             collections: {}
@@ -167,12 +166,12 @@ class IndexedDbPersister implements DataPersister {
 
     /** Get all data from a specific collection
      */
-    public getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): Q.Promise<any[]> {
+    public getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): PsPromise<any[], any> {
         return this.getCollectionsRecords([{ name: collectionName, options: options }]).then((r) => r[0].records);
     }
 
 
-    private getCollectionsRecords(collections: { name: string, options?: DataPersister.ReadOptions }[]): Q.Promise<{ name: string; records: any[] }[]> {
+    private getCollectionsRecords(collections: { name: string, options?: DataPersister.ReadOptions }[]): PsPromise<{ name: string; records: any[] }[], any> {
         var collectionNames = Arrays.pluck(collections, "name");
 
         var xact = this.persistenceInterface.db.transaction(collectionNames, "readonly");
@@ -202,7 +201,7 @@ class IndexedDbPersister implements DataPersister {
 
     /** Add data to a specific collection
      */
-    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
+    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): PsPromise<DataPersister.CollectionRawStats, any> {
         var data = this.prepDataForSave(records, <number>options.maxObjectsPerChunk, options.groupByKey, options.keyGetter);
 
         return this.persistenceInterface.insertMultiple([{
@@ -215,16 +214,16 @@ class IndexedDbPersister implements DataPersister {
 
     /** Remove all data from the specificed collections
      */
-    public clearCollections(collectionNames: string[]): Q.Promise<void> {
+    public clearCollections(collectionNames: string[]): PsPromise<void, any> {
         var clearColls: IndexedDbSpi.InsertRequest[] = collectionNames.map((collName) => ({ name: collName, clear: true }));
-        return <Q.Promise<any>>this.persistenceInterface.insertMultiple(clearColls);
+        return <PsPromise<any, any>>this.persistenceInterface.insertMultiple(clearColls);
     }
 
 
     /** Delete all data related this database from persistent storage
      */
-    public clearPersistentDb(): Q.Promise<void> {
-        return <Q.Promise<any>>this.persistenceInterface.getTables().then((tables) => {
+    public clearPersistentDb(): PsPromise<void, any> {
+        return <PsPromise<any, any>>this.persistenceInterface.getTables().then((tables) => {
             var delColls: IndexedDbSpi.InsertRequest[] = tables
                 .filter((tbl) => this.tablesToNotClear.indexOf(tbl) === -1)
                 .map((tbl) => ({ name: tbl }));
@@ -321,17 +320,17 @@ module IndexedDbPersister {
         readonly db: IDBDatabase;
         readonly util: DataPersister.UtilConfig;
 
-        getTables(): Q.Promise<string[]>;
+        getTables(): PsPromise<string[], any>;
 
-        insertMultiple(collectionInserts: IndexedDbSpi.InsertRequest[]): Q.Promise<{ inserts: IndexedDbSpi.InsertResult[]; insertErrors: IndexedDbSpi.InsertExceptions[] }>;
+        insertMultiple(collectionInserts: IndexedDbSpi.InsertRequest[]): PsPromise<{ inserts: IndexedDbSpi.InsertResult[]; insertErrors: IndexedDbSpi.InsertExceptions[] }, any>;
 
         modifyDatabase(
             tableDels: IndexedDbSpi.DeleteStoreRequest[] | null | undefined,
             tableAdds: IndexedDbSpi.CreateStoreRequest[] | null | undefined,
             tableInserts: IndexedDbSpi.InsertRequest[] | null | undefined
-        ): Q.Promise<IndexedDbSpi.DbChangeResults>;
+        ): PsPromise<IndexedDbSpi.DbChangeResults, any>;
 
-        destroyDatabase(): Q.Promise<void>;
+        destroyDatabase(): PsPromise<void, any>;
     }
 
 }

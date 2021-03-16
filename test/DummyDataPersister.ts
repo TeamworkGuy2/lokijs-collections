@@ -24,7 +24,7 @@ class DummyDataPersister implements DataPersister {
 
 
     /** Get a list of collections in this data persister */
-    public getCollectionNames(): Q.Promise<string[]> {
+    public getCollectionNames(): PsPromise<string[], any> {
         return <any>null;
     }
 
@@ -32,7 +32,7 @@ class DummyDataPersister implements DataPersister {
     /** Save this in-memory database to some form of persistent storage
      * Removes tables from store that don't exist in in-memory db
      */
-    public persist(defaultOptions?: DataPersister.WriteOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.WriteOptions)): Q.Promise<DataPersister.PersistResult> {
+    public persist(defaultOptions?: DataPersister.WriteOptions, getCollectionSpecificOptions?: ((collName: string) => DataPersister.WriteOptions)): PsPromise<DataPersister.PersistResult, any> {
         return <any>null;
     }
 
@@ -40,32 +40,32 @@ class DummyDataPersister implements DataPersister {
     /** Restore in-memory database from persistent store
      * All in memory tables are dropped and re-added
      */
-    public restore(defaultOptions?: DataPersister.ReadOptions, getCollectionSpecificOptions ?: ((collName: string) => DataPersister.ReadOptions)): Q.Promise<DataPersister.RestoreResult> {
+    public restore(defaultOptions?: DataPersister.ReadOptions, getCollectionSpecificOptions ?: ((collName: string) => DataPersister.ReadOptions)): PsPromise<DataPersister.RestoreResult, any> {
         return <any>null;
     }
 
 
     /** Get all data from a specific collection */
-    public getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): Q.Promise<any[]> {
+    public getCollectionRecords(collectionName: string, options?: DataPersister.ReadOptions): PsPromise<any[], any> {
         return <any>null;
     }
 
 
     /** Add data to a specific collection */
-    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): Q.Promise<DataPersister.CollectionRawStats> {
+    public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): PsPromise<DataPersister.CollectionRawStats, any> {
         return <any>null;
     }
 
 
     /** Remove all data from a specific collection */
-    public clearCollections(collectionNames: string[]): Q.Promise<void> {
+    public clearCollections(collectionNames: string[]): PsPromise<void, any> {
         return <any>null;
     }
 
 
     /** Delete all data related this database from persistent storage
      */
-    public clearPersistentDb(): Q.Promise<void> {
+    public clearPersistentDb(): PsPromise<void, any> {
         throw new Error("DummyDataPersister.clearPersistenceDb() not yet implemented");
     }
 

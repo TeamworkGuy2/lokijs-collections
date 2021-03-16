@@ -63,11 +63,11 @@ idb.persistenceInterface.db.close();
                 resolve: <any>null,
                 reject: <any>null,
             };
-            var p = new Promise<T>((rsl, rjc) => { rt.resolve = rsl; rt.reject = rjc; });
-            rt.promise = <Q.Promise<T>><any>p;
+            var p = new Promise<T>((rsl, rjc) => { rt.resolve = <any>rsl; rt.reject = rjc; });
+            rt.promise = <PsPromise<T, any>><any>p;
             return rt;
         }, //Q.defer,
-        whenAll: (ps) => <Q.Promise<any[]>><any>Promise.all(<any[]>ps), //(ps) => Q.all(<PromiseLike<any>[]>ps),
+        whenAll: (ps) => <PsPromise<any[], any>><any>Promise.all(<any[]>ps), //(ps) => Q.all(<PromiseLike<any>[]>ps),
         trace: storageLog,
         verbosity: DbUtil.logLevels.DEBUG
     };

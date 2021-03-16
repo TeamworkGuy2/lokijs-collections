@@ -7,7 +7,6 @@ import WebSqlPersister = require("../persisters/WebSqlPersister");
 
 var asr = chai.assert;
 
-
 function buildPersister() {
     var logs = {
         log: <any[][]>[],
@@ -43,8 +42,8 @@ function buildPersister() {
     //var sqlInst = WebSqlSpi.newWebSqlDb("test-persister", null, null, null, { trace: trace, logVerbosity: WebSqlSpi.DbUtils.logLevels.ERROR });
     var sqlInst: WebSqlPersister.WebSqlSpi = {
         util: {
-            defer: Q.defer,
-            whenAll: Q.when
+            defer: <any>Q.defer,
+            whenAll: <any>Q.when
         },
         executeQueries: (sqls) => {
             queries.push(sqls);
@@ -65,17 +64,19 @@ function buildPersister() {
                 else if (sqlUpper.startsWith(str = "DROP TABLE ")) {
                     sqlTable = sql.substring(str.length, sql.indexOf(' ', str.length));
                     var tableIdx = tables.findIndex((t) => t.name === sqlTable);
-                    if (tableIdx < -1) return Q.reject("could not group table '" + sqlTable + "' because it is not an existing collection: " + sql);
+                    if (tableIdx < -1) {
+                        return Q.reject("could not group table '" + sqlTable + "' because it is not an existing collection: " + sql);
+                    }
                     tables.splice(tableIdx, 1);
                 }
             }
-            return Q.resolve([{
+            return <any>Q.resolve([{
                 insertId: insertCnt++,
                 rowsAffected: sqls.length,
                 rows: newResultSet([]),
             }]);
         },
-        getTables: () => Q.resolve(tables)
+        getTables: () => <any>Q.resolve(tables)
     };
 
     var storageErrors: any[] = [];
