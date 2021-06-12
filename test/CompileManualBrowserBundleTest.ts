@@ -13,7 +13,7 @@ import TsBrowserify = require("ts-bundlify/bundlers/browser/TsBrowserify");
 var asr = chai.assert;
 
 suite("CompileManualBrowserBundle", function CompileManualBrowserBundleTest() {
-    var doCleanup = false;
+    var doCleanup = true;
 
 
     test("bundleLokijsCollections", function bundleLokijsCollectionsTest(done) {

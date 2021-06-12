@@ -12,7 +12,7 @@ var BundleBuilder = require("ts-bundlify/bundlers/BundleBuilder");
 var TsBrowserify = require("ts-bundlify/bundlers/browser/TsBrowserify");
 var asr = chai.assert;
 suite("CompileManualBrowserBundle", function CompileManualBrowserBundleTest() {
-    var doCleanup = false;
+    var doCleanup = true;
     test("bundleLokijsCollections", function bundleLokijsCollectionsTest(done) {
         this.timeout(3000);
         TsBrowserify.builtins = {
