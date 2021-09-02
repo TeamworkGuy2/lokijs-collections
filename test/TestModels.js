@@ -27,17 +27,17 @@ var TestModels;
     function rebuildItems() {
         var now = new Date();
         TestModels.itemA1 = {
-            id: null,
+            id: 11,
             name: "Alfred",
             styles: ["color: #F0F0F0", "font-size: 12px"]
         };
         TestModels.itemA2 = {
-            id: null,
+            id: 12,
             name: "Billy",
             styles: ["color: #33AACC", "font-size: 10px"]
         };
         TestModels.itemA3 = {
-            id: null,
+            id: 20,
             name: "Charlie",
             styles: ["color: #CCBBAA", "font-size: 8px"]
         };

@@ -69,19 +69,19 @@ module TestModels {
         var now = new Date();
 
         itemA1 = {
-            id: <number><any>null,
+            id: 11,
             name: "Alfred",
             styles: ["color: #F0F0F0", "font-size: 12px"]
         };
 
         itemA2 = {
-            id: <number><any>null,
+            id: 12,
             name: "Billy",
             styles: ["color: #33AACC", "font-size: 10px"]
         };
 
         itemA3 = {
-            id: <number><any>null,
+            id: 20,
             name: "Charlie",
             styles: ["color: #CCBBAA", "font-size: 8px"]
         };

@@ -4,7 +4,17 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.29.0](N/A) - 2021-06-12
+### [0.29.1](N/A) - 2021-09-02
+#### Added
+* `test/CollectionTest` for some much needed [db-collections/Collection.ts](db-collections/Collection.ts) coverage
+
+#### Change
+* Update dependency to `@twg2/ts-twg-ast-codegen@0.29.0`
+* Remove old unrelated `test/CompileManualBrowserBundleTest` and resulting unused `devDependencies`
+
+
+--------
+### [0.29.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/809c4560357d1b37f886831258da3b4819ee3684) - 2021-06-12
 #### Change
 * Update to TypeScript 4.3
 
