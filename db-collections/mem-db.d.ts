@@ -163,8 +163,8 @@ interface TsEventEmitter<T extends { [eventName: string]: any[] }> {
     /** emits a particular event
      * with the option of passing optional parameters which are going to be processed by the callback
      * provided signatures match (i.e. if passing emit(event, arg0, arg1) the listener should take two parameters)
-     * @param eventName - the name of the event
-     * @param data - optional object passed with the event
+     * @param eventName the name of the event
+     * @param data optional, data passed to event listeners with the event
      */
     emit(eventName: keyof T, data?: any): void;
 }
@@ -295,8 +295,8 @@ declare module DataPersister {
         /**
          * @param dbInst the in-memory database that the persister pulls data from
          * @param getCollections returns a list of data collections that contain the data to persist/restore to
-         * @param saveItemTransformation a conversion function to pass items from getDataCollections() through before persisting them
-         * @param restoreItemTransformation a conversion function to pass items through after restoring them and
+         * @param getSaveItemTransformFunc a conversion function to pass items from getDataCollections() through before persisting them
+         * @param getRestoreItemTransformFunc a conversion function to pass items through after restoring them and
          * before storing them in getDataCollections()
          */
         (dbInst: MemDb, getCollections: () => MemDbCollection<any>[],
@@ -310,6 +310,7 @@ declare module DataPersister {
 interface MemDbOps {
     // comparison operators
     $eq: (a: any, b: any) => boolean;
+    $aeq: (a: any, b: any) => boolean;
     $gt: (a: any, b: any) => boolean;
     $gte: (a: any, b: any) => boolean;
     $lt: (a: any, b: any) => boolean;
@@ -390,9 +391,18 @@ interface MemDbCollectionIndex {
 }
 
 
+/** See CloneUtil.ts */
+type CloneType = "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete" | "parse-stringify";
+
+
 interface MemDbCollectionOptions<T> {
+    /** whether to make collection insert/update/delete operations transactional */
     transactional?: boolean;
+    /** overriden by non-null 'cloneFunc', if true, CloneUtil type 'parse-stringify' is used as the 'insert()' clone function */
     clone?: boolean;
+    /** a clone function to clone objects passed to the 'insert()' method of a Collection */
+    cloneFunc?: CloneFunc;
+    /** disable track changes */
     disableChangesApi?: boolean;
     indices?: (keyof T & string)[];
     exact?: (keyof T & string)[];

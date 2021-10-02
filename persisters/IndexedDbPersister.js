@@ -47,7 +47,7 @@ var IndexedDbPersister = /** @class */ (function () {
             var tableDels = [];
             var tableInserts = [];
             colls.forEach(function (coll) {
-                var opts = DbUtil.getOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(coll.name) : null, defaultOptions);
+                var opts = DbUtil.getWriteOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(coll.name) : null, defaultOptions);
                 var exists = collNames.indexOf(coll.name) !== -1;
                 var keyCol = opts.keyColumn != null ? (typeof opts.keyColumn === "string" ? opts.keyColumn : opts.keyColumn.name) : null;
                 var autoIncrement = opts.keyAutoGenerate;
@@ -104,7 +104,7 @@ var IndexedDbPersister = /** @class */ (function () {
                 var rows = result.records;
                 var docs = [];
                 if (rows.length > 0) {
-                    var opts = getCollectionOptions != null ? getCollectionOptions(result.name) : null;
+                    var opts = DbUtil.getReadOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(result.name) : null, defaultOptions);
                     var expectArrayRes = (opts == null || opts.isChunks);
                     docs = that.readRecords(result.records, expectArrayRes);
                 }

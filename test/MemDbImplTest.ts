@@ -3,9 +3,8 @@
 import chai = require("chai");
 import Arrays = require("ts-mortar/utils/Arrays");
 import Objects = require("ts-mortar/utils/Objects");
-import MemDbImpl = require("../db-collections/MemDbImpl");
+import CloneUtil = require("../db-collections/CloneUtil");
 import DataCollection = require("../db-collections/DataCollection");
-import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 import DummyDataPersister = require("./DummyDataPersister");
 import M = require("./TestModels");
 
@@ -13,28 +12,7 @@ var asr = chai.assert;
 
 
 function rebuildDb() {
-    var metaDataCollName = "collection_meta_data";
-    var dbInst = new MemDbImpl("mem-collections-test",
-        { readAllow: true, writeAllow: true, compressLocalStores: false },
-        "for-in-if",
-        metaDataCollName,
-        false,
-        ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap),
-        function createCollectionSettings(collectionName: string) {
-            var settings = {};
-            if (collectionName === "coll_b") {
-                (<any>settings)["unique"] = ["userId"];
-            }
-            return settings;
-        },
-        function modelKeys(obj, coll, dataModel) {
-            var keys = Object.keys(obj);
-            Arrays.fastRemove(keys, "$loki");
-            Arrays.fastRemove(keys, "meta");
-            return <(keyof typeof obj & string)[]>keys;
-        }
-    );
-
+    var dbInst = M.createDb();
     var modelA = dbInst.getModelDefinitions().getModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
     var modelB = dbInst.getModelDefinitions().getModel("coll_b");
@@ -44,13 +22,13 @@ function rebuildDb() {
         dbInst: dbInst,
         collA: new DataCollection<M.MdA, M.PkA>("coll_a", modelA, modelFuncsA, dbInst),
         collB: new DataCollection<M.MdB, M.PkB>("coll_b", modelB, modelFuncsB, dbInst),
-        getMetaDataCollection: () => <MemDbCollection<any>>dbInst.getCollection(metaDataCollName, false)
+        getMetaDataCollection: () => <MemDbCollection<any>>dbInst.getCollection(dbInst.metaDataCollectionName, false)
     };
 }
 
 
 function createPersister(dbInst: MemDb) {
-    return new DummyDataPersister(() => dbInst.listCollections(), MemDbImpl.cloneForInIf, null);
+    return new DummyDataPersister(() => dbInst.listCollections(), CloneUtil.cloneForInIf, null);
 }
 
 

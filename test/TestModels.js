@@ -1,8 +1,34 @@
 "use strict";
+var Arrays = require("ts-mortar/utils/Arrays");
 var DtoPropertyConverter = require("@twg2/ts-twg-ast-codegen/code-types/DtoPropertyConverter");
 var TypeConverter = require("@twg2/ts-twg-ast-codegen/code-types/TypeConverter");
+var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
+var MemDbImpl = require("../db-collections/MemDbImpl");
+var DynamicView = require("../db-collections/DynamicView");
 var TestModels;
 (function (TestModels) {
+    function createDb(dbName) {
+        if (dbName === void 0) { dbName = "collections-test"; }
+        return new MemDbImpl(dbName, { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", "collection_meta_data", false, ModelDefinitionsSet.fromCollectionModels(TestModels.dataModelsMap), function createCollectionSettings(collectionName) {
+            var settings = {};
+            if (collectionName === "coll_b") {
+                settings["unique"] = ["userId"];
+            }
+            return settings;
+        }, function modelKeys(obj, coll, dataModel) {
+            var keys = Object.keys(obj);
+            Arrays.fastRemove(keys, "$loki");
+            Arrays.fastRemove(keys, "meta");
+            return keys;
+        });
+    }
+    TestModels.createDb = createDb;
+    function addDynamicView(coll, name) {
+        var dv = new DynamicView(coll, name);
+        coll.addDynamicView(dv);
+        return dv;
+    }
+    TestModels.addDynamicView = addDynamicView;
     TestModels.dataModels = {
         "coll_a": {
             properties: DtoPropertyConverter.parseAndConvertTemplateMap({

@@ -1,19 +1,13 @@
-﻿import Arrays = require("ts-mortar/utils/Arrays");
-import Objects = require("ts-mortar/utils/Objects");
-import ChangeTrackers = require("../change-trackers/ChangeTrackers");
+﻿import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 import PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 import NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
 import Collection = require("./Collection");
+import CloneUtil = require("./CloneUtil");
 import EventEmitter = require("./TsEventEmitter");
 
 declare var window: any;
 declare var document: any;
-
-interface CloneFunc {
-    (obj: any, cloneDeep?: boolean | ((obj: any) => any)): any;
-}
-
 
 /** A MemDb implementation that wraps a MemDbProvider database
  */
@@ -24,8 +18,8 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
     collections: MemDbCollection<any>[];
     databaseVersion: number;
     environment: string;
-    changeTracker: DbChanges | null = null;
-    private metaDataCollectionName: string;
+    changeTracker: DbChanges;
+    metaDataCollectionName: string;
     private nonNullKeyMaintainer: NonNullKeyMaintainer | null = null;
     private primaryKeyMaintainer: PrimaryKeyMaintainer | null = null;
     private reloadMetaData: boolean;
@@ -45,14 +39,12 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
      * @param metaDataCollectionName the name of the collection to store collection meta-data in
      * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
-     * @param databaseInitializer a function which creates the underlying MemDbProvider used by this MemDb
-     * @param dataPersisterFactory a factory for creating a data persister
      * @param createCollectionSettingsFunc a function which returns collection initialization settings for a given collection name
      * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
     constructor(dbName: string,
         options: { env?: ("BROWSER" | "CORDOVA" | "NODEJS") } & ReadWritePermission & StorageFormatSettings,
-        cloneType: "for-in-if" | "keys-for-if" | "keys-excluding-for" | "clone-delete",
+        cloneType: CloneType,
         metaDataCollectionName: string,
         reloadMetaData: boolean,
         modelDefinitions: ModelDefinitions,
@@ -61,19 +53,14 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
     ) {
         this.name = dbName;
         this.collections = [];
+        this.changeTracker = new DbChanges(() => this.collections);
         this.databaseVersion = 1.2; // persist version of code which created the database
         this.settings = options;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataCollectionName = metaDataCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = <CloneFunc>(cloneType === "for-in-if" ? MemDbImpl.cloneForInIf :
-            (cloneType === "keys-for-if" ? MemDbImpl.cloneKeysForIf :
-                (cloneType === "keys-excluding-for" ? MemDbImpl.cloneKeysExcludingFor :
-                    (cloneType === "clone-delete" ? MemDbImpl.cloneCloneDelete : null))));
-        if (this.cloneFunc == null) {
-            throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
-        }
+        this.cloneFunc = CloneUtil.getCloneFunc(cloneType);
         this.getCreateCollectionSettings = createCollectionSettingsFunc;
         this.getModelObjKeys = modelKeysFunc;
 
@@ -154,11 +141,11 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
     }
 
 
-    public addCollection(name: string, options?: MemDbCollectionOptions<any> | null): MemDbCollection<any> {
-        var collection = new Collection(name, options);
+    public addCollection<T = any>(name: string, options?: MemDbCollectionOptions<T> | null): MemDbCollection<T> {
+        var collection = new Collection<any>(name, options);
         this.collections.push(collection);
 
-        return collection;
+        return <any>collection;
     }
 
 
@@ -262,7 +249,7 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
-                var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => MemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
+                var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => CloneUtil.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
                 compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
 
@@ -301,7 +288,7 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
 
 
     public addOrUpdateAll<T>(collection: MemDbCollection<T>, dataModel: DataCollectionModel<T>, dataModelFuncs: DtoFuncs<T>, keyName: keyof T, updatesArray: Partial<T>[], noModify: boolean, dstMetaData?: Changes.CollectionChangeTracker): void {
-        var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => MemDbImpl.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
+        var cloneFunc: (obj: T) => T = (dataModelFuncs && dataModelFuncs.copyFunc) || ((obj) => CloneUtil.cloneDeepWithoutMetaData(obj, undefined, this.cloneFunc));
         var existingData = this.find(collection, dataModel, null).data();
         // pluck keys from existing data
         var existingDataKeys: T[keyof T][] = [];
@@ -457,7 +444,6 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
      * @param max the maximum number of results expected
      * @param query the query to run
      * @param queryProps optional sub-set of query properties from the query
-     * @param queryPropLimit a limit on the number of query props to use
      * @param throwIfLess whether to throw an error if less than 'min' results are found by the query
      * @param throwIfMore whether to throw an error if more than 'max' results are found by the query
      */
@@ -509,20 +495,13 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
 
     private _findMultiProp<S>(coll: MemDbCollection<S>, query: any, queryProps?: string[] | null, firstOnly?: boolean): ResultSetLike<S> {
         var results: MemDbResultset<S> = coll.chain();
-        if (!queryProps) {
-            for (var prop in query) {
-                var localQuery: StringMap<any> = {};
-                localQuery[prop] = query[prop];
-                results = <MemDbResultset<S>>results.find(localQuery, firstOnly);
-            }
-        }
-        else {
-            for (var i = 0, size = queryProps.length; i < size; i++) {
-                var propI = queryProps[i];
-                var localQuery: StringMap<any> = {};
-                localQuery[propI] = query[propI];
-                results = <MemDbResultset<S>>results.find(localQuery, firstOnly);
-            }
+        queryProps = queryProps || Object.keys(query);
+        for (var i = 0, size = queryProps.length; i < size; i++) {
+            var prop = queryProps[i];
+            var localQuery: StringMap<any> = {
+                [prop]: query[prop]
+            };
+            results = <MemDbResultset<S>>results.find(localQuery, firstOnly && i === size - 1);
         }
         return results;
     }
@@ -547,66 +526,6 @@ class MemDbImpl implements MemDb, MemDbCollectionSet {
     // ======== Utility functions ========
     public cloneWithoutMetaData(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
         return this.cloneFunc(obj, cloneDeep);
-    }
-
-
-    static cloneForInIf(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
-
-        var copy: any = {};
-        for (var key in obj) {
-            if (key !== "$loki" && key !== "meta") {
-                copy[key] = cloneFunc(obj[key]);
-            }
-        }
-        return copy;
-    }
-
-
-    static cloneKeysForIf(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
-
-        var copy: any = {};
-        var keys = <string[]>Object.keys(obj);
-        for (var i = 0, size = keys.length; i < size; i++) {
-            var key = keys[i];
-            if (key !== "$loki" && key !== "meta") {
-                copy[key] = cloneFunc(obj[key]);
-            }
-        }
-        return copy;
-    }
-
-
-    static cloneKeysExcludingFor(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
-
-        var copy: any = {};
-        var keys = <string[]>Object.keys(obj);
-        Arrays.fastRemove(keys, "$loki");
-        Arrays.fastRemove(keys, "meta");
-        for (var i = 0, size = keys.length; i < size; i++) {
-            var key = keys[i];
-            copy[key] = cloneFunc(obj[key]);
-        }
-        return copy;
-    }
-
-
-    static cloneCloneDelete(obj: any, cloneDeep?: boolean | ((obj: any) => any)): any {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? <(obj: any) => any>cloneDeep : Objects.clone);
-
-        var copy = cloneFunc(obj);
-
-        delete copy.$loki;
-        delete copy.meta;
-
-        return copy;
-    }
-
-
-    static cloneDeepWithoutMetaData(obj: any, cloneDeep: (obj: any) => any = Objects.cloneDeep, type: CloneFunc): any {
-        return type(obj, cloneDeep);
     }
 
 }
@@ -635,8 +554,8 @@ class DbChanges implements MemDbChanges {
      * @returns array of changes
      * @see private method createChange() in Collection
      */
-    public generateChangesNotification(collectionNames: string[] | null | undefined) {
-        var changes: any[] = [];
+    public generateChangesNotification(collectionNames?: string[] | null | undefined) {
+        var changes: MemDbCollectionChange[] = [];
 
         this.getCollections().forEach(function (coll) {
             if (collectionNames == null || collectionNames.indexOf(coll.name) !== -1) {
@@ -651,14 +570,14 @@ class DbChanges implements MemDbChanges {
      * @param collectionNames optional array of collection names. null returns serialized changes for all collections.
      * @returns string representation of the changes
      */
-    public serializeChanges(collectionNames: string[] | null | undefined) {
+    public serializeChanges(collectionNames: string[] | null | undefined): string {
         return JSON.stringify(this.generateChangesNotification(collectionNames));
     }
 
 
     /** clears all the changes in all collections.
      */
-    public clearChanges() {
+    public clearChanges(): void {
         this.getCollections().forEach(function (coll) {
             if (coll.flushChanges) {
                 coll.flushChanges();

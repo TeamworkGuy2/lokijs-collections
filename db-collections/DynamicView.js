@@ -226,6 +226,9 @@ var DynamicView = /** @class */ (function () {
         }
         return this;
     };
+    DynamicView.prototype.count = function () {
+        return this.resultset.count();
+    };
     /** data() - resolves and pending filtering and sorting, then returns document array as result.
      *
      * @returns An array of documents representing the current DynamicView contents.
@@ -283,6 +286,9 @@ var DynamicView = /** @class */ (function () {
      * @param objIndex - index of document to (re)run through filter pipeline.
      */
     DynamicView.prototype.evaluateDocument = function (objIndex) {
+        if (!this.resultset.filterInitialized) {
+            return;
+        }
         var ofr = this.resultset.filteredrows;
         var oldPos = ofr.indexOf(objIndex);
         var oldLen = ofr.length;

@@ -4,7 +4,25 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.29.1](N/A) - 2021-09-02
+### [0.30.0](N/A) - 2021-10-01
+#### Added
+* Most of the same unit tests as the `lokijs` project
+* `Collection` properties and constructor options `cloneObjects` and `cloneFunc`
+* `DynamicView` `count()`
+* `Resultset` `count()`
+* Added `LokiOps.$aeq` from `lokijs`
+
+#### Changed
+* `Resultset.data()` `options` parameter added with `clone` option
+* `Resultset.LokiOps` made public
+* Moved clone functions from `MemDbImpl` to new `CloneUtil` file
+
+#### Fixed
+* Fix several bugs revealed by unit tests, ported fixes from `lokijs` project
+
+
+--------
+### [0.29.1](https://github.com/TeamworkGuy2/lokijs-collections/commit/902e8623a205d7da4b4fda721844a1ad2f5c1ea5) - 2021-09-02
 #### Added
 * `test/CollectionTest` for some much needed [db-collections/Collection.ts](db-collections/Collection.ts) coverage
 

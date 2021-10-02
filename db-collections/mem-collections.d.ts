@@ -42,6 +42,11 @@ type PartialModelRecord<E, T> = {
 type MemDbQueryLike<E, K> = PartialModelRecord<E, {[Y in keyof MemDbOps]?: any }>;
 
 
+interface CloneFunc {
+    (obj: any, cloneDeep?: boolean | ((obj: any) => any)): any;
+}
+
+
 /** Collection class that handles documents of same type
  * @template E the type of data stored in this collection
  */
@@ -70,18 +75,21 @@ interface MemDbCollection<E> {
     // currently, if any collection is dirty we will autosave the whole database if autosave is configured.
     // defaulting to true since this is called from addCollection and adding a collection should trigger save
     dirty: boolean;
-    // private holders for cached data
-    cachedIndex: number[] | null;
-    cachedBinaryIndex: {[P in keyof E]: MemDbCollectionIndex } | null;
-    cachedData: (E & MemDbObj)[] | null;
     // currentMaxId - change manually at your own peril!
     maxId: number;
     // changes are tracked by collection and aggregated by the db
     changes: MemDbCollectionChange[];
     // options
     transactional: boolean;
+    /** whether to clone objects that are inserted */
     cloneObjects: boolean;
+    /** a clone function for objects, specified by the constructor options, default 'CloneUtil.cloneParseStringify()' */
+    cloneFunc: CloneFunc;
     disableChangesApi: boolean;
+    // private holders for cached data
+    cachedIndex: number[] | null;
+    cachedBinaryIndex: { [P in keyof E]: MemDbCollectionIndex } | null;
+    cachedData: (E & MemDbObj)[] | null;
 
     setChangesApi: (enabled: boolean) => void;
     getChanges: () => MemDbCollectionChange[];
@@ -126,13 +134,13 @@ interface MemDbCollection<E> {
      * @param doc the document to be inserted (or an array of objects)
      * @returns document or documents (if passed an array of objects)
      */
-    insert(doc: E): E;
-    insert(doc: E[]): E[];
+    insert(doc: E): E & MemDbObj;
+    insert(doc: E[]): (E & MemDbObj)[];
 
     clear(): void;
 
     /** Update method */
-    update(doc: E & MemDbObj): void;
+    update(doc: (E & MemDbObj) | (E & MemDbObj)[]): void;
 
     /** Add object to collection */
     add(obj: E & MemDbObj): (E & MemDbObj) | null;
@@ -154,8 +162,8 @@ interface MemDbCollection<E> {
     get(id: number, returnPos: true): [E & MemDbObj, number];
     get(id: number, returnPos?: boolean): (E & MemDbObj) | [E & MemDbObj, number];
 
-    by(field: keyof E): (value: any) => E | null;
-    by(field: keyof E, value?: string): E | null;
+    by(field: keyof E): (value: any) => (E & MemDbObj) | null;
+    by(field: keyof E, value?: string): (E & MemDbObj) | null;
 
     /** Chain method, used for beginning a series of chained find() and/or view() operations
      * on a collection.
@@ -495,6 +503,7 @@ interface MemDbResultset<E> {
      * @returns this resultset for further chain ops.
      */
     find(query: MemDbQuery | null | undefined): MemDbResultset<E>;
+    find(query: MemDbQuery | null | undefined, firstOnly: false): MemDbResultset<E>;
     find(query: MemDbQuery | null | undefined, firstOnly: true): E & MemDbObj;
     find(query: MemDbQuery | null | undefined, firstOnly?: boolean): (E & MemDbObj) | MemDbResultset<E>;
 
@@ -505,9 +514,15 @@ interface MemDbResultset<E> {
     where(searchFunc: (obj: E) => boolean): MemDbResultset<E>;
 
     /** Terminates the chain and returns array of filtered documents
+     * @param options data materialize options, 'clone' option to return cloned documents rather than live data collection documents
      * @returns Array of documents in the resultset
      */
-    data(): (E & MemDbObj)[];
+    data(options?: { clone?: boolean | CloneType } | null): (E & MemDbObj)[];
+
+    /** The number of results in the result set
+     * @returns the current number of results in the result set
+     */
+    count(): number;
 
     /** used to run an update operation on all documents currently in the resultset.
      * @param updateFunc User supplied updateFunction(obj) will be executed for each document object.
@@ -521,10 +536,12 @@ interface MemDbResultset<E> {
     remove(): MemDbResultset<E>;
 
     /** transform this result set via user supplied mapping functions
-     * @param mapFun - this function transforms a single document
+     * @param mapFun this function transforms a single document
+     * @param options data mapping options, 'clone' option to clone documents from this result set to
+     * the new returned result set rather than references to the same live documents
      * @returns A new result set transformed from this result set's data using the mapFun
      */
-    map<U>(mapFun: (currentValue: E, index: number, array: E[]) => U): MemDbResultset<U>;
+    map<U>(mapFun: (currentValue: E, index: number, array: E[]) => U, options?: { clone?: boolean } | null): MemDbResultset<U>;
 }
 
 
@@ -617,7 +634,7 @@ interface MemDbDynamicView<E> {
     rollback(): MemDbDynamicView<E>;
 
     /** Adds a mongo-style query option to the DynamicView filter pipeline
-     * @param query - A mongo-style query object to apply to pipeline
+     * @param query mongo-style query object to apply to pipeline
      * @returns this DynamicView object, for further chain ops.
      */
     applyFind(query: MemDbQuery): MemDbDynamicView<E>;
@@ -627,6 +644,13 @@ interface MemDbDynamicView<E> {
      * @returns this DynamicView object, for further chain ops.
      */
     applyWhere(fun: (obj: E) => boolean): MemDbDynamicView<E>;
+
+    /** The number of results in this dynamic view.
+     * Can be quicker than '.data().length' since the results don't have to be materialized to count them,
+     * although pending/dirty filters may need to be re-evaluated.
+     * @returns the number of items in this dynamic view
+     */
+    count(): number;
 
     /** resolves and pending filtering and sorting, then returns document array as result.
      * @returns An array of documents representing the current DynamicView contents.
@@ -641,7 +665,7 @@ interface MemDbDynamicView<E> {
 
     /** internal method for (re)evaluating document inclusion.
      *   Called by : collection.insert() and collection.update().
-     * @param objIndex - index of document to (re)run through filter pipeline.
+     * @param objIndex index of document to (re)run through filter pipeline.
      */
     evaluateDocument(objIndex: number): void;
 

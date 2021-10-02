@@ -1,5 +1,9 @@
-﻿import DtoPropertyConverter = require("@twg2/ts-twg-ast-codegen/code-types/DtoPropertyConverter");
+﻿import Arrays = require("ts-mortar/utils/Arrays");
+import DtoPropertyConverter = require("@twg2/ts-twg-ast-codegen/code-types/DtoPropertyConverter");
 import TypeConverter = require("@twg2/ts-twg-ast-codegen/code-types/TypeConverter");
+import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
+import MemDbImpl = require("../db-collections/MemDbImpl");
+import DynamicView = require("../db-collections/DynamicView");
 
 module TestModels {
 
@@ -23,6 +27,37 @@ module TestModels {
 
     export interface PkB {
         userId: string;
+    }
+
+
+    export function createDb(dbName = "collections-test"): MemDbImpl {
+        return new MemDbImpl(dbName,
+            { readAllow: true, writeAllow: true, compressLocalStores: false },
+            "for-in-if",
+            "collection_meta_data",
+            false,
+            ModelDefinitionsSet.fromCollectionModels(dataModelsMap),
+            function createCollectionSettings(collectionName: string) {
+                var settings = {};
+                if (collectionName === "coll_b") {
+                    (<any>settings)["unique"] = ["userId"];
+                }
+                return settings;
+            },
+            function modelKeys(obj, coll, dataModel) {
+                var keys = Object.keys(obj);
+                Arrays.fastRemove(keys, "$loki");
+                Arrays.fastRemove(keys, "meta");
+                return <(keyof typeof obj & string)[]>keys;
+            }
+        );
+    }
+
+
+    export function addDynamicView<T>(coll: MemDbCollection<T>, name: string): DynamicView<T> {
+        var dv = new DynamicView<T>(coll, name);
+        coll.addDynamicView(dv);
+        return dv;
     }
 
 

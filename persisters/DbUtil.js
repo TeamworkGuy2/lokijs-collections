@@ -114,7 +114,17 @@ var DbUtil = /** @class */ (function () {
         dfd.reject(error);
         return dfd.promise;
     };
-    DbUtil.getOptionsOrDefault = function (opts, defaultOpts) {
+    DbUtil.getReadOptionsOrDefault = function (opts, defaultOpts) {
+        var defaultDataColumnName = (defaultOpts != null && defaultOpts.dataColumnName) || null;
+        var defaultDecompress = (defaultOpts != null && defaultOpts.decompress) || false;
+        var defaultIsChunks = (defaultOpts != null && defaultOpts.isChunks) || false;
+        return {
+            dataColumnName: opts != null ? (opts.dataColumnName || defaultDataColumnName) : defaultDataColumnName,
+            decompress: opts != null ? opts.decompress : defaultDecompress,
+            isChunks: opts != null ? opts.isChunks : defaultIsChunks,
+        };
+    };
+    DbUtil.getWriteOptionsOrDefault = function (opts, defaultOpts) {
         var defaultCompress = (defaultOpts != null && defaultOpts.compress) || false;
         var defaultKeyAutoGenerate = (defaultOpts != null && defaultOpts.keyAutoGenerate) || null;
         var defaultKeyGetter = (defaultOpts != null && defaultOpts.keyGetter) || null;

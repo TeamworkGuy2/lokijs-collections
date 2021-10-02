@@ -1,11 +1,10 @@
 "use strict";
-var Arrays = require("ts-mortar/utils/Arrays");
-var Objects = require("ts-mortar/utils/Objects");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");
 var ModelKeysImpl = require("../key-constraints/ModelKeysImpl");
 var PrimaryKeyMaintainer = require("../key-constraints/PrimaryKeyMaintainer");
 var NonNullKeyMaintainer = require("../key-constraints/NonNullKeyMaintainer");
 var Collection = require("./Collection");
+var CloneUtil = require("./CloneUtil");
 var EventEmitter = require("./TsEventEmitter");
 /** A MemDb implementation that wraps a MemDbProvider database
  */
@@ -19,31 +18,23 @@ var MemDbImpl = /** @class */ (function () {
      * @param metaDataCollectionName the name of the collection to store collection meta-data in
      * @param reloadMetaData whether to recalculate meta-data from collections and data models or re-use existing saved meta-data
      * @param modelDefinitions a set of model definitions defining all the models in this data base
-     * @param databaseInitializer a function which creates the underlying MemDbProvider used by this MemDb
-     * @param dataPersisterFactory a factory for creating a data persister
      * @param createCollectionSettingsFunc a function which returns collection initialization settings for a given collection name
      * @param modelKeysFunc option function to retrieve the property names for a given data model object
      */
     function MemDbImpl(dbName, options, cloneType, metaDataCollectionName, reloadMetaData, modelDefinitions, createCollectionSettingsFunc, modelKeysFunc) {
         var _this = this;
-        this.changeTracker = null;
         this.nonNullKeyMaintainer = null;
         this.primaryKeyMaintainer = null;
         this.name = dbName;
         this.collections = [];
+        this.changeTracker = new DbChanges(function () { return _this.collections; });
         this.databaseVersion = 1.2; // persist version of code which created the database
         this.settings = options;
         this.modelDefinitions = modelDefinitions;
         this.modelKeys = new ModelKeysImpl(modelDefinitions);
         this.metaDataCollectionName = metaDataCollectionName;
         this.reloadMetaData = reloadMetaData;
-        this.cloneFunc = (cloneType === "for-in-if" ? MemDbImpl.cloneForInIf :
-            (cloneType === "keys-for-if" ? MemDbImpl.cloneKeysForIf :
-                (cloneType === "keys-excluding-for" ? MemDbImpl.cloneKeysExcludingFor :
-                    (cloneType === "clone-delete" ? MemDbImpl.cloneCloneDelete : null))));
-        if (this.cloneFunc == null) {
-            throw new Error("cloneType '" + cloneType + "' is not a recognized clone type");
-        }
+        this.cloneFunc = CloneUtil.getCloneFunc(cloneType);
         this.getCreateCollectionSettings = createCollectionSettingsFunc;
         this.getModelObjKeys = modelKeysFunc;
         this.events = new EventEmitter({
@@ -182,7 +173,7 @@ var MemDbImpl = /** @class */ (function () {
         var toUpdate = results.data();
         if (toUpdate.length > 0) {
             if (compoundDstMetaData) {
-                var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return MemDbImpl.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
+                var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return CloneUtil.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
                 compoundDstMetaData.addChangeItemsModified(toUpdate.map(cloneFunc));
             }
             // get obj props, except the implementation specific ones
@@ -215,7 +206,7 @@ var MemDbImpl = /** @class */ (function () {
     };
     MemDbImpl.prototype.addOrUpdateAll = function (collection, dataModel, dataModelFuncs, keyName, updatesArray, noModify, dstMetaData) {
         var _this = this;
-        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return MemDbImpl.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
+        var cloneFunc = (dataModelFuncs && dataModelFuncs.copyFunc) || (function (obj) { return CloneUtil.cloneDeepWithoutMetaData(obj, undefined, _this.cloneFunc); });
         var existingData = this.find(collection, dataModel, null).data();
         // pluck keys from existing data
         var existingDataKeys = [];
@@ -336,7 +327,6 @@ var MemDbImpl = /** @class */ (function () {
      * @param max the maximum number of results expected
      * @param query the query to run
      * @param queryProps optional sub-set of query properties from the query
-     * @param queryPropLimit a limit on the number of query props to use
      * @param throwIfLess whether to throw an error if less than 'min' results are found by the query
      * @param throwIfMore whether to throw an error if more than 'max' results are found by the query
      */
@@ -377,21 +367,15 @@ var MemDbImpl = /** @class */ (function () {
         }
     };
     MemDbImpl.prototype._findMultiProp = function (coll, query, queryProps, firstOnly) {
+        var _a;
         var results = coll.chain();
-        if (!queryProps) {
-            for (var prop in query) {
-                var localQuery = {};
-                localQuery[prop] = query[prop];
-                results = results.find(localQuery, firstOnly);
-            }
-        }
-        else {
-            for (var i = 0, size = queryProps.length; i < size; i++) {
-                var propI = queryProps[i];
-                var localQuery = {};
-                localQuery[propI] = query[propI];
-                results = results.find(localQuery, firstOnly);
-            }
+        queryProps = queryProps || Object.keys(query);
+        for (var i = 0, size = queryProps.length; i < size; i++) {
+            var prop = queryProps[i];
+            var localQuery = (_a = {},
+                _a[prop] = query[prop],
+                _a);
+            results = results.find(localQuery, firstOnly && i === size - 1);
         }
         return results;
     };
@@ -408,51 +392,6 @@ var MemDbImpl = /** @class */ (function () {
     // ======== Utility functions ========
     MemDbImpl.prototype.cloneWithoutMetaData = function (obj, cloneDeep) {
         return this.cloneFunc(obj, cloneDeep);
-    };
-    MemDbImpl.cloneForInIf = function (obj, cloneDeep) {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
-        var copy = {};
-        for (var key in obj) {
-            if (key !== "$loki" && key !== "meta") {
-                copy[key] = cloneFunc(obj[key]);
-            }
-        }
-        return copy;
-    };
-    MemDbImpl.cloneKeysForIf = function (obj, cloneDeep) {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
-        var copy = {};
-        var keys = Object.keys(obj);
-        for (var i = 0, size = keys.length; i < size; i++) {
-            var key = keys[i];
-            if (key !== "$loki" && key !== "meta") {
-                copy[key] = cloneFunc(obj[key]);
-            }
-        }
-        return copy;
-    };
-    MemDbImpl.cloneKeysExcludingFor = function (obj, cloneDeep) {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
-        var copy = {};
-        var keys = Object.keys(obj);
-        Arrays.fastRemove(keys, "$loki");
-        Arrays.fastRemove(keys, "meta");
-        for (var i = 0, size = keys.length; i < size; i++) {
-            var key = keys[i];
-            copy[key] = cloneFunc(obj[key]);
-        }
-        return copy;
-    };
-    MemDbImpl.cloneCloneDelete = function (obj, cloneDeep) {
-        var cloneFunc = cloneDeep === true ? Objects.cloneDeep : (cloneDeep === false ? Objects.clone : cloneDeep != null ? cloneDeep : Objects.clone);
-        var copy = cloneFunc(obj);
-        delete copy.$loki;
-        delete copy.meta;
-        return copy;
-    };
-    MemDbImpl.cloneDeepWithoutMetaData = function (obj, cloneDeep, type) {
-        if (cloneDeep === void 0) { cloneDeep = Objects.cloneDeep; }
-        return type(obj, cloneDeep);
     };
     return MemDbImpl;
 }());

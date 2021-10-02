@@ -1,5 +1,5 @@
 "use strict";
-var Collection = require("./Collection");
+var CloneUtil = require("./CloneUtil");
 /** Resultset class allowing chainable queries.  Intended to be instanced internally.
  *   Collection.find(), Collection.where(), and Collection.chain() instantiate this.
  *
@@ -61,6 +61,19 @@ var Resultset = /** @class */ (function () {
         var rscopy = this.copy();
         rscopy.filteredrows = rscopy.filteredrows.splice(pos, rscopy.filteredrows.length);
         return rscopy;
+    };
+    Resultset.prototype.count = function () {
+        // if this is chained resultset with no filters applied, just return collection.data
+        if (this.searchIsChained && !this.filterInitialized) {
+            if (this.filteredrows.length === 0) {
+                return this.collection.data.length;
+            }
+            else {
+                // filteredrows must have been set manually, so use it
+                this.filterInitialized = true;
+            }
+        }
+        return this.filteredrows.length;
     };
     /** To support reuse of resultset in branched query situations.
      *
@@ -176,19 +189,18 @@ var Resultset = /** @class */ (function () {
      * @returns this resultset for further chain ops.
      */
     Resultset.prototype.findOr = function (expressionArray) {
-        var fri = 0, ei = 0, docset = [];
         // if filter is already initialized we need to query against only those items already in filter.
         // This means no index utilization for fields, so hopefully its filtered to a smallish filteredrows.
         if (this.filterInitialized) {
-            docset = [];
-            for (ei = 0; ei < expressionArray.length; ei++) {
+            var docset = [];
+            for (var ei = 0; ei < expressionArray.length; ei++) {
                 // we need to branch existing query to run each filter separately and combine results
                 var expBranchResults = this.branch();
                 expBranchResults.find(expressionArray[ei]);
                 expBranchResults.data();
                 // add any document 'hits'
                 var fr1 = expBranchResults.filteredrows;
-                for (fri = 0; fri < fr1.length; fri++) {
+                for (var fri = 0; fri < fr1.length; fri++) {
                     if (docset.indexOf(fr1[fri]) === -1) {
                         docset.push(fr1[fri]);
                     }
@@ -197,14 +209,14 @@ var Resultset = /** @class */ (function () {
             this.filteredrows = docset;
         }
         else {
-            for (ei = 0; ei < expressionArray.length; ei++) {
+            for (var ei = 0; ei < expressionArray.length; ei++) {
                 // we will let each filter run independently against full collection and mashup document hits later
                 var expChainResults = this.collection.chain();
                 expChainResults.find(expressionArray[ei]);
                 expChainResults.data();
                 // add any document 'hits'
                 var fr2 = expChainResults.filteredrows;
-                for (fri = 0; fri < fr2.length; fri++) {
+                for (var fri = 0; fri < fr2.length; fri++) {
                     if (this.filteredrows.indexOf(fr2[fri]) === -1) {
                         this.filteredrows.push(fr2[fri]);
                     }
@@ -245,9 +257,7 @@ var Resultset = /** @class */ (function () {
         }
         var queryObj = query || "getAll", property = null, value, operator = null, result = [], index = null, 
         // collection data
-        dt, ix, 
-        // collection data length
-        i, emptyQO = true;
+        dt, ix, emptyQO = true;
         // if this was not invoked via findOne()
         firstOnly = firstOnly || false;
         // if passed in empty object {}, interpret as 'getAll'
@@ -263,6 +273,21 @@ var Resultset = /** @class */ (function () {
         if (queryObj === "getAll") {
             // chained queries can just do coll.chain().data() but let's
             // be versatile and allow this also coll.chain().find().data()
+            if (firstOnly) {
+                if (this.filterInitialized) {
+                    this.filteredrows = this.filteredrows.slice(0, 1);
+                }
+                else {
+                    this.filteredrows = this.collection.data.length > 0 ? [0] : [];
+                    this.filterInitialized = true;
+                }
+                if (this.searchIsChained) {
+                    return this;
+                }
+                else {
+                    return this.filteredrows.length > 0 ? this.collection.data[this.filteredrows[0]] : [];
+                }
+            }
             if (this.searchIsChained) {
                 this.filteredrows = Object.keys(this.collection.data).map(_parseInt);
                 return this;
@@ -342,7 +367,7 @@ var Resultset = /** @class */ (function () {
         if (operator == null) {
             throw new Error("cannot find() without operator, query: " + query);
         }
-        if (!(operator in LokiOps)) {
+        if (!(operator in Resultset.LokiOps)) {
             throw new Error("unknown find() query operator '" + operator + "' in query: " + query);
         }
         // for regex ops, precompile
@@ -360,7 +385,7 @@ var Resultset = /** @class */ (function () {
         }
         // the comparison function
         var op = operator;
-        var fun = LokiOps[op];
+        var fun = Resultset.LokiOps[op];
         // Query executed differently depending on:
         //    - whether it is chained or not
         //    - whether the property being queried has an index defined
@@ -371,9 +396,9 @@ var Resultset = /** @class */ (function () {
         if (!this.searchIsChained) {
             if (index == null) {
                 dt = this.collection.data;
-                i = dt.length;
+                var len = dt.length;
                 if (firstOnly) {
-                    while (i--) {
+                    for (var i = 0; i < len; i++) {
                         if (fun(dt[i][property], value)) {
                             return dt[i];
                         }
@@ -381,7 +406,7 @@ var Resultset = /** @class */ (function () {
                     return [];
                 }
                 else {
-                    while (i--) {
+                    for (var i = 0; i < len; i++) {
                         if (fun(dt[i][property], value)) {
                             result.push(dt[i]);
                         }
@@ -399,7 +424,7 @@ var Resultset = /** @class */ (function () {
                     }
                     return [];
                 }
-                for (i = seg[0]; i <= seg[1]; i++) {
+                for (var i = seg[0]; i <= seg[1]; i++) {
                     result.push(dt[index.values[i]]);
                 }
                 // TODO is this correct
@@ -416,21 +441,27 @@ var Resultset = /** @class */ (function () {
                 // not searching by index
                 if (index == null) {
                     dt = this.collection.data;
-                    i = this.filteredrows.length;
-                    while (i--) {
+                    var len = this.filteredrows.length;
+                    for (var i = 0; i < len; i++) {
                         if (fun(dt[this.filteredrows[i]][property], value)) {
                             res.push(this.filteredrows[i]);
+                            if (firstOnly) {
+                                break;
+                            }
                         }
                     }
                 }
                 else {
                     // search by index
                     ix = index;
-                    i = this.filteredrows.length;
-                    while (i--) {
+                    var len = this.filteredrows.length;
+                    for (var i = 0; i < len; i++) {
                         // TODO probably doesn't work
                         if (fun(ix[this.filteredrows[i]], value)) {
                             res.push(this.filteredrows[i]);
+                            if (firstOnly) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -442,18 +473,29 @@ var Resultset = /** @class */ (function () {
                 dt = this.collection.data;
                 // if not searching by index
                 if (index == null) {
-                    i = dt.length;
-                    while (i--) {
+                    var len = dt.length;
+                    for (var i = 0; i < len; i++) {
                         if (fun(dt[i][property], value)) {
                             res.push(i);
+                            if (firstOnly) {
+                                break;
+                            }
                         }
                     }
                 }
                 else {
                     // search by index
                     var segm = this.calculateRange(op, property, value);
-                    for (var idx = segm[0]; idx <= segm[1]; idx++) {
-                        res.push(index.values[idx]);
+                    if (firstOnly) {
+                        // return without updating filteredrows because 
+                        if (segm[1] !== -1) {
+                            res.push(index.values[segm[0]]);
+                        }
+                    }
+                    else {
+                        for (var idx = segm[0]; idx <= segm[1]; idx++) {
+                            res.push(index.values[idx]);
+                        }
                     }
                 }
                 this.filteredrows = res;
@@ -514,20 +556,44 @@ var Resultset = /** @class */ (function () {
      *
      * @returns Array of documents in the resultset
      */
-    Resultset.prototype.data = function () {
+    Resultset.prototype.data = function (options) {
+        var data = this.collection.data;
+        var cloneFunc = options != null && typeof options.clone === "string" ? CloneUtil.getCloneFunc(options.clone) :
+            (this.collection.cloneObjects ? this.collection.cloneFunc :
+                (options != null && options.clone === true ? CloneUtil.cloneParseStringify : null));
         // if this is chained resultset with no filters applied, just return collection.data
         if (this.searchIsChained && !this.filterInitialized) {
             if (this.filteredrows.length === 0) {
-                return this.collection.data;
+                // determine whether we need to clone objects
+                if (cloneFunc != null) {
+                    var results = [];
+                    for (var i = 0, size = data.length; i < size; i++) {
+                        results.push(cloneFunc(data[i]));
+                    }
+                    return results;
+                }
+                else {
+                    return data;
+                }
             }
             else {
                 // filteredrows must have been set manually, so use it
                 this.filterInitialized = true;
             }
         }
-        var data = this.collection.data, fr = this.filteredrows, len = this.filteredrows.length, result = [];
-        for (var i = 0; i < len; i++) {
-            result.push(data[fr[i]]);
+        var fr = this.filteredrows;
+        var len = this.filteredrows.length;
+        var result = [];
+        if (cloneFunc != null) {
+            for (var i = 0; i < len; i++) {
+                var rowCopy = cloneFunc(data[fr[i]]);
+                result.push(rowCopy);
+            }
+        }
+        else {
+            for (var i = 0; i < len; i++) {
+                result.push(data[fr[i]]);
+            }
         }
         return result;
     };
@@ -544,8 +610,11 @@ var Resultset = /** @class */ (function () {
         var len = this.filteredrows.length, rcd = this.collection.data;
         for (var i = 0; i < len; i++) {
             var idx = this.filteredrows[i];
+            var res = updateFunc(rcd[idx]);
             // pass in each document object currently in resultset to user supplied updateFunction
-            rcd[idx] = updateFunc(rcd[idx]);
+            if (res !== undefined) {
+                rcd[idx] = res;
+            }
             // notify collection we have changed this object so it can update meta and allow DynamicViews to re-evaluate
             this.collection.update(rcd[idx]);
         }
@@ -567,10 +636,10 @@ var Resultset = /** @class */ (function () {
         this.filteredrows = [];
         return this;
     };
-    Resultset.prototype.map = function (mapFun) {
-        var data = this.data().map(mapFun);
+    Resultset.prototype.map = function (mapFun, options) {
+        var data = this.data(options).map(mapFun);
         // return a new resultset with no filters
-        this.collection = new Collection("mappedData");
+        this.collection = Resultset.newCollection("mappedData");
         this.collection.insert(data);
         this.filteredrows = [];
         this.filterInitialized = false;
@@ -662,6 +731,14 @@ var Resultset = /** @class */ (function () {
                     ubound--;
                 }
                 return [lbound, ubound];
+            case "$aeq":
+                if (lval != val) {
+                    return [0, -1];
+                }
+                if (uval != val) {
+                    ubound--;
+                }
+                return [lbound, ubound];
             case "$gt":
                 if (ltHelper(uval, val, true)) {
                     return [0, -1];
@@ -703,6 +780,62 @@ var Resultset = /** @class */ (function () {
     };
     return Resultset;
 }());
+(function (Resultset) {
+    Resultset.LokiOps = {
+        // comparison operators
+        $eq: function (a, b) {
+            return a === b;
+        },
+        $aeq: function (a, b) {
+            return a == b;
+        },
+        $gt: function (a, b) {
+            return gtHelper(a, b);
+        },
+        $gte: function (a, b) {
+            return gtHelper(a, b, true);
+        },
+        $lt: function (a, b) {
+            return ltHelper(a, b);
+        },
+        $lte: function (a, b) {
+            return ltHelper(a, b, true);
+        },
+        $ne: function (a, b) {
+            return a !== b;
+        },
+        $regex: function (a, b) {
+            return b.test(a);
+        },
+        $in: function (a, b) {
+            return b.indexOf(a) > -1;
+        },
+        $contains: function (a, b) {
+            if (!Array.isArray(b)) {
+                b = [b];
+            }
+            var checkFn = containsCheckFn(a);
+            return b.reduce(function (prev, curr) {
+                if (!prev) {
+                    return prev;
+                }
+                return checkFn(curr);
+            }, true);
+        },
+        $containsAny: function (a, b) {
+            if (!Array.isArray(b)) {
+                b = [b];
+            }
+            var checkFn = containsCheckFn(a);
+            return b.reduce(function (prev, curr) {
+                if (prev) {
+                    return prev;
+                }
+                return checkFn(curr);
+            }, false);
+        }
+    };
+})(Resultset || (Resultset = {}));
 function _parseInt(num) {
     return parseInt(num);
 }
@@ -722,7 +855,7 @@ function ltHelper(prop1, prop2, equal) {
     if (prop2 == null) {
         return false;
     }
-    return prop1 < prop2;
+    return equal ? prop1 <= prop2 : prop1 < prop2;
 }
 function gtHelper(prop1, prop2, equal) {
     if (prop1 === prop2) {
@@ -739,7 +872,7 @@ function gtHelper(prop1, prop2, equal) {
     if (prop2 == null) {
         return true;
     }
-    return prop1 > prop2;
+    return equal ? prop1 >= prop2 : prop1 > prop2;
 }
 function sortHelper(prop1, prop2, desc) {
     if (prop1 === prop2) {
@@ -772,55 +905,4 @@ function containsCheckFn(a) {
         throw new Error("Argument 'a' must be an array, string, or non-null object: " + a);
     }
 }
-var LokiOps = {
-    // comparison operators
-    $eq: function (a, b) {
-        return a === b;
-    },
-    $gt: function (a, b) {
-        return gtHelper(a, b);
-    },
-    $gte: function (a, b) {
-        return gtHelper(a, b, true);
-    },
-    $lt: function (a, b) {
-        return ltHelper(a, b);
-    },
-    $lte: function (a, b) {
-        return ltHelper(a, b, true);
-    },
-    $ne: function (a, b) {
-        return a !== b;
-    },
-    $regex: function (a, b) {
-        return b.test(a);
-    },
-    $in: function (a, b) {
-        return b.indexOf(a) > -1;
-    },
-    $contains: function (a, b) {
-        if (!Array.isArray(b)) {
-            b = [b];
-        }
-        var checkFn = containsCheckFn(a);
-        return b.reduce(function (prev, curr) {
-            if (!prev) {
-                return prev;
-            }
-            return checkFn(curr);
-        }, true);
-    },
-    $containsAny: function (a, b) {
-        if (!Array.isArray(b)) {
-            b = [b];
-        }
-        var checkFn = containsCheckFn(a);
-        return b.reduce(function (prev, curr) {
-            if (prev) {
-                return prev;
-            }
-            return checkFn(curr);
-        }, false);
-    }
-};
 module.exports = Resultset;

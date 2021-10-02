@@ -63,7 +63,7 @@ var WebSqlPersister = /** @class */ (function () {
             var colls = that.getDataCollections();
             colls.forEach(function (coll) {
                 var sqls = [];
-                var opts = DbUtil.getOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(coll.name) : null, defaultOptions);
+                var opts = DbUtil.getWriteOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(coll.name) : null, defaultOptions);
                 var exists = tableNames.indexOf(coll.name) !== -1;
                 if (opts.deleteIfExists && exists) {
                     sqls.push({ sql: "DROP TABLE " + coll.name, args: [] });
@@ -194,7 +194,7 @@ var WebSqlPersister = /** @class */ (function () {
     /** Add data to a specific collection
      */
     WebSqlPersister.prototype.addCollectionRecords = function (collectionName, options, records, removeExisting) {
-        var opts = DbUtil.getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlPersister.MAX_OBJECTS_PER_PERSIST_RECORD });
+        var opts = DbUtil.getWriteOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlPersister.MAX_OBJECTS_PER_PERSIST_RECORD });
         var res = records.length > 0 ? this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, opts.groupByKey, opts.maxObjectsPerChunk, opts.compress) : null;
         var sqls = [];
         if (removeExisting) {

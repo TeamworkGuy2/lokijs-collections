@@ -154,7 +154,20 @@ class DbUtil<T> implements DataPersister.UtilConfig {
     }
 
 
-    public static getOptionsOrDefault(opts: DataPersister.WriteOptions | null | undefined, defaultOpts: DataPersister.WriteOptions | null | undefined): DataPersister.WriteOptions {
+    public static getReadOptionsOrDefault(opts: DataPersister.ReadOptions | null | undefined, defaultOpts: DataPersister.ReadOptions | null | undefined): DataPersister.ReadOptions {
+        var defaultDataColumnName = (defaultOpts != null && defaultOpts.dataColumnName) || <undefined><any>null;
+        var defaultDecompress = (defaultOpts != null && defaultOpts.decompress) || false;
+        var defaultIsChunks = (defaultOpts != null && defaultOpts.isChunks) || false;
+
+        return {
+            dataColumnName: opts != null ? (opts.dataColumnName || defaultDataColumnName) : defaultDataColumnName,
+            decompress: opts != null ? opts.decompress : defaultDecompress,
+            isChunks: opts != null ? opts.isChunks : defaultIsChunks,
+        };
+    }
+
+
+    public static getWriteOptionsOrDefault(opts: DataPersister.WriteOptions | null | undefined, defaultOpts: DataPersister.WriteOptions | null | undefined): DataPersister.WriteOptions {
         var defaultCompress = (defaultOpts != null && defaultOpts.compress) || false;
         var defaultKeyAutoGenerate = (defaultOpts != null && defaultOpts.keyAutoGenerate) || <undefined><any>null;
         var defaultKeyGetter = (defaultOpts != null && defaultOpts.keyGetter) || <undefined><any>null;

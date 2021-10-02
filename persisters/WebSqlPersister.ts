@@ -96,7 +96,7 @@ class WebSqlPersister implements DataPersister {
             var colls = that.getDataCollections();
             colls.forEach((coll) => {
                 var sqls: WebSqlSpi.SqlQuery[] = [];
-                var opts = DbUtil.getOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(coll.name) : null, defaultOptions);
+                var opts = DbUtil.getWriteOptionsOrDefault(getCollectionOptions != null ? getCollectionOptions(coll.name) : null, defaultOptions);
                 var exists = tableNames.indexOf(coll.name) !== -1;
                 if (opts.deleteIfExists && exists) {
                     sqls.push({ sql: "DROP TABLE " + coll.name, args: [] });
@@ -242,7 +242,7 @@ class WebSqlPersister implements DataPersister {
     /** Add data to a specific collection
      */
     public addCollectionRecords(collectionName: string, options: DataPersister.WriteOptions, records: any[], removeExisting?: boolean): PsPromise<DataPersister.CollectionRawStats, any> {
-        var opts = DbUtil.getOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlPersister.MAX_OBJECTS_PER_PERSIST_RECORD });
+        var opts = DbUtil.getWriteOptionsOrDefault(options, { compress: false, maxObjectsPerChunk: WebSqlPersister.MAX_OBJECTS_PER_PERSIST_RECORD });
         var res = records.length > 0 ? this.createInsertStatements(collectionName, records, opts.keyGetter, opts.keyColumn && opts.keyColumn.name, <boolean>opts.groupByKey, <number>opts.maxObjectsPerChunk, <boolean>opts.compress) : <{ sql: string; args: ObjectArray[]; itemCount: number; jsonSize: number; }><any>null;
 
         var sqls: WebSqlSpi.SqlQuery[] = [];

@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /// <reference types="node" />
 /// <reference path="../db-collections/mem-db.d.ts" />
 var chai = require("chai");
-var MemDbImpl = require("../db-collections/MemDbImpl");
+var CloneUtil = require("../db-collections/CloneUtil");
 var M = require("./TestModels");
 var asr = chai.assert;
 function benchmarkClone(objsA, loopsA, objsB, loopsB, cloneDeep, averagedLoops) {
@@ -19,29 +19,29 @@ function benchmarkClone(objsA, loopsA, objsB, loopsB, cloneDeep, averagedLoops) 
         var resI = 0;
         // A
         for (var ii = 0; ii < itemsA; ii++) {
-            resI += MemDbImpl.cloneForInIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneForInIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
         }
         for (var ii = 0; ii < itemsA; ii++) {
-            resI += MemDbImpl.cloneKeysForIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneKeysForIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
         }
         for (var ii = 0; ii < itemsA; ii++) {
-            resI += MemDbImpl.cloneKeysExcludingFor(objsA[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneKeysExcludingFor(objsA[ii], cloneDeep) !== null ? 1 : 0;
         }
         for (var ii = 0; ii < itemsA; ii++) {
-            resI += MemDbImpl.cloneCloneDelete(objsA[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneCloneDelete(objsA[ii], cloneDeep) !== null ? 1 : 0;
         }
         // B
         for (var ii = 0; ii < itemsB; ii++) {
-            resI += MemDbImpl.cloneForInIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneForInIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
         }
         for (var ii = 0; ii < itemsB; ii++) {
-            resI += MemDbImpl.cloneKeysForIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneKeysForIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
         }
         for (var ii = 0; ii < itemsB; ii++) {
-            resI += MemDbImpl.cloneKeysExcludingFor(objsB[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneKeysExcludingFor(objsB[ii], cloneDeep) !== null ? 1 : 0;
         }
         for (var ii = 0; ii < itemsB; ii++) {
-            resI += MemDbImpl.cloneCloneDelete(objsB[ii], cloneDeep) !== null ? 1 : 0;
+            resI += CloneUtil.cloneCloneDelete(objsB[ii], cloneDeep) !== null ? 1 : 0;
         }
         _res.push(resI);
     }
@@ -51,12 +51,12 @@ function benchmarkClone(objsA, loopsA, objsB, loopsB, cloneDeep, averagedLoops) 
         var start = now();
         for (var i = 0; i < loopsA; i++) {
             for (var ii = 0; ii < itemsA; ii++) {
-                resI += MemDbImpl.cloneForInIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneForInIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         for (var i = 0; i < loopsB; i++) {
             for (var ii = 0; ii < itemsB; ii++) {
-                resI += MemDbImpl.cloneForInIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneForInIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         return now() - start;
@@ -65,12 +65,12 @@ function benchmarkClone(objsA, loopsA, objsB, loopsB, cloneDeep, averagedLoops) 
         var start = now();
         for (var i = 0; i < loopsA; i++) {
             for (var ii = 0; ii < itemsA; ii++) {
-                resI += MemDbImpl.cloneKeysForIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneKeysForIf(objsA[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         for (var i = 0; i < loopsB; i++) {
             for (var ii = 0; ii < itemsB; ii++) {
-                resI += MemDbImpl.cloneKeysForIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneKeysForIf(objsB[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         return now() - start;
@@ -79,12 +79,12 @@ function benchmarkClone(objsA, loopsA, objsB, loopsB, cloneDeep, averagedLoops) 
         var start = now();
         for (var i = 0; i < loopsA; i++) {
             for (var ii = 0; ii < itemsA; ii++) {
-                resI += MemDbImpl.cloneKeysExcludingFor(objsA[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneKeysExcludingFor(objsA[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         for (var i = 0; i < loopsB; i++) {
             for (var ii = 0; ii < itemsB; ii++) {
-                resI += MemDbImpl.cloneKeysExcludingFor(objsB[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneKeysExcludingFor(objsB[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         return now() - start;
@@ -93,12 +93,12 @@ function benchmarkClone(objsA, loopsA, objsB, loopsB, cloneDeep, averagedLoops) 
         var start = now();
         for (var i = 0; i < loopsA; i++) {
             for (var ii = 0; ii < itemsA; ii++) {
-                resI += MemDbImpl.cloneCloneDelete(objsA[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneCloneDelete(objsA[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         for (var i = 0; i < loopsB; i++) {
             for (var ii = 0; ii < itemsB; ii++) {
-                resI += MemDbImpl.cloneCloneDelete(objsB[ii], cloneDeep) !== null ? 1 : 0;
+                resI += CloneUtil.cloneCloneDelete(objsB[ii], cloneDeep) !== null ? 1 : 0;
             }
         }
         return now() - start;

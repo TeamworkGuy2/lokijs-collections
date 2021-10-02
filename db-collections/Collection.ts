@@ -1,5 +1,6 @@
 ﻿import EventEmitter = require("./TsEventEmitter");
 import Resultset = require("./Resultset");
+import CloneUtil = require("./CloneUtil");
 
 /** Collection class that handles documents of same type
  */
@@ -23,14 +24,16 @@ class Collection<T> implements MemDbCollection<T> {
     dynamicViews: MemDbDynamicView<T>[];
     idIndex: number[];
     dirty: boolean;
+    maxId: number;
+    transactional: boolean;
+    cloneObjects: boolean;
+    cloneFunc: CloneFunc;
+    disableChangesApi: boolean;
+    changes: MemDbCollectionChange[];
+    // transaction state management
     cachedIndex: number[] | null;
     cachedBinaryIndex: { [P in keyof T]: MemDbCollectionIndex } | null;
     cachedData: (T & MemDbObj)[] | null;
-    maxId: number;
-    changes: MemDbCollectionChange[];
-    transactional: boolean;
-    cloneObjects: boolean;
-    disableChangesApi: boolean;
 
     setChangesApi: (enabled: boolean) => void;
     getChanges: () => MemDbCollectionChange[];
@@ -87,7 +90,8 @@ class Collection<T> implements MemDbCollection<T> {
         this.transactional = options.transactional != null ? options.transactional : false;
 
         // options to clone objects when inserting them
-        this.cloneObjects = options.clone != null ? options.clone : false;
+        this.cloneObjects = options.clone || options.cloneFunc != null || false;
+        this.cloneFunc = options.cloneFunc != null ? options.cloneFunc : CloneUtil.cloneParseStringify;
 
         // disable track changes
         this.disableChangesApi = options.disableChangesApi != null ? options.disableChangesApi : true;
@@ -115,12 +119,11 @@ class Collection<T> implements MemDbCollection<T> {
         this.ensureId();
         var indices: (keyof T & string)[] = [];
         // initialize optional user-supplied indices array ['age', 'lname', 'zip']
-        //if (typeof indices !== 'undefined') {
-        if (options && options.indices) {
+        if (options.indices) {
             if (Object.prototype.toString.call(options.indices) === "[object Array]") {
                 indices = options.indices;
             } else {
-                throw new TypeError("Indices must be a string or an array of strings");
+                throw new TypeError("Indices must be an array of strings");
             }
         }
 
@@ -210,6 +213,10 @@ class Collection<T> implements MemDbCollection<T> {
         this.events.on("warning", console.warn);
         // for de-serialization purposes
         this.flushChanges();
+
+        if (Resultset.newCollection == null) {
+            Resultset.newCollection = <R>(name: string, options?: MemDbCollectionOptions<R> | null) => new Collection<R>(name, options);
+        }
     }
 
 
@@ -373,9 +380,9 @@ class Collection<T> implements MemDbCollection<T> {
      * @param the document to be inserted (or an array of objects)
      * @returns document or documents (if passed an array of objects)
      */
-    public insert(doc: T): T;
-    public insert(doc: T[]): T[];
-    public insert(doc: T | T[]): T | T[] {
+    public insert(doc: T): T & MemDbObj;
+    public insert(doc: T[]): (T & MemDbObj)[];
+    public insert(doc: T | T[]): (T & MemDbObj) | (T & MemDbObj)[] {
         if (!doc) {
             var error = new Error("Parameter 'doc' cannot be null");
             this.events.emit("error", error);
@@ -385,13 +392,13 @@ class Collection<T> implements MemDbCollection<T> {
         var self = this;
         // holder to the clone of the object inserted if collections is set to clone objects
         var docs = Array.isArray(doc) ? doc : [doc];
-        var results: T[] = [];
+        var results: (T & MemDbObj)[] = [];
         docs.forEach(function (d) {
             if (typeof d !== "object") {
                 throw new TypeError("Document must be an object");
             }
 
-            var obj = <T & MemDbObj>(self.cloneObjects ? JSON.parse(JSON.stringify(d)) : d);
+            var obj = <T & MemDbObj>(self.cloneObjects ? self.cloneFunc(d) : d);
             if (obj.meta === undefined) {
                 obj.meta = {
                     revision: 0,
@@ -414,9 +421,13 @@ class Collection<T> implements MemDbCollection<T> {
     public clear() {
         this.data = [];
         this.idIndex = [];
-        this.binaryIndices = <any>{};
         /* custom fix repopulating collection */
         var self = this;
+        (<(keyof T)[]>Object.keys(this.binaryIndices)).forEach(function (prop) {
+            var bi = self.binaryIndices[prop];
+            bi.dirty = false;
+            bi.values = [];
+        });
         (<(keyof T)[]>Object.keys(this.constraints.unique)).forEach(function (prop) {
             self.constraints.unique[prop].clear();
         });
@@ -433,7 +444,7 @@ class Collection<T> implements MemDbCollection<T> {
 
     /** Update method
      */
-    public update(doc: T & MemDbObj) {
+    public update(doc: (T & MemDbObj) | (T & MemDbObj)[]) {
         var binaryIdxs = <(keyof T & string)[]>Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
             this.flagBinaryIndexesDirty(binaryIdxs);
@@ -500,7 +511,7 @@ class Collection<T> implements MemDbCollection<T> {
         // try adding object to collection
         var binaryIdxs = Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
-            this.flagBinaryIndexesDirty();
+            this.flagBinaryIndexesDirty(binaryIdxs);
         }
 
         // if object you are adding already has id column it is either already in the collection
@@ -592,7 +603,7 @@ class Collection<T> implements MemDbCollection<T> {
 
         var binaryIdxs = Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
-            this.flagBinaryIndexesDirty();
+            this.flagBinaryIndexesDirty(binaryIdxs);
         }
 
         try {
@@ -671,10 +682,10 @@ class Collection<T> implements MemDbCollection<T> {
     }
 
 
-    public by(field: keyof T): (value: any) => T | null;
-    public by(field: keyof T, value: string): T | null;
-    public by(field: keyof T, value?: string): T | null | ((value: any) => T | null);
-    public by(field: keyof T, value?: string): T | null | ((value: any) => T | null) {
+    public by(field: keyof T): (value: any) => (T & MemDbObj) | null;
+    public by(field: keyof T, value: string): (T & MemDbObj) | null;
+    public by(field: keyof T, value?: string): (T & MemDbObj) | null | ((value: any) => (T & MemDbObj) | null);
+    public by(field: keyof T, value?: string): (T & MemDbObj) | null | ((value: any) => (T & MemDbObj) | null) {
         if (!value) {
             var self = this;
             return function byProxy(value: any) {
@@ -1000,18 +1011,20 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
 
     constructor(uniqueField: keyof E) {
         this.field = uniqueField;
-        this.keyMap = {};
-        this.lokiMap = {};
+        this.keyMap = Object.create(null);
+        this.lokiMap = Object.create(null);
     }
 
     public set(obj: E) {
-        var field = this.field;
-        if (this.keyMap[<any>obj[field]]) {
-            throw new Error("Duplicate key for property " + field + ": " + obj[field]);
-        }
-        else {
-            this.keyMap[<any>obj[field]] = obj;
-            this.lokiMap[obj.$loki] = obj[field];
+        var fieldValue = obj[this.field];
+        if (fieldValue != null) {
+            if (this.keyMap[<any>fieldValue]) {
+                throw new Error("Duplicate key for property " + this.field + ": " + fieldValue);
+            }
+            else {
+                this.keyMap[<any>fieldValue] = obj;
+                this.lokiMap[obj.$loki] = fieldValue;
+            }
         }
     }
 
@@ -1048,8 +1061,8 @@ class UniqueIndex<E extends MemDbObj> implements MemDbUniqueIndex<E> {
     }
 
     public clear() {
-        this.keyMap = {};
-        this.lokiMap = {};
+        this.keyMap = Object.create(null);
+        this.lokiMap = Object.create(null);
     }
 }
 

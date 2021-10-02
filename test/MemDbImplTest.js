@@ -5,26 +5,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var chai = require("chai");
 var Arrays = require("ts-mortar/utils/Arrays");
 var Objects = require("ts-mortar/utils/Objects");
-var MemDbImpl = require("../db-collections/MemDbImpl");
+var CloneUtil = require("../db-collections/CloneUtil");
 var DataCollection = require("../db-collections/DataCollection");
-var ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
 var DummyDataPersister = require("./DummyDataPersister");
 var M = require("./TestModels");
 var asr = chai.assert;
 function rebuildDb() {
-    var metaDataCollName = "collection_meta_data";
-    var dbInst = new MemDbImpl("mem-collections-test", { readAllow: true, writeAllow: true, compressLocalStores: false }, "for-in-if", metaDataCollName, false, ModelDefinitionsSet.fromCollectionModels(M.dataModelsMap), function createCollectionSettings(collectionName) {
-        var settings = {};
-        if (collectionName === "coll_b") {
-            settings["unique"] = ["userId"];
-        }
-        return settings;
-    }, function modelKeys(obj, coll, dataModel) {
-        var keys = Object.keys(obj);
-        Arrays.fastRemove(keys, "$loki");
-        Arrays.fastRemove(keys, "meta");
-        return keys;
-    });
+    var dbInst = M.createDb();
     var modelA = dbInst.getModelDefinitions().getModel("coll_a");
     var modelFuncsA = dbInst.getModelDefinitions().getDataModelFuncs("coll_a");
     var modelB = dbInst.getModelDefinitions().getModel("coll_b");
@@ -33,11 +20,11 @@ function rebuildDb() {
         dbInst: dbInst,
         collA: new DataCollection("coll_a", modelA, modelFuncsA, dbInst),
         collB: new DataCollection("coll_b", modelB, modelFuncsB, dbInst),
-        getMetaDataCollection: function () { return dbInst.getCollection(metaDataCollName, false); }
+        getMetaDataCollection: function () { return dbInst.getCollection(dbInst.metaDataCollectionName, false); }
     };
 }
 function createPersister(dbInst) {
-    return new DummyDataPersister(function () { return dbInst.listCollections(); }, MemDbImpl.cloneForInIf, null);
+    return new DummyDataPersister(function () { return dbInst.listCollections(); }, CloneUtil.cloneForInIf, null);
 }
 function createSorter(prop) {
     return function sorter(a, b) {

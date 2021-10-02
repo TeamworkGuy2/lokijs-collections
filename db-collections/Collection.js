@@ -1,6 +1,7 @@
 "use strict";
 var EventEmitter = require("./TsEventEmitter");
 var Resultset = require("./Resultset");
+var CloneUtil = require("./CloneUtil");
 /** Collection class that handles documents of same type
  */
 var Collection = /** @class */ (function () {
@@ -56,7 +57,8 @@ var Collection = /** @class */ (function () {
         // is collection transactional
         this.transactional = options.transactional != null ? options.transactional : false;
         // options to clone objects when inserting them
-        this.cloneObjects = options.clone != null ? options.clone : false;
+        this.cloneObjects = options.clone || options.cloneFunc != null || false;
+        this.cloneFunc = options.cloneFunc != null ? options.cloneFunc : CloneUtil.cloneParseStringify;
         // disable track changes
         this.disableChangesApi = options.disableChangesApi != null ? options.disableChangesApi : true;
         // currentMaxId - change manually at your own peril!
@@ -78,13 +80,12 @@ var Collection = /** @class */ (function () {
         this.ensureId();
         var indices = [];
         // initialize optional user-supplied indices array ['age', 'lname', 'zip']
-        //if (typeof indices !== 'undefined') {
-        if (options && options.indices) {
+        if (options.indices) {
             if (Object.prototype.toString.call(options.indices) === "[object Array]") {
                 indices = options.indices;
             }
             else {
-                throw new TypeError("Indices must be a string or an array of strings");
+                throw new TypeError("Indices must be an array of strings");
             }
         }
         for (var idx = 0; idx < indices.length; idx++) {
@@ -162,6 +163,9 @@ var Collection = /** @class */ (function () {
         this.events.on("warning", console.warn);
         // for de-serialization purposes
         this.flushChanges();
+        if (Resultset.newCollection == null) {
+            Resultset.newCollection = function (name, options) { return new Collection(name, options); };
+        }
     }
     /*----------------------------+
     | INDEXING                    |
@@ -305,7 +309,7 @@ var Collection = /** @class */ (function () {
             if (typeof d !== "object") {
                 throw new TypeError("Document must be an object");
             }
-            var obj = (self.cloneObjects ? JSON.parse(JSON.stringify(d)) : d);
+            var obj = (self.cloneObjects ? self.cloneFunc(d) : d);
             if (obj.meta === undefined) {
                 obj.meta = {
                     revision: 0,
@@ -326,9 +330,13 @@ var Collection = /** @class */ (function () {
     Collection.prototype.clear = function () {
         this.data = [];
         this.idIndex = [];
-        this.binaryIndices = {};
         /* custom fix repopulating collection */
         var self = this;
+        Object.keys(this.binaryIndices).forEach(function (prop) {
+            var bi = self.binaryIndices[prop];
+            bi.dirty = false;
+            bi.values = [];
+        });
         Object.keys(this.constraints.unique).forEach(function (prop) {
             self.constraints.unique[prop].clear();
         });
@@ -399,7 +407,7 @@ var Collection = /** @class */ (function () {
         // try adding object to collection
         var binaryIdxs = Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
-            this.flagBinaryIndexesDirty();
+            this.flagBinaryIndexesDirty(binaryIdxs);
         }
         // if object you are adding already has id column it is either already in the collection
         // or the object is carrying its own 'id' property.  If it also has a meta property,
@@ -472,7 +480,7 @@ var Collection = /** @class */ (function () {
         }
         var binaryIdxs = Object.keys(this.binaryIndices);
         if (binaryIdxs.length > 0) {
-            this.flagBinaryIndexesDirty();
+            this.flagBinaryIndexesDirty(binaryIdxs);
         }
         try {
             var item = doc;
@@ -772,17 +780,19 @@ var UniqueIndex = /** @class */ (function () {
         this.keyMap = {};
         this.lokiMap = {};
         this.field = uniqueField;
-        this.keyMap = {};
-        this.lokiMap = {};
+        this.keyMap = Object.create(null);
+        this.lokiMap = Object.create(null);
     }
     UniqueIndex.prototype.set = function (obj) {
-        var field = this.field;
-        if (this.keyMap[obj[field]]) {
-            throw new Error("Duplicate key for property " + field + ": " + obj[field]);
-        }
-        else {
-            this.keyMap[obj[field]] = obj;
-            this.lokiMap[obj.$loki] = obj[field];
+        var fieldValue = obj[this.field];
+        if (fieldValue != null) {
+            if (this.keyMap[fieldValue]) {
+                throw new Error("Duplicate key for property " + this.field + ": " + fieldValue);
+            }
+            else {
+                this.keyMap[fieldValue] = obj;
+                this.lokiMap[obj.$loki] = fieldValue;
+            }
         }
     };
     UniqueIndex.prototype.get = function (key) {
@@ -814,8 +824,8 @@ var UniqueIndex = /** @class */ (function () {
         }
     };
     UniqueIndex.prototype.clear = function () {
-        this.keyMap = {};
-        this.lokiMap = {};
+        this.keyMap = Object.create(null);
+        this.lokiMap = Object.create(null);
     };
     return UniqueIndex;
 }());
