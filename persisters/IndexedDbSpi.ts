@@ -73,7 +73,7 @@ class IndexedDbSpi {
                     db.deleteObjectStore(tbl.name);
                     res.deletedStores.push(tbl);
                 } catch (err) {
-                    res.deleteErrors.push({ name: tbl.name, error: err });
+                    res.deleteErrors.push({ name: tbl.name, error: <any>err });
                 }
             });
 
@@ -83,7 +83,7 @@ class IndexedDbSpi {
                     var createRes = db.createObjectStore(tbl.name, tbl);
                     res.createdStores.push(createRes);
                 } catch (err) {
-                    res.createErrors.push({ name: tbl.name, error: err });
+                    res.createErrors.push({ name: tbl.name, error: <any>err });
                 }
             });
         }).then(() => IndexedDbSpi.inserts(inst.db, inst.util, tableInserts, res));
@@ -189,7 +189,7 @@ class IndexedDbSpi {
                 }
             };
             function onIdbError(this: IDBTransaction, evt: Event) {
-                insertErrors.push(xact.error)
+                insertErrors.push(<any>xact.error)
                 res.insertErrors.push({ name: tbl.name, errors: insertErrors });
                 insertsDone++;
                 pInserts.reject(xact.error);

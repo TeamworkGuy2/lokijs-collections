@@ -4,7 +4,13 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.30.0](N/A) - 2021-10-01
+### [0.31.0](N/A) - 2022-01-02
+#### Change
+* Update to TypeScript 4.4
+
+
+--------
+### [0.30.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/a5c8f6418700400b2df426a68ae15b4741d3e3ad) - 2021-10-01
 #### Added
 * Most of the same unit tests as the `lokijs` project
 * `Collection` properties and constructor options `cloneObjects` and `cloneFunc`

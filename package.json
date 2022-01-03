@@ -1,6 +1,6 @@
 {
   "name": "lokijs-collections",
-  "version": "0.30.0",
+  "version": "0.31.0",
   "description": "TypeScript in-memory data collections based off LokiJS with data models, constraints (like primary keys and non-null fields), and collection change tracking",
   "author": "TeamworkGuy2",
   "homepage": "https://github.com/TeamworkGuy2/lokijs-collections",
@@ -10,21 +10,21 @@
     "url": "https://github.com/TeamworkGuy2/lokijs-collections.git"
   },
   "dependencies": {
-    "@twg2/ts-twg-ast-codegen": "~0.29.0",
-    "ts-event-handlers-lite": "~0.5.0",
-    "ts-mortar": "~0.21.0",
-    "ts-promises": "~0.8.0"
+    "@twg2/ts-twg-ast-codegen": "~0.30.0",
+    "ts-event-handlers-lite": "~0.6.0",
+    "ts-mortar": "~0.22.0",
+    "ts-promises": "~0.9.0"
   },
   "devDependencies": {
     "@types/chai": "~4.2.4",
     "@types/mocha": "~5.2.7",
-    "@types/node": "~12.12.0",
+    "@types/node": "^12.0.0",
     "@types/q": "~1.5.1",
     "@types/websql": "~0.0.27",
     "chai": "~4.2.0",
     "mocha": "~5.2.0",
     "q": "~1.5.1",
-    "typescript": "~4.3.2"
+    "typescript": "~4.4.4"
   },
   "scripts": {
     "test": "node node_modules/mocha/bin/_mocha -u tdd --recursive ./test/**/*Test.js",
