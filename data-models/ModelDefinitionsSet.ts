@@ -14,20 +14,20 @@ class ModelDefinitionsSet implements ModelDefinitions {
     private cloneDeep: <T1>(obj: T1) => T1;
     public modelNames: string[];
     private modelDefs: { [id: string]: DataCollectionModel<any> };
-    private modelsFuncs: { [id: string]: DtoAllFuncs<any, any> };
+    private modelsFuncs: { [id: string]: DtoFuncs<any, any> };
 
 
     // generate model information the first time this JS module loads
-    constructor(dataModels: StringMap<DtoModel | (DtoModel & DtoAllFuncs<any, any>)>, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
+    constructor(dataModels: StringMap<DtoModel | (DtoModel & DtoFuncs<any, any>)>, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep) {
         this.cloneDeep = cloneDeep;
-        var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels, <StringMap<DtoAllFuncs<any, any>>><any>dataModels);
+        var { modelDefs, modelsFuncs } = ModelDefinitionsSet.modelDefsToCollectionModelDefs(dataModels, <StringMap<DtoFuncs<any, any>>><any>dataModels);
         this.modelDefs = modelDefs;
         this.modelsFuncs = modelsFuncs;
         this.modelNames = Object.keys(dataModels);
     }
 
 
-    public addModel<U, W>(modelName: string, model: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DtoAllFuncs<U, W> } {
+    public addModel<U, W>(modelName: string, model: DtoModel, modelFuncs: DtoFuncs<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DtoFuncs<U, W> } {
         if (this.modelDefs[modelName] != null) {
             throw new Error("model named '" + modelName + "' already exists, cannot add new model by that name");
         }
@@ -82,12 +82,12 @@ class ModelDefinitionsSet implements ModelDefinitions {
     }
 
 
-    public getDataModelFuncs(modelName: string): DtoAllFuncs<any, any> {
+    public getDataModelFuncs(modelName: string): DtoFuncs<any, any> {
         return this.modelsFuncs[modelName];
     }
 
 
-    public static fromCollectionModels(dataModels: StringMap<DtoModel | (DtoModel & DtoAllFuncs<any, any>)>, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
+    public static fromCollectionModels(dataModels: StringMap<DtoModel | (DtoModel & DtoFuncs<any, any>)>, cloneDeep: <T1>(obj: T1) => T1 = Objects.cloneDeep): ModelDefinitionsSet {
         var inst = new ModelDefinitionsSet(dataModels, cloneDeep);
         return inst;
     }
@@ -120,10 +120,10 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModel, modelFunc: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DtoAllFuncs<U, W> } {
+    export function modelDefToCollectionModelDef<U, W>(collectionName: string, dataModel: DtoModel, modelFunc: DtoFuncs<U, W>): { modelDef: DataCollectionModel<U>; modelFuncs: DtoFuncs<U, W> } {
         var dataModels: StringMap<DtoModel> = {};
         dataModels[collectionName] = dataModel;
-        var modelFuncs: StringMap<DtoFuncs<U> | DtoAllFuncs<any, any>> = {};
+        var modelFuncs: StringMap<DtoFuncs<U, W>> = {};
         modelFuncs[collectionName] = modelFunc;
 
         var res = modelDefsToCollectionModelDefs(dataModels, modelFuncs, [collectionName]);
@@ -135,17 +135,17 @@ module ModelDefinitionsSet {
 
 
     // creates maps of model names to primary key property and auto-generate property names
-    export function modelDefsToCollectionModelDefs<U, W>(dataModels: StringMap<DtoModel>, modelFuncs: StringMap<DtoFuncs<U> | DtoAllFuncs<U, W>>,
-            modelNames?: string[]): { modelDefs: StringMap<DataCollectionModel<U>>; modelsFuncs: StringMap<DtoAllFuncs<U, W>> } {
+    export function modelDefsToCollectionModelDefs<U, W>(dataModels: StringMap<DtoModel>, modelFuncs: StringMap<DtoFuncs<U, W>>,
+            modelNames?: string[]): { modelDefs: StringMap<DataCollectionModel<U>>; modelsFuncs: StringMap<DtoFuncs<U, W>> } {
 
         var modelDefs: StringMap<DataCollectionModel<any>> = {};
-        var modelsFuncs: StringMap<DtoAllFuncs<any, any>> = {};
+        var modelsFuncs: StringMap<DtoFuncs<any, any>> = {};
 
         modelNames = modelNames || Object.keys(dataModels);
         for (var i = 0, size = modelNames.length; i < size; i++) {
             var modelName = modelNames[i];
             var table = dataModels[modelName];
-            var tableFuncs = <DtoAllFuncs<U, W>>modelFuncs[modelName] || <DtoAllFuncs<U, W>>{};
+            var tableFuncs = modelFuncs[modelName] || <DtoFuncs<U, W>>{};
             var tableProps = table.properties;
 
             // setup mapping of model names to collection names and vice versa

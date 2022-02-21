@@ -1,21 +1,14 @@
 ﻿
-/** Retrival/query functions for items in a collection
+/** Functions retrival, querying, and conversion of items from a local collection to/from a server collection
  * @since 2016-3-11
  */
-interface DtoFuncs<E> {
+interface DtoFuncs<E, S = any> {
     /** an optional function that copies a model, if none is provided, implementations should fall back on a default clone function */
     copyFunc: (obj: E) => E;
-}
-
-
-/** All functions retrival, querying, and conversion of items from a local collection to/from a server collection
- * @since 2016-3-11
- */
-interface DtoAllFuncs<E, S> extends DtoFuncs<E> {
     /** Convert a server data model to a client data model */
-    toLocalObject: (item: S) => E;
+    toLocalObject?: ((item: S) => E) | null;
     /** Convert a client data model to a server data model */
-    toSvcObject: (item: E) => S;
+    toSvcObject?: ((item: E) => S) | null;
 }
 
 
@@ -26,7 +19,7 @@ interface DtoAllFuncs<E, S> extends DtoFuncs<E> {
  */
 interface DtoCollection<E extends K, K, S> extends DataCollection<E, K> {
     /** Get data model helper functions associated with this collection/data model */
-    getDataModelFuncs(): DtoAllFuncs<E, S>;
+    getDataModelFuncs(): DtoFuncs<E, S>;
 }
 
 
@@ -53,7 +46,7 @@ interface ModelDefinitions {
      *   - A model (containing the properties)
      *   - A set of functions for working with that model (functions for copying, converting to/from service DTOs, etc.)
      */
-    addModel<U, W>(modelName: string, model: DtoModel, modelFuncs?: DtoFuncs<U> | DtoAllFuncs<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DtoAllFuncs<U, W> };
+    addModel<U, W>(modelName: string, model: DtoModel, modelFuncs?: DtoFuncs<U, W>): { modelDef: DataCollectionModel<U>, modelFuncs: DtoFuncs<U, W> };
 
     getPrimaryKeys(modelName: string): string[];
 
@@ -67,7 +60,7 @@ interface ModelDefinitions {
 
     /** May return null if the model has no associated functions
      */
-    getDataModelFuncs(modelName: string): DtoAllFuncs<any, any>;
+    getDataModelFuncs(modelName: string): DtoFuncs<any, any>;
 }
 
 

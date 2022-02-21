@@ -4,7 +4,14 @@ This project does its best to adhere to [Semantic Versioning](http://semver.org/
 
 
 --------
-### [0.31.0](N/A) - 2022-01-02
+### [0.32.0](N/A) - 2022-02-21
+#### Change
+* Removed `DtoAllFuncs<,>` interface in favor of optional properties and 2nd generic type on `DtoFuncs<>` interface
+* Fix reference from '@twg2/ts-twg-ast-codegen@0.31.0` upgrade `ast-types.d.ts` renamed `code-ast.d.ts`
+
+
+--------
+### [0.31.0](https://github.com/TeamworkGuy2/lokijs-collections/commit/d1fed111441160e25a058e04781d1d0a71d7b43b) - 2022-01-02
 #### Change
 * Update to TypeScript 4.4
 

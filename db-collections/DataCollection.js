@@ -1,4 +1,5 @@
 "use strict";
+/// <reference path="./mem-collections.d.ts" />
 /// <reference path="./mem-db.d.ts" />
 var ListenerList = require("ts-event-handlers-lite/ListenerList");
 var ChangeTrackers = require("../change-trackers/ChangeTrackers");

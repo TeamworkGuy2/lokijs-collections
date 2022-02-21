@@ -1,5 +1,5 @@
 ﻿/// <reference path="../../ts-event-handlers-lite/events.d.ts" />
-/// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/ast-types.d.ts" />
+/// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/code-ast.d.ts" />
 /// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/model-types.d.ts" />
 /// <reference path="../../@twg2/ts-twg-ast-codegen/code-types/utils.d.ts" />
 /// <reference path="../../ts-promises/ts-promises.d.ts" />

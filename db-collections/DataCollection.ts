@@ -1,4 +1,5 @@
-﻿/// <reference path="./mem-db.d.ts" />
+﻿/// <reference path="./mem-collections.d.ts" />
+/// <reference path="./mem-db.d.ts" />
 import ListenerList = require("ts-event-handlers-lite/ListenerList");
 import ChangeTrackers = require("../change-trackers/ChangeTrackers");
 import ModelDefinitionsSet = require("../data-models/ModelDefinitionsSet");
@@ -410,7 +411,7 @@ class DataCollection<E extends K, K> implements _DataCollection<E, K> {
     }
 
 
-    public static fromDtoModel<U extends V, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U> | DtoAllFuncs<U, W>, dbInst: MemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
+    public static fromDtoModel<U extends V, V, W>(collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<U, W>, dbInst: MemDb, trackChanges: boolean = false): DtoCollection<U, V, W> {
         var model = ModelDefinitionsSet.modelDefToCollectionModelDef(collectionName, dataModel, modelFuncs);
         var inst = new DataCollection<U, V>(collectionName, model.modelDef, model.modelFuncs, dbInst, trackChanges);
         return <DtoCollection<U, V, W>><any>inst;

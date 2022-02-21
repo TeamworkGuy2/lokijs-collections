@@ -213,7 +213,8 @@ class PrimaryKeyMaintainer {
 
     /** creates an DataCollection if 'dataColl' is null, otherwise returns 'dataColl' unmodified */
     private static initMetaDataCollection(dataColl: DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> | null,
-            collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<any> | DtoAllFuncs<any, any>, dbDataInst: MemDb): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
+        collectionName: string, dataModel: DtoModel, modelFuncs: DtoFuncs<any, any>, dbDataInst: MemDb
+    ): DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel> {
         if (dataColl == null) {
             var collModel = dbDataInst.getModelDefinitions().addModel(collectionName, dataModel, modelFuncs);
             return new DataCollection<CollectionMetaData, CollectionMetaData.OptionalModel>(collectionName, collModel.modelDef, collModel.modelFuncs, dbDataInst);
